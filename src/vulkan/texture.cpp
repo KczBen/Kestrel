@@ -1,6 +1,5 @@
 #include "texture.hpp"
 #include "image.hpp"
-#include "vulkan/vulkan.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION

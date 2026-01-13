@@ -1,7 +1,6 @@
 #include "descriptorSet.hpp"
 #include "descriptorPool.hpp"
 #include "descriptorSetLayout.hpp"
-#include "vulkan/vulkan.hpp"
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 

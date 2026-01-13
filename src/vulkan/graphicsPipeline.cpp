@@ -3,7 +3,6 @@
 #include "shaderModule.hpp"
 #include "swapchain.hpp"
 #include "vertex.hpp"
-#include "vulkan/vulkan.hpp"
 #include <glm/fwd.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -32,7 +31,7 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
     const vk::PipelineVertexInputStateCreateInfo vInputInfo(
         {}, 1, &bindingDescription, attributeDescriptions.size(), attributeDescriptions.data());
 
-    const vk::PipelineInputAssemblyStateCreateInfo inputAssembly({}, vk::PrimitiveTopology::eTriangleList, VK_FALSE);
+    const vk::PipelineInputAssemblyStateCreateInfo inputAssembly({}, vk::PrimitiveTopology::eTriangleList, vk::False);
 
     const vk::Viewport viewport(0.0f,
                                 0.0f,
@@ -48,12 +47,12 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
     const vk::PushConstantRange pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4));
 
     const vk::PipelineRasterizationStateCreateInfo rasterizer({},
-                                                              VK_FALSE,
-                                                              VK_FALSE,
+                                                              vk::False,
+                                                              vk::False,
                                                               vk::PolygonMode::eFill,
                                                               vk::CullModeFlagBits::eBack,
                                                               vk::FrontFace::eCounterClockwise,
-                                                              VK_FALSE,
+                                                              vk::False,
                                                               0.0f,
                                                               0.0f,
                                                               0.0f,
@@ -63,10 +62,10 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
         {}, vk::True, vk::True, vk::CompareOp::eLess, vk::False, vk::False);
 
     const vk::PipelineMultisampleStateCreateInfo msaa(
-        {}, swapchain.getMsaaSampleCount(), VK_FALSE, 1.0f, {}, VK_FALSE, VK_FALSE);
+        {}, swapchain.getMsaaSampleCount(), vk::False, 1.0f, {}, vk::False, vk::False);
 
     const vk::PipelineColorBlendAttachmentState colorBlendAttachment(
-        VK_TRUE,
+        vk::True,
         vk::BlendFactor::eSrcAlpha,
         vk::BlendFactor::eOneMinusSrcAlpha,
         vk::BlendOp::eAdd,
@@ -77,7 +76,7 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
             vk::ColorComponentFlagBits::eA);
 
     const vk::PipelineColorBlendStateCreateInfo colorBlending(
-        {}, VK_FALSE, vk::LogicOp::eCopy, 1, &colorBlendAttachment, {{0.0f, 0.0f, 0.0f, 0.0f}});
+        {}, vk::False, vk::LogicOp::eCopy, 1, &colorBlendAttachment, {{0.0f, 0.0f, 0.0f, 0.0f}});
 
     std::vector<vk::DescriptorSetLayout> rawLayouts;
     rawLayouts.reserve(layouts.size());

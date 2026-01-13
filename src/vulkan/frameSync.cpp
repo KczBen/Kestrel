@@ -1,6 +1,5 @@
 #include "frameSync.hpp"
 #include "device.hpp"
-#include "vulkan/vulkan.hpp"
 
 Vulkan::FrameSync::FrameSync(Vulkan::Device& device, uint32_t maxFramesInFlight) : device(device.get()) {
     vk::FenceCreateFlags flags(vk::FenceCreateFlagBits::eSignaled);

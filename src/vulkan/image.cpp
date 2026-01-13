@@ -1,5 +1,4 @@
 #include "image.hpp"
-#include "vulkan/vulkan.hpp"
 #include <cmath>
 #include <vulkan/vulkan_raii.hpp>
 

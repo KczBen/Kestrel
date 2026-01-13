@@ -1,5 +1,4 @@
 #include "commandPool.hpp"
-#include "vulkan/vulkan.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
 Vulkan::CommandPool::CommandPool(Vulkan::PhysicalDevice& physicalDevice,
@@ -28,8 +27,8 @@ void Vulkan::CommandPool::transitionImage(Vulkan::Image& image,
                                           dstAccess,
                                           image.layout,
                                           newLayout,
-                                          VK_QUEUE_FAMILY_IGNORED,
-                                          VK_QUEUE_FAMILY_IGNORED,
+                                          vk::QueueFamilyIgnored,
+                                          vk::QueueFamilyIgnored,
                                           image.image,
                                           vk::ImageSubresourceRange(dstAspect, 0, image.mipLevelCount, 0, 1)};
 

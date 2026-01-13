@@ -1,6 +1,5 @@
 #include "semaphore.hpp"
 #include "device.hpp"
-#include "vulkan/vulkan.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
 Vulkan::Semaphore::Semaphore(Vulkan::Device& device) : device(&device.get()) {

@@ -1,5 +1,4 @@
 #include "descriptorSetLayout.hpp"
-#include "vulkan/vulkan.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
 Vulkan::DescriptorSetLayout::DescriptorSetLayout(Vulkan::Device& device,

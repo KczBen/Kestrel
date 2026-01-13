@@ -3,7 +3,6 @@
 #include "device.hpp"
 #include "image.hpp"
 #include "physicalDevice.hpp"
-#include "vulkan/vulkan.hpp"
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 

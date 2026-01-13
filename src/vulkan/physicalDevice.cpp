@@ -3,7 +3,6 @@
 
 #include "physicalDevice.hpp"
 #include "surface.hpp"
-#include "vulkan/vulkan.hpp"
 
 Vulkan::PhysicalDevice::PhysicalDevice(Vulkan::Instance& instance, Vulkan::Surface& surface) {
     auto devices = instance.get().enumeratePhysicalDevices();

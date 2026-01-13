@@ -1,6 +1,5 @@
 #include "swapchain.hpp"
 #include "image.hpp"
-#include "vulkan/vulkan.hpp"
 #include <SDL3/SDL_video.h>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -71,6 +70,7 @@ void Vulkan::Swapchain::createSwapchain(Vulkan::Device& device, Vulkan::Surface&
     auto indices = physicalDevice.getQueueFamilyIndices();
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
+    // SwapchainCreateInfoKHR needs the raw handle, not RAII
     const vk::SwapchainKHR oldSwapchain = *swapchain ? *swapchain : VK_NULL_HANDLE;
 
     const vk::SwapchainCreateInfoKHR cInfo(
@@ -88,7 +88,7 @@ void Vulkan::Swapchain::createSwapchain(Vulkan::Device& device, Vulkan::Surface&
         swapChainSupport.capabilities.currentTransform,
         vk::CompositeAlphaFlagBitsKHR::eOpaque,
         presentMode,
-        VK_TRUE,
+        vk::True,
         oldSwapchain);
 
     swapchain = vk::raii::SwapchainKHR(*this->device, cInfo);

@@ -1,6 +1,5 @@
 #include "shaderModule.hpp"
 #include "readfile.hpp"
-#include "vulkan/vulkan.hpp"
 #include <cstdint>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>

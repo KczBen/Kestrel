@@ -1,5 +1,4 @@
 #include "descriptorPool.hpp"
-#include "vulkan/vulkan.hpp"
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 

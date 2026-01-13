@@ -1,6 +1,5 @@
 #include "uploadContext.hpp"
 #include "commandPool.hpp"
-#include "vulkan/vulkan.hpp"
 
 Vulkan::UploadContext::UploadContext(Vulkan::Device& device, Vulkan::CommandPool& pool, UploadBuffer& staging)
     : device(&device.get()), queue(&device.getGraphicsQueue()), pool(&pool.get()), staging(&staging) {
@@ -67,30 +66,3 @@ void Vulkan::UploadContext::flushAndWait() {
 
     staging->reset();
 }
-
-// void Vulkan::UploadContext::transitionImage(Image& image,
-//                                             vk::ImageLayout newLayout,
-//                                             vk::PipelineStageFlags2 dstStage,
-//                                             vk::AccessFlags2 dstAccess) {
-//     const vk::ImageMemoryBarrier2 barrier{
-//         image.stageMask,
-//         image.accessFlags,
-//         dstStage,
-//         dstAccess,
-//         image.layout,
-//         newLayout,
-//         VK_QUEUE_FAMILY_IGNORED,
-//         VK_QUEUE_FAMILY_IGNORED,
-//         image.image,
-//         vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, image.mipLevelCount, 0, 1)};
-//
-//     vk::DependencyInfo depInfo{};
-//     depInfo.imageMemoryBarrierCount = 1;
-//     depInfo.pImageMemoryBarriers = &barrier;
-//
-//     cmd.pipelineBarrier2(depInfo);
-//
-//     image.layout = newLayout;
-//     image.stageMask = dstStage;
-//     image.accessFlags = dstAccess;
-// }

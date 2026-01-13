@@ -1,5 +1,4 @@
 #include "instance.hpp"
-#include "vulkan/vulkan.hpp"
 
 #include <SDL3/SDL_vulkan.h>
 #include <vulkan/vulkan_core.h>
@@ -19,7 +18,7 @@ Vulkan::Instance::Instance(const std::string& appName, SDL_Window* window) {
     // Add debug extension
     std::vector<const char*> extensions(sdlExtensions, sdlExtensions + sdlExtensionCount);
 
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    extensions.push_back(vk::EXTDebugUtilsExtensionName);
 
     // Validation layers
     const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};

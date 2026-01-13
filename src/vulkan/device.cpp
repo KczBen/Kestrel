@@ -7,7 +7,6 @@
 #include "device.hpp"
 #include "instance.hpp"
 #include "physicalDevice.hpp"
-#include "vulkan/vulkan.hpp"
 
 Vulkan::Device::Device(Vulkan::PhysicalDevice& physicalDevice, Vulkan::Instance& instance)
     : physicalDevice(&physicalDevice.get()), memoryAllocator(nullptr) {
@@ -59,7 +58,7 @@ Vulkan::Device::Device(Vulkan::PhysicalDevice& physicalDevice, Vulkan::Instance&
                                                       .pDeviceMemoryCallbacks{},
                                                       .pHeapSizeLimit{},
                                                       .instance = *instance.get(),
-                                                      .vulkanApiVersion = VK_API_VERSION_1_4,
+                                                      .vulkanApiVersion = vk::ApiVersion14,
                                                       .pTypeExternalMemoryHandleTypes{}};
 
     vmaCreateAllocator(&allocatorCreateInfo, &memoryAllocator);

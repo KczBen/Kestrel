@@ -2,7 +2,6 @@
 
 #include "device.hpp"
 #include "vk_mem_alloc.h"
-#include "vulkan/vulkan.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
 namespace Vulkan {

@@ -13,7 +13,6 @@
 #include "surface.hpp"
 #include "uploadContext.hpp"
 #include "vertex.hpp"
-#include "vulkan/vulkan.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
