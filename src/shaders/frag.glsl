@@ -12,7 +12,8 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 }
 ubo;
 
-layout(set = 1, binding = 0) uniform sampler2D texSampler;
+layout(set = 1, binding = 0) uniform sampler2D albedoSampler;
+layout(set = 1, binding = 1) uniform sampler2D packedNormalSampler;
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
@@ -27,7 +28,7 @@ const vec3 lightPosWorld = vec3(10.0, 10.0, 10.0);
 void main() {
     // Interpolated vertex colours for now
     vec3 albedo = fragColor;
-    // vec3 albedo = texture(texSampler, fragTexCoord);
+    // vec3 albedo = texture(albedoSampler, fragTexCoord);
 
     vec3 N = normalize(fragNormal);
     vec3 V = normalize(-fragPos); // camera at origin in view space
@@ -43,5 +44,5 @@ void main() {
     vec3 lTan = normalize(L - dotNL * N);
     vec3 vTan = normalize(V - dotNV * N);
 
-    outColor = texture(texSampler, fragTexCoord);
+    outColor = texture(albedoSampler, fragTexCoord);
 }

@@ -13,6 +13,7 @@
 #include "surface.hpp"
 #include "uploadContext.hpp"
 #include "vertex.hpp"
+#include "vulkan/vulkan.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -44,6 +45,50 @@ void Render::Render::uploadScene(const Scene& scene) {
         Vulkan::DeviceBuffer(device,
                              totalIndices * sizeof(uint32_t),
                              vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst));
+
+    uniformBuffers.reserve(maxFramesInFlight);
+    for (uint32_t i = 0; i < maxFramesInFlight; ++i) {
+        uniformBuffers.emplace_back(device, sizeof(UniformBufferObject));
+    }
+
+    cameraDescriptorSetLayout.emplace(
+        Vulkan::DescriptorSetLayout(device,
+                                    std::vector<vk::DescriptorSetLayoutBinding>{vk::DescriptorSetLayoutBinding(
+                                        0,
+                                        vk::DescriptorType::eUniformBuffer,
+                                        1,
+                                        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)}));
+
+    materialDescriptorSetLayout.emplace(Vulkan::DescriptorSetLayout(
+        device,
+        std::vector<vk::DescriptorSetLayoutBinding>{
+            vk::DescriptorSetLayoutBinding(
+                0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment),
+            vk::DescriptorSetLayoutBinding(
+                1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment)}));
+
+    cameraDescriptorSets.reserve(maxFramesInFlight);
+
+    for (uint32_t i = 0; i < maxFramesInFlight; i++) {
+        cameraDescriptorSets.emplace_back(device, descriptorPool, cameraDescriptorSetLayout.value());
+        const DescriptorWrite uboWrite{.binding = 0,
+                                       .type = vk::DescriptorType::eUniformBuffer,
+                                       .bufferInfo = {uniformBuffers[i].get(), 0, sizeof(UniformBufferObject)}};
+        cameraDescriptorSets[i].write(std::span(&uboWrite, 1));
+    }
+
+    std::array<const Vulkan::DescriptorSetLayout*, 2> layouts = {&cameraDescriptorSetLayout.value(),
+                                                                 &materialDescriptorSetLayout.value()};
+
+    /*
+     * The proper thing to do here would be a pipeline cache
+     *
+     * When a material is created or referenced, the cache is checked for a pipeline that matches the desired
+     * configuration.
+     * If a match is found, a reference is added to the material
+     * If no match is found, a new pipeline is created with the desired settings and is added to the cache
+     * But for the purpose of simplicity, there are simply 2 pipelines created manually
+     */
 
     /* SHOULD BE MATERIAL DEPENDENT */
     textures.reserve(1);
@@ -79,53 +124,9 @@ void Render::Render::uploadScene(const Scene& scene) {
         context.upload(*textures.data());
     }
 
-    uniformBuffers.reserve(maxFramesInFlight);
-    for (uint32_t i = 0; i < maxFramesInFlight; ++i) {
-        uniformBuffers.emplace_back(device, sizeof(UniformBufferObject));
-    }
-
-    cameraDescriptorSetLayout.emplace(
-        Vulkan::DescriptorSetLayout(device,
-                                    std::vector<vk::DescriptorSetLayoutBinding>{vk::DescriptorSetLayoutBinding(
-                                        0,
-                                        vk::DescriptorType::eUniformBuffer,
-                                        1,
-                                        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)}));
-
-    materialDescriptorSetLayout.emplace(
-        Vulkan::DescriptorSetLayout(device,
-                                    std::vector<vk::DescriptorSetLayoutBinding>{
-                                        vk::DescriptorSetLayoutBinding(0,
-                                                                       vk::DescriptorType::eCombinedImageSampler,
-                                                                       1,
-                                                                       vk::ShaderStageFlagBits::eFragment,
-                                                                       &*textures.data()->getSampler())}));
-
-    cameraDescriptorSets.reserve(maxFramesInFlight);
-
-    for (uint32_t i = 0; i < maxFramesInFlight; i++) {
-        cameraDescriptorSets.emplace_back(device, descriptorPool, cameraDescriptorSetLayout.value());
-        const DescriptorWrite uboWrite{.binding = 0,
-                                       .type = vk::DescriptorType::eUniformBuffer,
-                                       .bufferInfo = {uniformBuffers[i].get(), 0, sizeof(UniformBufferObject)}};
-        cameraDescriptorSets[i].write(std::span(&uboWrite, 1));
-    }
-
-    materialDescriptorSets.reserve(maxFramesInFlight);
-
-    for (uint32_t i = 0; i < maxFramesInFlight; i++) {
-        materialDescriptorSets.emplace_back(device, descriptorPool, materialDescriptorSetLayout.value());
-        const DescriptorWrite materialWrite{.binding = 0,
-                                            .type = vk::DescriptorType::eCombinedImageSampler,
-                                            .imageInfo{textures[0].getSampler(),
-                                                       textures[0].getImage().getImageView(),
-                                                       vk::ImageLayout::eShaderReadOnlyOptimal}};
-        materialDescriptorSets[i].write(std::span(&materialWrite, 1));
-    }
-
-    std::array<const Vulkan::DescriptorSetLayout*, 2> layouts = {&cameraDescriptorSetLayout.value(),
-                                                                 &materialDescriptorSetLayout.value()};
     pipeline.emplace(Vulkan::GraphicsPipeline(device, swapchain, layouts, vertexShader, fragmentShader));
+    materials.emplace_back(
+        device, textures[0], textures[0], pipeline.value(), descriptorPool, materialDescriptorSetLayout.value());
 }
 
 void Render::Render::render(Scene& scene, float deltaTime) {
@@ -198,9 +199,6 @@ void Render::Render::render(Scene& scene, float deltaTime) {
 
     cmd.beginRendering(renderInfo);
 
-    // Bind the graphics pipeline
-    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline->get());
-
     const vk::Viewport viewport(0.0,
                                 1.0,
                                 static_cast<float>(swapchain.getExtent().width),
@@ -224,20 +222,25 @@ void Render::Render::render(Scene& scene, float deltaTime) {
 
     uniformBuffers[frameIndex].update(&ubo, sizeof(UniformBufferObject));
 
-    // per model
-    for (const auto* model : scene.getObjects()) {
-        const vk::DeviceSize offsets[] = {0};
-        cmd.bindVertexBuffers(0, vertexBuffers, offsets);
-        cmd.bindIndexBuffer(indexBuffer->get(), 0, vk::IndexType::eUint32);
-        const PushConstants pc{model->getModelMatrix()};
-        cmd.pushConstants(
-            pipeline->getLayout(), vk::ShaderStageFlagBits::eVertex, 0, vk::ArrayProxy<const PushConstants>(1, &pc));
+    for (auto& material : materials) {
+        cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, material.getPipeline()->get());
         cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                pipeline->getLayout(),
                                0,
-                               {*cameraDescriptorSets[frameIndex].get(), *materialDescriptorSets[frameIndex].get()},
+                               {*cameraDescriptorSets[frameIndex].get(), material.getDescriptorSet(frameIndex).get()},
                                nullptr);
-        cmd.drawIndexed(model->indices.size(), 1, 0, 0, 0);
+
+        for (const auto* model : scene.getObjects()) {
+            const vk::DeviceSize offsets[] = {0};
+            cmd.bindVertexBuffers(0, vertexBuffers, offsets);
+            cmd.bindIndexBuffer(indexBuffer->get(), 0, vk::IndexType::eUint32);
+            const PushConstants pc{model->getModelMatrix()};
+            cmd.pushConstants(pipeline->getLayout(),
+                              vk::ShaderStageFlagBits::eVertex,
+                              0,
+                              vk::ArrayProxy<const PushConstants>(1, &pc));
+            cmd.drawIndexed(model->indices.size(), 1, 0, 0, 0);
+        }
     }
 
     cmd.endRendering();

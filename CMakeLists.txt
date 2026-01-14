@@ -37,7 +37,8 @@ add_executable(vulkan-sdl
     src/vulkan/hostBuffer.cpp
     
     src/render/scene.cpp
-    src/render/render.cpp)
+    src/render/render.cpp
+    src/render/material.cpp)
 
 target_include_directories(vulkan-sdl PRIVATE 
     ${CMAKE_SOURCE_DIR}/src/vulkan/include

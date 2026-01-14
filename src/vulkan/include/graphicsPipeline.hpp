@@ -5,6 +5,7 @@
 #include "shaderDef.hpp"
 #include "shaderModule.hpp"
 #include "swapchain.hpp"
+#include "vulkan/vulkan.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
 namespace Vulkan {
@@ -21,7 +22,11 @@ class GraphicsPipeline {
                      Vulkan::Swapchain& swapchain,
                      std::span<const Vulkan::DescriptorSetLayout*> layouts,
                      const ShaderDef& vertexShader,
-                     const ShaderDef& fragmentShader);
+                     const ShaderDef& fragmentShader,
+                     bool depthTest = true,
+                     bool depthWrite = true,
+                     vk::CullModeFlagBits cullMode = vk::CullModeFlagBits::eBack,
+                     vk::CompareOp depthCompareMode = vk::CompareOp::eLess);
 
     auto get() -> const vk::raii::Pipeline&;
     auto getLayout() -> const vk::raii::PipelineLayout&;

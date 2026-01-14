@@ -10,7 +10,11 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
                                            Vulkan::Swapchain& swapchain,
                                            std::span<const Vulkan::DescriptorSetLayout*> layouts,
                                            const ShaderDef& vertexShader,
-                                           const ShaderDef& fragmentShader)
+                                           const ShaderDef& fragmentShader,
+                                           bool depthTest,
+                                           bool depthWrite,
+                                           vk::CullModeFlagBits cullMode,
+                                           vk::CompareOp depthCompareMode)
     : device(&device.get()), vertexModule(this->device, vertexShader), fragmentModule(this->device, fragmentShader) {
     const vk::PipelineShaderStageCreateInfo vertexShaderStageInfo(
         vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eVertex, vertexModule.get(), "main");
@@ -50,7 +54,7 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
                                                               vk::False,
                                                               vk::False,
                                                               vk::PolygonMode::eFill,
-                                                              vk::CullModeFlagBits::eBack,
+                                                              cullMode,
                                                               vk::FrontFace::eCounterClockwise,
                                                               vk::False,
                                                               0.0f,
@@ -58,8 +62,12 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
                                                               0.0f,
                                                               1.0f);
 
-    const vk::PipelineDepthStencilStateCreateInfo depthStencil(
-        {}, vk::True, vk::True, vk::CompareOp::eLess, vk::False, vk::False);
+    const vk::PipelineDepthStencilStateCreateInfo depthStencil({},
+                                                               static_cast<vk::Bool32>(depthTest),
+                                                               static_cast<vk::Bool32>(depthWrite),
+                                                               depthCompareMode,
+                                                               vk::False,
+                                                               vk::False);
 
     const vk::PipelineMultisampleStateCreateInfo msaa(
         {}, swapchain.getMsaaSampleCount(), vk::False, 1.0f, {}, vk::False, vk::False);

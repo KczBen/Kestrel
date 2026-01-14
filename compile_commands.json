@@ -142,5 +142,11 @@
   "command": "/usr/bin/clang++ -I/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/vulkan/include -I/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/util/include -I/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/render/include -g -std=gnu++23 @CMakeFiles/vulkan-sdl.dir/src/render/render.cpp.o.modmap -o CMakeFiles/vulkan-sdl.dir/src/render/render.cpp.o -c /home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/render/render.cpp",
   "file": "/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/render/render.cpp",
   "output": "CMakeFiles/vulkan-sdl.dir/src/render/render.cpp.o"
+},
+{
+  "directory": "/home/bence/Documents/CodingProjects/C++/vulkan-sdl/out/build/clang",
+  "command": "/usr/bin/clang++ -I/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/vulkan/include -I/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/util/include -I/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/render/include -g -std=gnu++23 @CMakeFiles/vulkan-sdl.dir/src/render/material.cpp.o.modmap -o CMakeFiles/vulkan-sdl.dir/src/render/material.cpp.o -c /home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/render/material.cpp",
+  "file": "/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/render/material.cpp",
+  "output": "CMakeFiles/vulkan-sdl.dir/src/render/material.cpp.o"
 }
 ]

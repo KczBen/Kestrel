@@ -11,6 +11,7 @@
 #include "hostBuffer.hpp"
 #include "image.hpp"
 #include "instance.hpp"
+#include "material.hpp"
 #include "physicalDevice.hpp"
 #include "scene.hpp"
 #include "swapchain.hpp"
@@ -33,7 +34,6 @@ class Render {
     std::vector<Vulkan::DescriptorSet> cameraDescriptorSets;
 
     std::optional<Vulkan::DescriptorSetLayout> materialDescriptorSetLayout;
-    std::vector<Vulkan::DescriptorSet> materialDescriptorSets;
 
     Vulkan::Swapchain swapchain;
     Vulkan::FrameSync syncObjects;
@@ -43,6 +43,8 @@ class Render {
     std::optional<Vulkan::DeviceBuffer> indexBuffer;
     std::vector<Vulkan::HostBuffer> uniformBuffers;
     std::vector<Vulkan::Texture> textures;
+
+    std::vector<Material> materials;
 
     std::optional<Vulkan::GraphicsPipeline> pipeline;
 
