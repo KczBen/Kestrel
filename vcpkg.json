@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "glm",
+    "glslang",
+    "nlohmann-json",
+    "tinyobjloader",
+    "vulkan-memory-allocator"
+  ]
+}

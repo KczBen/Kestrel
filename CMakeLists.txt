@@ -6,8 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+find_package(glm CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
-find_package(SDL3 REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(SDL3 CONFIG REQUIRED)
 find_package(glslang REQUIRED)
 
 add_executable(vulkan-sdl
@@ -47,7 +49,9 @@ target_include_directories(vulkan-sdl PRIVATE
 )
 
 target_link_libraries(vulkan-sdl PRIVATE
+    glm::glm-header-only
     Vulkan::Vulkan
+    GPUOpen::VulkanMemoryAllocator
     SDL3::SDL3
     glslang::glslang
     glslang::SPIRV
