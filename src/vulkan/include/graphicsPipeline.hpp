@@ -4,7 +4,6 @@
 #include "device.hpp"
 #include "shaderDef.hpp"
 #include "shaderModule.hpp"
-#include "swapchain.hpp"
 #include "vulkan/vulkan.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
@@ -18,15 +17,18 @@ class GraphicsPipeline {
     Vulkan::ShaderModule fragmentModule;
 
   public:
+    // TODO: Use vk::GraphicsPipelineLibrary to make this more modular
     GraphicsPipeline(Vulkan::Device& device,
-                     Vulkan::Swapchain& swapchain,
+                     vk::Format renderTargetFormat,
                      std::span<const Vulkan::DescriptorSetLayout*> layouts,
+                     std::span<const vk::PushConstantRange> pushConstants,
                      const ShaderDef& vertexShader,
                      const ShaderDef& fragmentShader,
                      bool depthTest = true,
                      bool depthWrite = true,
                      vk::CullModeFlagBits cullMode = vk::CullModeFlagBits::eBack,
-                     vk::CompareOp depthCompareMode = vk::CompareOp::eLess);
+                     vk::CompareOp depthCompareMode = vk::CompareOp::eLess,
+                     bool useVertexBinding = true);
 
     auto get() -> const vk::raii::Pipeline&;
     auto getLayout() -> const vk::raii::PipelineLayout&;

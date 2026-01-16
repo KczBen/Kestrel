@@ -1,20 +1,22 @@
 #include "graphicsPipeline.hpp"
 #include "descriptorSetLayout.hpp"
 #include "shaderModule.hpp"
-#include "swapchain.hpp"
 #include "vertex.hpp"
+#include "vulkan/vulkan.hpp"
 #include <glm/fwd.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
-                                           Vulkan::Swapchain& swapchain,
+                                           vk::Format renderTargetFormat,
                                            std::span<const Vulkan::DescriptorSetLayout*> layouts,
+                                           std::span<const vk::PushConstantRange> pushConstants,
                                            const ShaderDef& vertexShader,
                                            const ShaderDef& fragmentShader,
                                            bool depthTest,
                                            bool depthWrite,
                                            vk::CullModeFlagBits cullMode,
-                                           vk::CompareOp depthCompareMode)
+                                           vk::CompareOp depthCompareMode,
+                                           bool useVertexBinding)
     : device(&device.get()), vertexModule(this->device, vertexShader), fragmentModule(this->device, fragmentShader) {
     const vk::PipelineShaderStageCreateInfo vertexShaderStageInfo(
         vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eVertex, vertexModule.get(), "main");
@@ -37,18 +39,8 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
 
     const vk::PipelineInputAssemblyStateCreateInfo inputAssembly({}, vk::PrimitiveTopology::eTriangleList, vk::False);
 
-    const vk::Viewport viewport(0.0f,
-                                0.0f,
-                                static_cast<float>(swapchain.getExtent().width),
-                                static_cast<float>(swapchain.getExtent().height),
-                                0.0f,
-                                1.0f);
-
-    const vk::Rect2D scissor({0, 0}, swapchain.getExtent());
-
-    const vk::PipelineViewportStateCreateInfo viewportState({}, 1, &viewport, 1, &scissor);
-
-    const vk::PushConstantRange pushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4));
+    // This is essentially useless, it could be removed with a Vulkan extension
+    const vk::PipelineViewportStateCreateInfo viewportState({}, 1, nullptr, 1, nullptr);
 
     const vk::PipelineRasterizationStateCreateInfo rasterizer({},
                                                               vk::False,
@@ -70,7 +62,7 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
                                                                vk::False);
 
     const vk::PipelineMultisampleStateCreateInfo msaa(
-        {}, swapchain.getMsaaSampleCount(), vk::False, 1.0f, {}, vk::False, vk::False);
+        {}, vk::SampleCountFlagBits::e4, vk::False, 1.0f, {}, vk::False, vk::False);
 
     const vk::PipelineColorBlendAttachmentState colorBlendAttachment(
         vk::True,
@@ -93,11 +85,12 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
         rawLayouts.push_back(layout->get());
     }
 
-    const vk::PipelineLayoutCreateInfo pipelineLayoutInfo({}, layouts.size(), rawLayouts.data(), 1, &pushConstantRange);
+    const vk::PipelineLayoutCreateInfo pipelineLayoutInfo(
+        {}, layouts.size(), rawLayouts.data(), pushConstants.size(), pushConstants.data());
 
     layout = vk::raii::PipelineLayout(*this->device, pipelineLayoutInfo);
 
-    const vk::PipelineRenderingCreateInfo pipelineRenderingInfo({}, 1, &swapchain.getFormat(), vk::Format::eD32Sfloat);
+    const vk::PipelineRenderingCreateInfo pipelineRenderingInfo({}, 1, &renderTargetFormat, vk::Format::eD32Sfloat);
 
     const vk::GraphicsPipelineCreateInfo pipelineInfo({},
                                                       2,
