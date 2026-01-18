@@ -217,13 +217,15 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     const vk::Buffer vertexBuffers[] = {vertexBuffer->get()};
 
     // Draw
-    UniformBufferObject ubo{};
-    ubo.view = scene.getCamera().getViewMatrix();
-    ubo.proj = glm::perspective(
+    UniformBufferObject cameraUBO{};
+    cameraUBO.view = scene.getCamera().getViewMatrix();
+    cameraUBO.proj = glm::perspective(
         glm::radians(45.0f), (float)swapchain.getExtent().width / (float)swapchain.getExtent().height, 0.1f, 100.0f);
-    ubo.proj[1][1] *= -1;
+    cameraUBO.proj[1][1] *= -1;
+    cameraUBO.invView = glm::inverse(cameraUBO.view);
+    cameraUBO.invProj = glm::inverse(cameraUBO.proj);
 
-    uniformBuffers[frameIndex].update(&ubo, sizeof(UniformBufferObject));
+    uniformBuffers[frameIndex].update(&cameraUBO, sizeof(UniformBufferObject));
 
     // draw sky
     auto& pipeline = pipelineManager->getOrCreatePipeline(sky.value(), swapchain.getFormat());

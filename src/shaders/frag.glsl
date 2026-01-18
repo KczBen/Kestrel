@@ -9,8 +9,10 @@ layout(push_constant) uniform Push { mat4 model; };
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
+    mat4 invView;
+    mat4 invProj;
 }
-ubo;
+cameraUBO;
 
 layout(set = 1, binding = 0) uniform sampler2D albedoSampler;
 layout(set = 1, binding = 1) uniform sampler2D packedNormalSampler;
@@ -32,7 +34,7 @@ void main() {
 
     vec3 N = normalize(fragNormal);
     vec3 V = normalize(-fragPos); // camera at origin in view space
-    vec3 lightPosView = (ubo.view * vec4(lightPosWorld, 1.0)).xyz;
+    vec3 lightPosView = (cameraUBO.view * vec4(lightPosWorld, 1.0)).xyz;
     vec3 L = normalize(lightPosView - fragPos);
 
     float dotNV = dot(N, V);

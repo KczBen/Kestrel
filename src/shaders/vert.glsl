@@ -9,8 +9,10 @@ layout(push_constant) uniform Push { mat4 model; };
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
+    mat4 invView;
+    mat4 invProj;
 }
-ubo;
+cameraUBO;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
@@ -23,9 +25,9 @@ layout(location = 2) out vec3 fragNormal;
 layout(location = 3) out vec3 fragPos;
 
 void main() {
-    fragPos = (ubo.view * model * vec4(inPosition, 1.0)).xyz;
-    gl_Position = ubo.proj * vec4(fragPos, 1.0);
+    fragPos = (cameraUBO.view * model * vec4(inPosition, 1.0)).xyz;
+    gl_Position = cameraUBO.proj * vec4(fragPos, 1.0);
     fragColor = inColor;
     fragTexCoord = inTexCoord;
-    fragNormal = mat3(transpose(inverse(ubo.view * model))) * inNormal;
+    fragNormal = mat3(transpose(inverse(cameraUBO.view * model))) * inNormal;
 }
