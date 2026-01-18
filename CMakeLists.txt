@@ -37,6 +37,7 @@ add_executable(vulkan-sdl
     src/vulkan/uploadContext.cpp
     src/vulkan/descriptorSet.cpp
     src/vulkan/hostBuffer.cpp
+    src/vulkan/pipelineManager.cpp
     
     src/render/scene.cpp
     src/render/render.cpp

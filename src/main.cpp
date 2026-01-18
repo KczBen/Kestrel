@@ -2,7 +2,6 @@
 #include "model.hpp"
 #include "render.hpp"
 #include "scene.hpp"
-#include "shaderDef.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
@@ -41,19 +40,12 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
 
     auto lastFrameTime = std::chrono::high_resolution_clock::now();
 
-    const ShaderDef vertexShader{.filePath =
-                                     "/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/shaders/vert.glsl",
-                                 .stage = EShLangVertex};
-    const ShaderDef fragmentShader{.filePath =
-                                       "/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/shaders/frag.glsl",
-                                   .stage = EShLangFragment};
-
     // Vulkan resource scope
     {
         Render::Render renderer(window, 2);
         Render::Scene scene(5.0f, 0.0f, 5.0f, 90.0f);
         scene.addObject(
-            std::make_unique<Model>("/home/bence/Documents/CodingProjects/C++/vulkan-sdl/models/viking_room.obj"));
+            std::make_unique<Model>("/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/models/viking_room.obj"));
 
         renderer.uploadScene(scene);
 

@@ -24,11 +24,13 @@ class GraphicsPipeline {
                      std::span<const vk::PushConstantRange> pushConstants,
                      const ShaderDef& vertexShader,
                      const ShaderDef& fragmentShader,
-                     bool depthTest = true,
-                     bool depthWrite = true,
-                     vk::CullModeFlagBits cullMode = vk::CullModeFlagBits::eBack,
-                     vk::CompareOp depthCompareMode = vk::CompareOp::eLess,
-                     bool useVertexBinding = true);
+                     bool depthTest,
+                     bool depthWrite,
+                     vk::CullModeFlagBits cullMode,
+                     vk::CompareOp depthCompareMode,
+                     vk::BlendOp colorBlendMode,
+                     vk::ColorComponentFlags colorWriteMask,
+                     bool useVertexBinding);
 
     auto get() -> const vk::raii::Pipeline&;
     auto getLayout() -> const vk::raii::PipelineLayout&;

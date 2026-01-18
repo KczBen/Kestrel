@@ -16,6 +16,8 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
                                            bool depthWrite,
                                            vk::CullModeFlagBits cullMode,
                                            vk::CompareOp depthCompareMode,
+                                           vk::BlendOp colorBlendMode,
+                                           vk::ColorComponentFlags colorWriteMask,
                                            bool useVertexBinding)
     : device(&device.get()), vertexModule(this->device, vertexShader), fragmentModule(this->device, fragmentShader) {
     const vk::PipelineShaderStageCreateInfo vertexShaderStageInfo(
@@ -31,11 +33,13 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
     auto dynamicState = vk::PipelineDynamicStateCreateInfo(
         vk::PipelineDynamicStateCreateFlags(), dynamicStates.size(), dynamicStates.data());
 
-    auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+    vk::PipelineVertexInputStateCreateInfo vInputInfo{{}, 0};
 
-    const vk::PipelineVertexInputStateCreateInfo vInputInfo(
-        {}, 1, &bindingDescription, attributeDescriptions.size(), attributeDescriptions.data());
+    if (useVertexBinding) {
+        auto bindingDescription = Vertex::getBindingDescription();
+        auto attributeDescriptions = Vertex::getAttributeDescriptions();
+        vInputInfo = {{}, 1, &bindingDescription, attributeDescriptions.size(), attributeDescriptions.data()};
+    }
 
     const vk::PipelineInputAssemblyStateCreateInfo inputAssembly({}, vk::PrimitiveTopology::eTriangleList, vk::False);
 

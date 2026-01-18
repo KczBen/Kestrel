@@ -7,12 +7,12 @@
 #include "device.hpp"
 #include "deviceBuffer.hpp"
 #include "frameSync.hpp"
-#include "graphicsPipeline.hpp"
 #include "hostBuffer.hpp"
 #include "image.hpp"
 #include "instance.hpp"
 #include "material.hpp"
 #include "physicalDevice.hpp"
+#include "pipelineManager.hpp"
 #include "scene.hpp"
 #include "swapchain.hpp"
 #include "texture.hpp"
@@ -33,8 +33,6 @@ class Render {
     std::optional<Vulkan::DescriptorSetLayout> cameraDescriptorSetLayout;
     std::vector<Vulkan::DescriptorSet> cameraDescriptorSets;
 
-    std::optional<Vulkan::DescriptorSetLayout> materialDescriptorSetLayout;
-
     Vulkan::Swapchain swapchain;
     Vulkan::FrameSync syncObjects;
 
@@ -44,9 +42,13 @@ class Render {
     std::vector<Vulkan::HostBuffer> uniformBuffers;
     std::vector<Vulkan::Texture> textures;
 
+    size_t vertexOffset;
+    size_t indexOffset;
+
+    std::optional<Material> sky;
     std::vector<Material> materials;
 
-    std::optional<Vulkan::GraphicsPipeline> pipeline;
+    std::optional<Vulkan::PipelineManager> pipelineManager;
 
     SDL_Window* window;
     uint32_t frameIndex = 0;

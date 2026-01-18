@@ -1,34 +1,78 @@
 #include "material.hpp"
 #include "descriptorSet.hpp"
-#include "graphicsPipeline.hpp"
-#include <cstdint>
+#include "vulkan/vulkan.hpp"
+#include <unistd.h>
 
-Material::Material(Vulkan::Device& device,
-                   Vulkan::Texture& albedo,
-                   Vulkan::Texture& packedNormal,
-                   Vulkan::GraphicsPipeline& pipeline,
-                   Vulkan::DescriptorPool& descriptorPool,
-                   Vulkan::DescriptorSetLayout& layout)
-    : albedo(&albedo), packedNormal(&packedNormal), pipeline(&pipeline) {
-    descriptorSets.reserve(2);
+#include <utility>
+#include <vector>
 
-    for (uint32_t i = 0; i < 2; i++) {
-        descriptorSets.emplace_back(device, descriptorPool, layout);
+Material::Material(ShaderDef vertexShader,
+                   ShaderDef fragmentShader,
+                   Vulkan::Texture* baseColor,
+                   Vulkan::Texture* metallicRoughness,
+                   Vulkan::Texture* normal,
+                   Vulkan::Texture* occlusion,
+                   Vulkan::Texture* emissive,
+                   std::vector<vk::PushConstantRange> pushConstants,
+                   VertexInputMode vertexInputMode,
+                   vk::CullModeFlagBits cullMode,
+                   bool depthTest,
+                   bool depthWrite,
+                   vk::CompareOp depthCompare,
+                   BlendMode colorBlendMode,
+                   vk::ColorComponentFlags colorWriteMask) {
 
-        const DescriptorWrite writes[] = {DescriptorWrite{.binding = 0,
-                                                          .type = vk::DescriptorType::eCombinedImageSampler,
-                                                          .imageInfo{albedo.getSampler(),
-                                                                     albedo.getImage().getImageView(),
-                                                                     vk::ImageLayout::eShaderReadOnlyOptimal}},
-                                          DescriptorWrite{.binding = 1,
-                                                          .type = vk::DescriptorType::eCombinedImageSampler,
-                                                          .imageInfo{packedNormal.getSampler(),
-                                                                     packedNormal.getImage().getImageView(),
-                                                                     vk::ImageLayout::eShaderReadOnlyOptimal}}};
+    pipelineConfiguration = MaterialConfiguration{.vertexShader = std::move(vertexShader),
+                                                  .fragmentShader = std::move(fragmentShader),
+                                                  .vertexInputMode = vertexInputMode,
+                                                  .topology = vk::PrimitiveTopology::eTriangleList,
+                                                  .cullMode = cullMode,
+                                                  .depthTest = depthTest,
+                                                  .depthWrite = depthWrite,
+                                                  .depthCompare = depthCompare,
+                                                  .blendMode = colorBlendMode,
+                                                  .colorWriteMask = colorWriteMask,
+                                                  .pushConstants = std::move(pushConstants)};
 
-        descriptorSets[i].write(std::span(writes));
+    resources = MaterialResources{.baseColor = baseColor,
+                                  .metallicRoughness = metallicRoughness,
+                                  .normal = normal,
+                                  .occlusion = occlusion,
+                                  .emissive = emissive};
+
+    int bindingIndex = 0;
+
+    if (resources.baseColor != nullptr) {
+        pipelineConfiguration.descriptorSetBindings.emplace_back(
+            bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
+    }
+    if (resources.metallicRoughness != nullptr) {
+        pipelineConfiguration.descriptorSetBindings.emplace_back(
+            bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
+    }
+    if (resources.normal != nullptr) {
+        pipelineConfiguration.descriptorSetBindings.emplace_back(
+            bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
+    }
+    if (resources.occlusion != nullptr) {
+        pipelineConfiguration.descriptorSetBindings.emplace_back(
+            bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
+    }
+    if (resources.emissive != nullptr) {
+        pipelineConfiguration.descriptorSetBindings.emplace_back(
+            bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
 }
 
-auto Material::getDescriptorSet(uint32_t index) -> Vulkan::DescriptorSet& { return descriptorSets[index]; }
-auto Material::getPipeline() -> Vulkan::GraphicsPipeline* { return pipeline; }
+auto Material::MaterialConfiguration::operator==(const MaterialConfiguration& other) const -> bool {
+    return this->vertexShader.filePath == other.vertexShader.filePath &&
+           this->vertexShader.stage == other.vertexShader.stage &&
+           this->fragmentShader.filePath == other.fragmentShader.filePath &&
+           this->fragmentShader.stage == other.fragmentShader.stage && this->vertexInputMode == other.vertexInputMode &&
+           this->blendMode == other.blendMode && this->colorWriteMask == other.colorWriteMask &&
+           this->cullMode == other.cullMode && this->topology == other.topology && this->depthTest == other.depthTest &&
+           this->depthWrite == other.depthWrite && this->depthCompare == other.depthCompare &&
+           this->descriptorSetBindings == other.descriptorSetBindings;
+}
+
+auto Material::getDescriptorSet() -> Vulkan::DescriptorSet& { return descriptorSet.value(); }

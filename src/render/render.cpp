@@ -6,9 +6,10 @@
 #include "deviceBuffer.hpp"
 #include "frameSync.hpp"
 #include "gpuDataObjects.hpp"
-#include "graphicsPipeline.hpp"
 #include "instance.hpp"
+#include "material.hpp"
 #include "physicalDevice.hpp"
+#include "pipelineManager.hpp"
 #include "shaderDef.hpp"
 #include "surface.hpp"
 #include "uploadContext.hpp"
@@ -18,12 +19,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <glm/common.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <vector>
 
 Render::Render::Render(SDL_Window* window, const uint32_t maxFramesInFlight)
-    : maxFramesInFlight(maxFramesInFlight), window(window), instance("Vulkan prototype", window),
-      surface(window, instance), physicalDevice(instance, surface), device(physicalDevice, instance),
-      commandPool(physicalDevice, device, maxFramesInFlight), descriptorPool(device, maxFramesInFlight * 2),
+    : maxFramesInFlight(maxFramesInFlight), vertexOffset(0), indexOffset(0), window(window),
+      instance("Vulkan prototype", window), surface(window, instance), physicalDevice(instance, surface),
+      device(physicalDevice, instance), commandPool(physicalDevice, device, maxFramesInFlight),
+      descriptorPool(device, maxFramesInFlight * 2),
       swapchain(physicalDevice, device, surface, window, vk::SampleCountFlagBits::e4),
       syncObjects(device, swapchain.getImages().size()),
       stagingBuffer(device, static_cast<vk::DeviceSize>(5 * 1024 * 1024)) {}
@@ -59,15 +62,9 @@ void Render::Render::uploadScene(const Scene& scene) {
                                         1,
                                         vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)}));
 
-    materialDescriptorSetLayout.emplace(Vulkan::DescriptorSetLayout(
-        device,
-        std::vector<vk::DescriptorSetLayoutBinding>{
-            vk::DescriptorSetLayoutBinding(
-                0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment),
-            vk::DescriptorSetLayoutBinding(
-                1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment)}));
-
     cameraDescriptorSets.reserve(maxFramesInFlight);
+
+    pipelineManager.emplace(Vulkan::PipelineManager(device, cameraDescriptorSetLayout.value(), descriptorPool));
 
     for (uint32_t i = 0; i < maxFramesInFlight; i++) {
         cameraDescriptorSets.emplace_back(device, descriptorPool, cameraDescriptorSetLayout.value());
@@ -77,29 +74,9 @@ void Render::Render::uploadScene(const Scene& scene) {
         cameraDescriptorSets[i].write(std::span(&uboWrite, 1));
     }
 
-    std::array<const Vulkan::DescriptorSetLayout*, 2> layouts = {&cameraDescriptorSetLayout.value(),
-                                                                 &materialDescriptorSetLayout.value()};
-
-    /*
-     * The proper thing to do here would be a pipeline cache
-     *
-     * When a material is created or referenced, the cache is checked for a pipeline that matches the desired
-     * configuration.
-     * If a match is found, a reference is added to the material
-     * If no match is found, a new pipeline is created with the desired settings and is added to the cache
-     * But for the purpose of simplicity, there are simply 2 pipelines created manually
-     */
-
     /* SHOULD BE MATERIAL DEPENDENT */
     textures.reserve(1);
-    textures.emplace_back(device, "/home/bence/Documents/CodingProjects/C++/vulkan-sdl/models/viking_room.png");
-
-    const ShaderDef vertexShader{.filePath =
-                                     "/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/shaders/vert.glsl",
-                                 .stage = EShLangVertex};
-    const ShaderDef fragmentShader{.filePath =
-                                       "/home/bence/Documents/CodingProjects/C++/vulkan-sdl/src/shaders/frag.glsl",
-                                   .stage = EShLangFragment};
+    textures.emplace_back(device, "/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/models/viking_room.png");
 
     {
         auto context = Vulkan::UploadContext(device, commandPool, stagingBuffer);
@@ -124,9 +101,41 @@ void Render::Render::uploadScene(const Scene& scene) {
         context.upload(*textures.data());
     }
 
-    pipeline.emplace(Vulkan::GraphicsPipeline(device, swapchain, layouts, vertexShader, fragmentShader));
     materials.emplace_back(
-        device, textures[0], textures[0], pipeline.value(), descriptorPool, materialDescriptorSetLayout.value());
+        ShaderDef{.filePath = "/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/src/shaders/vert.glsl",
+                  .stage = EShLangVertex},
+        ShaderDef{.filePath = "/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/src/shaders/frag.glsl",
+                  .stage = EShLangFragment},
+        textures.data(),
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        std::vector<vk::PushConstantRange>{
+            vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4))});
+
+    for (auto& material : materials) {
+        pipelineManager->registerMaterial(material);
+    }
+
+    // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
+
+    sky.emplace(
+        Material(ShaderDef{.filePath = "/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/src/shaders/skyVert.glsl",
+                           .stage = EShLangVertex},
+                 ShaderDef{.filePath = "/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/src/shaders/skyFrag.glsl",
+                           .stage = EShLangFragment},
+                 nullptr,
+                 nullptr,
+                 nullptr,
+                 nullptr,
+                 nullptr,
+                 {},
+                 Material::VertexInputMode::None,
+                 vk::CullModeFlagBits::eNone,
+                 true,
+                 false,
+                 vk::CompareOp::eLessOrEqual));
 }
 
 void Render::Render::render(Scene& scene, float deltaTime) {
@@ -173,7 +182,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
                                          vk::ImageAspectFlagBits::eDepth,
                                          cmd);
     // Begin render
-    const vk::ClearValue clearColor{std::array<float, 4>{0.2f, 0.4f, 1.0f, 1.0f}};
+    const vk::ClearValue clearColor{std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f}};
     const vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
 
     const vk::RenderingAttachmentInfo colorAttachmentInfo(swapchain.getMsaaImage().getImageView(),
@@ -222,12 +231,21 @@ void Render::Render::render(Scene& scene, float deltaTime) {
 
     uniformBuffers[frameIndex].update(&ubo, sizeof(UniformBufferObject));
 
+    // draw sky
+    auto& pipeline = pipelineManager->getOrCreatePipeline(sky.value(), swapchain.getFormat());
+    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
+    cmd.bindDescriptorSets(
+        vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, {*cameraDescriptorSets[frameIndex].get()}, nullptr);
+
+    cmd.draw(3, 1, 0, 0);
+
     for (auto& material : materials) {
-        cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, material.getPipeline()->get());
+        auto& pipeline = pipelineManager->getOrCreatePipeline(material, swapchain.getFormat());
+        cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
         cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                               pipeline->getLayout(),
+                               pipeline.getLayout(),
                                0,
-                               {*cameraDescriptorSets[frameIndex].get(), material.getDescriptorSet(frameIndex).get()},
+                               {*cameraDescriptorSets[frameIndex].get(), material.getDescriptorSet().get()},
                                nullptr);
 
         for (const auto* model : scene.getObjects()) {
@@ -235,12 +253,14 @@ void Render::Render::render(Scene& scene, float deltaTime) {
             cmd.bindVertexBuffers(0, vertexBuffers, offsets);
             cmd.bindIndexBuffer(indexBuffer->get(), 0, vk::IndexType::eUint32);
             const PushConstants pc{model->getModelMatrix()};
-            cmd.pushConstants(pipeline->getLayout(),
-                              vk::ShaderStageFlagBits::eVertex,
-                              0,
-                              vk::ArrayProxy<const PushConstants>(1, &pc));
-            cmd.drawIndexed(model->indices.size(), 1, 0, 0, 0);
+            cmd.pushConstants(
+                pipeline.getLayout(), vk::ShaderStageFlagBits::eVertex, 0, vk::ArrayProxy<const PushConstants>(1, &pc));
+            cmd.drawIndexed(model->indices.size(), 1, indexOffset, vertexOffset, 0);
+            indexOffset += model->indices.size();
+            vertexOffset += model->vertices.size();
         }
+        indexOffset = 0;
+        vertexOffset = 0;
     }
 
     cmd.endRendering();
