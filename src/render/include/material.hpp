@@ -3,6 +3,7 @@
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
 #include "graphicsPipeline.hpp"
+#include "model.hpp"
 #include "shaderDef.hpp"
 #include "texture.hpp"
 #include "vulkan/vulkan.hpp"
@@ -82,6 +83,8 @@ class Material {
     std::optional<Vulkan::DescriptorSetLayout> descriptorSetLayout;
     std::optional<Vulkan::DescriptorSet> descriptorSet;
     Vulkan::GraphicsPipeline* graphicsPipeline = nullptr;
+
+    std::vector<Model*> models;
 
     // Reduce the number of hash map lookups we need to do
     vk::Format lastRenderedFormat = vk::Format::eUndefined;

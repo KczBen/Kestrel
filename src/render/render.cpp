@@ -76,7 +76,7 @@ void Render::Render::uploadScene(const Scene& scene) {
 
     /* SHOULD BE MATERIAL DEPENDENT */
     textures.reserve(1);
-    textures.emplace_back(device, "/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/models/viking_room.png");
+    textures.emplace_back(device, "../../../models/viking_room.png");
 
     {
         auto context = Vulkan::UploadContext(device, commandPool, stagingBuffer);
@@ -101,18 +101,15 @@ void Render::Render::uploadScene(const Scene& scene) {
         context.upload(*textures.data());
     }
 
-    materials.emplace_back(
-        ShaderDef{.filePath = "/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/src/shaders/vert.glsl",
-                  .stage = EShLangVertex},
-        ShaderDef{.filePath = "/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/src/shaders/frag.glsl",
-                  .stage = EShLangFragment},
-        textures.data(),
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        std::vector<vk::PushConstantRange>{
-            vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4))});
+    materials.emplace_back(ShaderDef{.filePath = "../../../src/shaders/vert.glsl", .stage = EShLangVertex},
+                           ShaderDef{.filePath = "../../../src/shaders/frag.glsl", .stage = EShLangFragment},
+                           textures.data(),
+                           nullptr,
+                           nullptr,
+                           nullptr,
+                           nullptr,
+                           std::vector<vk::PushConstantRange>{
+                               vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4))});
 
     for (auto& material : materials) {
         pipelineManager->registerMaterial(material);
@@ -120,22 +117,19 @@ void Render::Render::uploadScene(const Scene& scene) {
 
     // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
 
-    sky.emplace(
-        Material(ShaderDef{.filePath = "/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/src/shaders/skyVert.glsl",
-                           .stage = EShLangVertex},
-                 ShaderDef{.filePath = "/home/bence/Documents/CodingProjects/CPP/vulkan-sdl/src/shaders/skyFrag.glsl",
-                           .stage = EShLangFragment},
-                 nullptr,
-                 nullptr,
-                 nullptr,
-                 nullptr,
-                 nullptr,
-                 {},
-                 Material::VertexInputMode::None,
-                 vk::CullModeFlagBits::eNone,
-                 true,
-                 false,
-                 vk::CompareOp::eLessOrEqual));
+    sky.emplace(Material(ShaderDef{.filePath = "../../../src/shaders/skyVert.glsl", .stage = EShLangVertex},
+                         ShaderDef{.filePath = "../../../src/shaders/skyFrag.glsl", .stage = EShLangFragment},
+                         nullptr,
+                         nullptr,
+                         nullptr,
+                         nullptr,
+                         nullptr,
+                         {},
+                         Material::VertexInputMode::None,
+                         vk::CullModeFlagBits::eNone,
+                         true,
+                         false,
+                         vk::CompareOp::eLessOrEqual));
 }
 
 void Render::Render::render(Scene& scene, float deltaTime) {
