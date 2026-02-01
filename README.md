@@ -10,3 +10,5 @@ With that said, there are some other elements to focus on.
 * Technically correct API usage, the Vulkan validation layers are **always active**
 * Keep the project maintainable
 * Try to make implementing new effects and shaders easier
+
+See the [ROADMAP](ROADMAP.md) for a list of planned features.
