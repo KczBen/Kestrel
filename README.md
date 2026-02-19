@@ -31,6 +31,7 @@ Note that a Vulkan 1.4 compatible graphics driver is required.
 ## Building
 
 **Please note that at this time, only LLVM Clang is supported**
+
 The project is built with CMake.
 
 To build the project, navigate to the root directory of the project and run
