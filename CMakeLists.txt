@@ -4,6 +4,7 @@ project(vulkan-sdl VERSION 0.1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(CTest)
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -96,36 +97,75 @@ target_link_libraries(vulkan-sdl PRIVATE
 )
 
 enable_testing()
-add_executable(vertex_test
+add_executable(test-bin
     tests/vertex_unittest.cpp
 )
-
-target_include_directories(vertex_test PRIVATE 
+target_include_directories(test-bin PRIVATE
     ${CMAKE_SOURCE_DIR}/src/vulkan/include
     ${CMAKE_SOURCE_DIR}/src/util/include
     ${CMAKE_SOURCE_DIR}/src/render/include
 )
-
-target_link_libraries(vertex_test
+target_link_libraries(test-bin
     render
     vulkan-wrapper
     util
     GTest::gtest_main
 )
-
 include(GoogleTest)
-
-gtest_discover_tests(vertex_test)
 
 add_custom_target(copy-compile-commands ALL
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${CMAKE_BINARY_DIR}/compile_commands.json
-            ${CMAKE_SOURCE_DIR}/compile_commands.json
+    ${CMAKE_BINARY_DIR}/compile_commands.json
+    ${CMAKE_SOURCE_DIR}/compile_commands.json
 )
 
 if(TEST_EXPORT_COVERAGE)
-    # Build with coverage info
-    target_compile_options(render vulkan-wrapper util PRIVATE -coverage)
-    target_link_options(render vulkan-wrapper util PRIVATE -coverage)
+    target_compile_options(render PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+    target_compile_options(vulkan-wrapper PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+    target_compile_options(util PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+    target_compile_options(test-bin PRIVATE -fprofile-instr-generate -fcoverage-mapping)
 
+    target_link_options(test-bin PRIVATE -fprofile-instr-generate)
+
+    find_program(LLVM_PROFDATA llvm-profdata REQUIRED)
+    find_program(LLVM_COV llvm-cov REQUIRED)
+
+    gtest_discover_tests(test-bin PROPERTIES
+        ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage-%p.profraw"
+        FIXTURES_REQUIRED coverage_run
+    )
+
+    add_test(NAME coverage_setup
+        COMMAND ${CMAKE_COMMAND} -E true
+    )
+    set_tests_properties(coverage_setup PROPERTIES
+        FIXTURES_SETUP coverage_run
+    )
+
+    add_test(NAME coverage_merge
+        COMMAND bash -c "${LLVM_PROFDATA} merge -sparse ${CMAKE_BINARY_DIR}/coverage-*.profraw -o ${CMAKE_BINARY_DIR}/coverage.profdata"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+    set_tests_properties(coverage_merge PROPERTIES
+        FIXTURES_CLEANUP coverage_run
+    )
+
+    add_test(NAME coverage_html
+        COMMAND ${LLVM_COV} show $<TARGET_FILE:test-bin>
+            -object $<TARGET_FILE:render>
+            -object $<TARGET_FILE:vulkan-wrapper>
+            -object $<TARGET_FILE:util>
+            -instr-profile=${CMAKE_BINARY_DIR}/coverage.profdata
+            -format=html
+            -output-dir=${CMAKE_BINARY_DIR}/coverage-html
+            -ignore-filename-regex=.*/tests/.*
+            ${CMAKE_SOURCE_DIR}/src
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+    set_tests_properties(coverage_html PROPERTIES
+        DEPENDS coverage_merge
+        FIXTURES_CLEANUP coverage_run
+    )
+else()
+    gtest_discover_tests(test-bin)
 endif()
