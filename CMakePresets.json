@@ -2,9 +2,9 @@
     "version": 8,
     "configurePresets": [
         {
-            "name": "clang",
+            "name": "Debug",
             "generator": "Ninja",
-            "displayName": "Clang - Latest",
+            "displayName": "Clang - Debug",
             "description": "Using compilers: C = /usr/bin/clang, CXX = /usr/bin/clang++",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "cacheVariables": {
@@ -14,6 +14,53 @@
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
+        },
+        {
+            "name": "Release",
+            "generator": "Ninja",
+            "displayName": "Clang - Release",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "clang-coverage",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/coverage",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_COVERAGE": "ON",
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
+            }
+        }
+    ],
+        "buildPresets": [
+        {
+            "name": "Build - Debug",
+            "description": "",
+            "displayName": "",
+            "configurePreset": "Debug"
+        },
+        {
+            "name": "Build - Release",
+            "description": "",
+            "displayName": "",
+            "configurePreset": "Release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "coverage",
+            "description": "Test coverage with clang",
+            "displayName": "Test coverage",
+            "configurePreset": "clang-coverage"
         }
     ]
 }
