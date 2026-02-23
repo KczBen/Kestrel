@@ -96,27 +96,20 @@ target_link_libraries(vulkan-sdl PRIVATE
     glslang::glslang-default-resource-limits
 )
 
-enable_testing()
-add_executable(test-bin
-    tests/vertex_unittest.cpp
-)
-target_include_directories(test-bin PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/vulkan/include
-    ${CMAKE_SOURCE_DIR}/src/util/include
-    ${CMAKE_SOURCE_DIR}/src/render/include
-)
-target_link_libraries(test-bin
-    render
-    vulkan-wrapper
-    util
-    GTest::gtest_main
-)
-include(GoogleTest)
-
 add_custom_target(copy-compile-commands ALL
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     ${CMAKE_BINARY_DIR}/compile_commands.json
     ${CMAKE_SOURCE_DIR}/compile_commands.json
+)
+
+add_custom_target(pack-assets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/models/
+    ${CMAKE_BINARY_DIR}/models/
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/textures/
+    ${CMAKE_BINARY_DIR}/textures/
 )
 
 if(TEST_EXPORT_COVERAGE)

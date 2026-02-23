@@ -44,7 +44,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
     {
         Render::Render renderer(window, 2);
         Render::Scene scene(5.0f, 0.0f, 5.0f, 90.0f);
-        scene.addObject(std::make_unique<Model>("../../../models/viking_room.obj"));
+        scene.addObject(std::make_unique<Model>("./models/viking_room.obj"));
 
         renderer.uploadScene(scene);
 

@@ -76,7 +76,7 @@ void Render::Render::uploadScene(const Scene& scene) {
 
     /* SHOULD BE MATERIAL DEPENDENT */
     textures.reserve(1);
-    textures.emplace_back(device, "../../../models/viking_room.png");
+    textures.emplace_back(device, "./models/viking_room.png");
 
     {
         auto context = Vulkan::UploadContext(device, commandPool, stagingBuffer);
