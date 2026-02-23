@@ -3,19 +3,23 @@ project(vulkan-sdl VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-include(CTest)
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/52eb8108c5bdec04579160ae17225d66034bd723.zip
-)
-
-FetchContent_MakeAvailable(googletest)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_FLAGS_DEBUG_INIT "-Wall")
 
 option(TEST_EXPORT_COVERAGE "Include coverage report when running tests" OFF)
+option(TESTING "Build test targets" OFF)
+
+if (TESTING)
+    include(CTest)
+    include(FetchContent)
+    FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/52eb8108c5bdec04579160ae17225d66034bd723.zip
+    )
+
+    FetchContent_MakeAvailable(googletest)
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(glm CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
@@ -112,53 +116,72 @@ add_custom_target(pack-assets ALL
     ${CMAKE_BINARY_DIR}/textures/
 )
 
-if(TEST_EXPORT_COVERAGE)
-    target_compile_options(render PRIVATE -fprofile-instr-generate -fcoverage-mapping)
-    target_compile_options(vulkan-wrapper PRIVATE -fprofile-instr-generate -fcoverage-mapping)
-    target_compile_options(util PRIVATE -fprofile-instr-generate -fcoverage-mapping)
-    target_compile_options(test-bin PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+if(TESTING)
+    enable_testing()
+    add_executable(test-bin
+        tests/vertex_unittest.cpp
+    )
+    target_include_directories(test-bin PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/vulkan/include
+        ${CMAKE_SOURCE_DIR}/src/util/include
+        ${CMAKE_SOURCE_DIR}/src/render/include
+    )
+    target_link_libraries(test-bin
+        render
+        vulkan-wrapper
+        util
+        GTest::gtest_main
+    )
+    include(GoogleTest)
 
-    target_link_options(test-bin PRIVATE -fprofile-instr-generate)
+    if(TEST_EXPORT_COVERAGE)
+        target_compile_options(render PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+        target_compile_options(vulkan-wrapper PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+        target_compile_options(util PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+        target_compile_options(test-bin PRIVATE -fprofile-instr-generate -fcoverage-mapping)
 
-    find_program(LLVM_PROFDATA llvm-profdata REQUIRED)
-    find_program(LLVM_COV llvm-cov REQUIRED)
+        target_link_options(test-bin PRIVATE -fprofile-instr-generate)
 
-    gtest_discover_tests(test-bin PROPERTIES
-        ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage-%p.profraw"
-        FIXTURES_REQUIRED coverage_run
-    )
+        find_program(LLVM_PROFDATA llvm-profdata REQUIRED)
+        find_program(LLVM_COV llvm-cov REQUIRED)
 
-    add_test(NAME coverage_setup
-        COMMAND ${CMAKE_COMMAND} -E true
-    )
-    set_tests_properties(coverage_setup PROPERTIES
-        FIXTURES_SETUP coverage_run
-    )
+        gtest_discover_tests(test-bin PROPERTIES
+            ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage-%p.profraw"
+            FIXTURES_REQUIRED coverage_run
+        )
 
-    add_test(NAME coverage_merge
-        COMMAND bash -c "${LLVM_PROFDATA} merge -sparse ${CMAKE_BINARY_DIR}/coverage-*.profraw -o ${CMAKE_BINARY_DIR}/coverage.profdata"
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    )
-    set_tests_properties(coverage_merge PROPERTIES
-        FIXTURES_CLEANUP coverage_run
-    )
+        add_test(NAME coverage_setup
+            COMMAND ${CMAKE_COMMAND} -E true
+        )
+        set_tests_properties(coverage_setup PROPERTIES
+            FIXTURES_SETUP coverage_run
+        )
 
-    add_test(NAME coverage_html
-        COMMAND ${LLVM_COV} show $<TARGET_FILE:test-bin>
-            -object $<TARGET_FILE:render>
-            -object $<TARGET_FILE:vulkan-wrapper>
-            -object $<TARGET_FILE:util>
-            -instr-profile=${CMAKE_BINARY_DIR}/coverage.profdata
-            -format=html
-            -output-dir=${CMAKE_BINARY_DIR}/coverage-html
-            -ignore-filename-regex=.*/tests/.*
-            ${CMAKE_SOURCE_DIR}/src
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    )
-    set_tests_properties(coverage_html PROPERTIES
-        DEPENDS coverage_merge
-        FIXTURES_CLEANUP coverage_run
-    )
-else()
-    gtest_discover_tests(test-bin)
+        add_test(NAME coverage_merge
+            COMMAND bash -c "${LLVM_PROFDATA} merge -sparse ${CMAKE_BINARY_DIR}/coverage-*.profraw -o ${CMAKE_BINARY_DIR}/coverage.profdata"
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
+        set_tests_properties(coverage_merge PROPERTIES
+            FIXTURES_CLEANUP coverage_run
+        )
+
+        add_test(NAME coverage_html
+            COMMAND ${LLVM_COV} show $<TARGET_FILE:test-bin>
+                -object $<TARGET_FILE:render>
+                -object $<TARGET_FILE:vulkan-wrapper>
+                -object $<TARGET_FILE:util>
+                -instr-profile=${CMAKE_BINARY_DIR}/coverage.profdata
+                -format=html
+                -output-dir=${CMAKE_BINARY_DIR}/coverage-html
+                -ignore-filename-regex=.*/tests/.*
+                ${CMAKE_SOURCE_DIR}/src
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
+        set_tests_properties(coverage_html PROPERTIES
+            DEPENDS coverage_merge
+            FIXTURES_CLEANUP coverage_run
+        )
+    else()
+        gtest_discover_tests(test-bin)
+    endif()
 endif()

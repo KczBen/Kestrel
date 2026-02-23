@@ -34,6 +34,7 @@
             "binaryDir": "${sourceDir}/out/build/coverage",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
+                "TESTING": "ON",
                 "TEST_EXPORT_COVERAGE": "ON",
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                 "CMAKE_C_COMPILER": "/usr/bin/clang",
@@ -41,7 +42,7 @@
             }
         }
     ],
-        "buildPresets": [
+    "buildPresets": [
         {
             "name": "Build - Debug",
             "description": "",
