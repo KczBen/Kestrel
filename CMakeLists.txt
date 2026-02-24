@@ -114,6 +114,10 @@ add_custom_target(pack-assets ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/textures/
     ${CMAKE_BINARY_DIR}/textures/
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/src/shaders/
+    ${CMAKE_BINARY_DIR}/shaders/
 )
 
 if(TESTING)

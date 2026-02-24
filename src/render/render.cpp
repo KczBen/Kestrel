@@ -15,6 +15,7 @@
 #include "uploadContext.hpp"
 #include "vertex.hpp"
 #include "vulkan/vulkan.hpp"
+#include <SDL3/SDL_filesystem.h>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -76,7 +77,7 @@ void Render::Render::uploadScene(const Scene& scene) {
 
     /* SHOULD BE MATERIAL DEPENDENT */
     textures.reserve(1);
-    textures.emplace_back(device, "./models/viking_room.png");
+    textures.emplace_back(device, std::string(SDL_GetBasePath()).append("models/viking_room.png").c_str());
 
     {
         auto context = Vulkan::UploadContext(device, commandPool, stagingBuffer);
@@ -101,8 +102,8 @@ void Render::Render::uploadScene(const Scene& scene) {
         context.upload(*textures.data());
     }
 
-    materials.emplace_back(ShaderDef{.filePath = "../../../src/shaders/vert.glsl", .stage = EShLangVertex},
-                           ShaderDef{.filePath = "../../../src/shaders/frag.glsl", .stage = EShLangFragment},
+    materials.emplace_back(ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
+                           ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
                            textures.data(),
                            nullptr,
                            nullptr,
@@ -117,8 +118,8 @@ void Render::Render::uploadScene(const Scene& scene) {
 
     // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
 
-    sky.emplace(Material(ShaderDef{.filePath = "../../../src/shaders/skyVert.glsl", .stage = EShLangVertex},
-                         ShaderDef{.filePath = "../../../src/shaders/skyFrag.glsl", .stage = EShLangFragment},
+    sky.emplace(Material(ShaderDef{.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
+                         ShaderDef{.filePath = "shaders/skyFrag.glsl", .stage = EShLangFragment},
                          nullptr,
                          nullptr,
                          nullptr,

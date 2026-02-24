@@ -5,6 +5,7 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_mouse.h>
@@ -44,7 +45,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
     {
         Render::Render renderer(window, 2);
         Render::Scene scene(5.0f, 0.0f, 5.0f, 90.0f);
-        scene.addObject(std::make_unique<Model>("./models/viking_room.obj"));
+        scene.addObject(std::make_unique<Model>(std::string(SDL_GetBasePath()).append("models/viking_room.obj")));
 
         renderer.uploadScene(scene);
 

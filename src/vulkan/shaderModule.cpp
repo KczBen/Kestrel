@@ -1,5 +1,6 @@
 #include "shaderModule.hpp"
 #include "readfile.hpp"
+#include <SDL3/SDL_filesystem.h>
 #include <cstdint>
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
@@ -11,7 +12,7 @@
 
 Vulkan::ShaderModule::ShaderModule(const vk::raii::Device* device, const ShaderDef& shader) : device(device) {
 
-    auto shaderSource = readFile(shader.filePath);
+    auto shaderSource = readFile(std::string(SDL_GetBasePath()).append(shader.filePath));
     auto compiledCode = compileShader(shaderSource, shader.stage);
     const vk::ShaderModuleCreateInfo shaderModuleCreateInfo(
         vk::ShaderModuleCreateFlags(), compiledCode.size() * sizeof(uint32_t), compiledCode.data());
