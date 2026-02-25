@@ -57,6 +57,11 @@ target_include_directories(vulkan-wrapper PRIVATE
     ${CMAKE_SOURCE_DIR}/src/render/include
 )
 
+target_link_libraries(vulkan-wrapper PRIVATE
+    Vulkan::Vulkan
+    GPUOpen::VulkanMemoryAllocator
+)
+
 add_library(util
     src/util/model.cpp
 )
@@ -75,6 +80,11 @@ target_include_directories(render PRIVATE
     ${CMAKE_SOURCE_DIR}/src/vulkan/include
     ${CMAKE_SOURCE_DIR}/src/util/include
     ${CMAKE_SOURCE_DIR}/src/render/include
+)
+
+target_link_libraries(render PRIVATE
+    Vulkan::Vulkan
+    GPUOpen::VulkanMemoryAllocator
 )
 
 add_executable(vulkan-sdl
