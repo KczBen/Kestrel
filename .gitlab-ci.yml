@@ -1,0 +1,95 @@
+variables:
+  VCPKG_ROOT: "${CI_PROJECT_DIR}/vcpkg"
+  VCPKG_DEFAULT_BINARY_CACHE: "${CI_PROJECT_DIR}/.vcpkg-binary-cache"
+  VCPKG_DISABLE_METRICS: "1"
+
+stages:
+  - build
+  - test
+
+.vcpkg_cache: &vcpkg_cache
+  key:
+    files:
+      - vcpkg.json
+    prefix: "vcpkg-${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .vcpkg-binary-cache/
+    - vcpkg/installed/
+    - vcpkg/buildtrees/
+  policy: pull-push
+
+.build_output_cache: &build_output_cache
+  key: "build-${CI_COMMIT_SHA}"
+  paths:
+    - out/build/Debug/
+  policy: pull-push
+
+.linux_setup:
+  image: ubuntu:25.10
+
+  before_script:
+    - export DEBIAN_FRONTEND=noninteractive
+    - apt-get update -qq
+    - apt-get install -y --no-install-recommends
+        cmake ninja-build git curl zip unzip tar pkg-config ca-certificates
+        clang-21 lld-21 libc++-21-dev libc++abi-21-dev
+        libvulkan-dev glslang-tools spirv-tools
+        libsdl3-dev
+    - update-alternatives --install /usr/bin/clang   clang   /usr/bin/clang-21   100
+    - update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
+    - |
+      if [ ! -f "${VCPKG_ROOT}/bootstrap-vcpkg.sh" ]; then
+        git clone --depth 1 https://github.com/microsoft/vcpkg.git "${VCPKG_ROOT}"
+      fi
+    - "${VCPKG_ROOT}/bootstrap-vcpkg.sh"
+    - mkdir -p "${VCPKG_DEFAULT_BINARY_CACHE}"
+
+
+build-and-test:
+  extends: .linux_setup
+  stage: build
+
+  cache:
+    - <<: *vcpkg_cache
+    - <<: *build_output_cache
+
+  script:
+    - cmake --preset Debug
+    - cmake --build --preset "Build - Debug" --parallel $(nproc)
+    - cd out/build/Debug
+    - ctest --output-on-failure --parallel $(nproc)
+
+  artifacts:
+    when: always
+    expire_in: 2 weeks
+    paths:
+      - out/build/Debug/Testing/
+
+
+coverage:
+  extends: .linux_setup
+  stage: build
+
+  before_script:
+    - !reference [.linux_setup, before_script]
+    - apt-get install -y --no-install-recommends llvm-21
+
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+  cache:
+    - <<: *vcpkg_cache
+      policy: pull
+
+  script:
+    - cmake --preset clang-coverage
+    - cmake --build out/build/coverage --parallel $(nproc)
+    - cd out/build/coverage
+    - ctest --output-on-failure
+
+  artifacts:
+    when: always
+    expire_in: 2 weeks
+    paths:
+      - out/build/coverage/coverage-html/
