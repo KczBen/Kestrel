@@ -38,6 +38,9 @@ stages:
         
     - update-alternatives --install /usr/bin/clang   clang   /usr/bin/clang-21   100
     - update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
+    - update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-21 100
+    - update-alternatives --install /usr/bin/llvm-cov      llvm-cov      /usr/bin/llvm-cov-21      100
+
     - |
       if [ ! -f "${VCPKG_ROOT}/bootstrap-vcpkg.sh" ]; then
         rm -rf "${VCPKG_ROOT}"
