@@ -13,7 +13,6 @@
 #include <SDL3/SDL_properties.h>
 #include <SDL3/SDL_video.h>
 #include <chrono>
-#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glslang/Public/ShaderLang.h>
 

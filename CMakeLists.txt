@@ -73,6 +73,10 @@ target_include_directories(util PRIVATE
     ${CMAKE_SOURCE_DIR}/src/util/include
 )
 
+target_link_libraries(util PRIVATE
+    glm::glm-header-only
+)
+
 add_library(render
     src/render/scene.cpp
     src/render/render.cpp
@@ -86,6 +90,7 @@ target_include_directories(render PRIVATE
 )
 
 target_link_libraries(render PRIVATE
+    glm::glm-header-only
     Vulkan::Vulkan
     GPUOpen::VulkanMemoryAllocator
 )
@@ -104,7 +109,6 @@ target_link_libraries(vulkan-sdl PRIVATE
     render
     vulkan-wrapper
     util
-    glm::glm-header-only
     Vulkan::Vulkan
     GPUOpen::VulkanMemoryAllocator
     SDL3::SDL3
