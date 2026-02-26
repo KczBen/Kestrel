@@ -75,12 +75,13 @@ coverage:
     - cmake --build out/build/coverage --parallel $(nproc)
     - cd out/build/coverage
     - ctest --output-on-failure
-    - llvm-cov report
-        ./test-bin
-        -object ./librender.a
-        -object ./libvulkan-wrapper.a
-        -object ./libutil.a
-        -instr-profile=coverage.profdata
+    - |
+      llvm-cov report \
+        ./test-bin \
+        -object ./librender.a \
+        -object ./libvulkan-wrapper.a \
+        -object ./libutil.a \
+        -instr-profile=coverage.profdata \
         -ignore-filename-regex=".*/tests/.*"
 
   coverage: '/TOTAL.*\s+(\d+\.\d+%)/'
