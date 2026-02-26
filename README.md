@@ -61,3 +61,5 @@ ctest --output-on-failure
 ```
 
 Coverage reports are automatically generated in the `coverage-html` directory.
+
+The current state of the CI test coverage can be viewed [on this page](https://vulkan-sdl-df3688.gitlab.io/).
