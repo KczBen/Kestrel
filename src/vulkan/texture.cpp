@@ -3,7 +3,7 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include "stb_image.h"
 
 Vulkan::Texture::Texture(Device& device, const char* texturePath) {
     int w = 0;

@@ -34,7 +34,8 @@ stages:
         cmake ninja-build git curl zip unzip tar pkg-config ca-certificates
         clang-21 lld-21 libc++-21-dev libc++abi-21-dev
         libvulkan-dev glslang-tools spirv-tools
-        libsdl3-dev clang-tools-21 llvm-21
+        libsdl3-dev clang-tools-21 llvm-21-tools
+        
     - update-alternatives --install /usr/bin/clang   clang   /usr/bin/clang-21   100
     - update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
     - |
@@ -45,7 +46,7 @@ stages:
     - mkdir -p "${VCPKG_DEFAULT_BINARY_CACHE}"
 
 
-build-and-test:
+build:
   extends: .linux_setup
   stage: build
 
@@ -56,8 +57,6 @@ build-and-test:
   script:
     - cmake --preset Debug
     - cmake --build --preset "Build - Debug" --parallel $(nproc)
-    - cd out/build/Debug
-    - ctest --output-on-failure --parallel $(nproc)
 
   artifacts:
     when: always
@@ -68,7 +67,7 @@ build-and-test:
 
 coverage:
   extends: .linux_setup
-  stage: build
+  stage: test
 
   before_script:
     - !reference [.linux_setup, before_script]
