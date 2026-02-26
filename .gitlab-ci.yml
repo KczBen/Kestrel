@@ -40,6 +40,7 @@ stages:
     - update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
     - |
       if [ ! -f "${VCPKG_ROOT}/bootstrap-vcpkg.sh" ]; then
+        rm -rf "${VCPKG_ROOT}"
         git clone --depth 1 https://github.com/microsoft/vcpkg.git "${VCPKG_ROOT}"
       fi
     - "${VCPKG_ROOT}/bootstrap-vcpkg.sh"
