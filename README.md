@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.com/bencek/vulkan-sdl/badges/main/pipeline.svg)](https://gitlab.com/bencek/vulkan-sdl/-/commits/main) [![coverage report](https://gitlab.com/bencek/vulkan-sdl/badges/main/coverage.svg)](https://gitlab.com/bencek/vulkan-sdl/-/commits/main)
+
 # Vulkan rendering prototype
 
 Learning project about Vulkan API for 3D rendering, using Vulkan 1.4 features and implementing various rendering techniques.
