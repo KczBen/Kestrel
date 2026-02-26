@@ -148,6 +148,7 @@ if(TESTING)
         ${CMAKE_SOURCE_DIR}/src/render/include
     )
     target_link_libraries(test-bin
+        glm::glm-header-only
         render
         vulkan-wrapper
         util
