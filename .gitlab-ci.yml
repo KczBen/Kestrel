@@ -14,8 +14,8 @@ stages:
     prefix: "vcpkg-${CI_COMMIT_REF_SLUG}"
   paths:
     - .vcpkg-binary-cache/
-    - vcpkg/installed/
-    - vcpkg/buildtrees/
+    - out/build/Debug/vcpkg_installed/
+    - out/build/coverage/vcpkg_installed/
   policy: pull-push
 
 .build_output_cache: &build_output_cache
