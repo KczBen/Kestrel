@@ -50,18 +50,10 @@ build:
 
   cache:
     - <<: *vcpkg_cache
-    - <<: *build_output_cache
 
   script:
     - cmake --preset Debug
     - cmake --build --preset "Build - Debug" --parallel $(nproc)
-
-  artifacts:
-    when: always
-    expire_in: 2 weeks
-    paths:
-      - out/build/Debug/Testing/
-
 
 coverage:
   extends: .linux_setup
@@ -88,4 +80,5 @@ coverage:
     when: always
     expire_in: 2 weeks
     paths:
+      - out/build/coverage/Testing/
       - out/build/coverage/coverage-html/
