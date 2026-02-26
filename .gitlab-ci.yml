@@ -92,3 +92,14 @@ coverage:
     paths:
       - out/build/coverage/Testing/
       - out/build/coverage/coverage-html/
+
+pages:
+  stage: test
+  needs: ["coverage"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - cp -r out/build/coverage/coverage-html/ public/
+  artifacts:
+    paths:
+      - public/
