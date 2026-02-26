@@ -5,6 +5,7 @@
     { "name": "nlohmann-json", "version>=": "3.12.0" },
     { "name": "tinyobjloader", "version>=": "2.0.0rc13" },
     { "name": "vulkan-memory-allocator", "version>=": "3.3.0" },
+    { "name": "stb", "version>=": "2024-07-29#1"},
 
     { "name": "gtest", "version>=": "1.17.0#2"}
   ]

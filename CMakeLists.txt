@@ -26,6 +26,7 @@ find_package(Vulkan REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(glslang REQUIRED)
+find_package(Stb REQUIRED)
 
 add_library(vulkan-wrapper
     src/vulkan/instance.cpp
@@ -55,6 +56,8 @@ target_include_directories(vulkan-wrapper PRIVATE
     ${CMAKE_SOURCE_DIR}/src/vulkan/include
     ${CMAKE_SOURCE_DIR}/src/util/include
     ${CMAKE_SOURCE_DIR}/src/render/include
+    ${Stb_INCLUDE_DIR}
+
 )
 
 target_link_libraries(vulkan-wrapper PRIVATE
