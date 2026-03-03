@@ -62,7 +62,7 @@ coverage:
   stage: test
 
   before_script:
-    - .linux_setup
+    - !reference [.linux_setup, before_script]
 
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
