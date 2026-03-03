@@ -5,6 +5,7 @@ variables:
   SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
   GIT_DEPTH: "0"
 
+image: ubuntu:25.10
 
 stages:
   - build
@@ -22,8 +23,6 @@ stages:
   policy: pull-push
 
 .linux_setup:
-  image: ubuntu:25.10
-
   before_script:
     - export DEBIAN_FRONTEND=noninteractive
     - apt-get update -qq
@@ -108,6 +107,8 @@ pages:
 
 get-sonar-binaries:
   stage: .pre
+  extends: .linux_setup
+
   cache:
     policy: push
     key: "${CI_COMMIT_SHORT_SHA}"
@@ -124,11 +125,13 @@ get-sonar-binaries:
     - unzip -oj build-wrapper-linux-x86.zip -d ./build-wrapper
   only:
     - merge_requests
-    - master
+    - main
     - develop
 
 sonar-build:
   stage: build
+  extends: .linux_setup
+
   cache:
     policy: pull-push
     key: "${CI_COMMIT_SHORT_SHA}"
@@ -142,7 +145,7 @@ sonar-build:
     - sonar-scanner/bin/sonar-scanner -Dsonar.host.url="${SONAR_HOST_URL}" -Dsonar.token="${SONAR_TOKEN}" -Dsonar.cfamily.compile-commands=bw-output/compile_commands.json
   only:
     - merge_requests
-    - master
+    - main
     - develop
 
 sonarcloud-check:
@@ -157,5 +160,5 @@ sonarcloud-check:
     - sonar-scanner
   only:
     - merge_requests
-    - master
+    - main
     - develop
