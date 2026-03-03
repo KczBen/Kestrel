@@ -2,6 +2,9 @@ variables:
   VCPKG_ROOT: "${CI_PROJECT_DIR}/vcpkg"
   VCPKG_DEFAULT_BINARY_CACHE: "${CI_PROJECT_DIR}/.vcpkg-binary-cache"
   VCPKG_DISABLE_METRICS: "1"
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+  GIT_DEPTH: "0"
+
 
 stages:
   - build
@@ -43,7 +46,6 @@ stages:
     - "${VCPKG_ROOT}/bootstrap-vcpkg.sh"
     - mkdir -p "${VCPKG_DEFAULT_BINARY_CACHE}"
 
-
 build:
   extends: .linux_setup
   stage: build
@@ -60,7 +62,7 @@ coverage:
   stage: test
 
   before_script:
-    - !reference [.linux_setup, before_script]
+    - .linux_setup
 
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -103,3 +105,42 @@ pages:
   artifacts:
     paths:
       - public/
+
+get-sonar-binaries:
+  stage: .pre
+  cache:
+    policy: push
+    key: "${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - build-wrapper/
+      - sonar-scanner/
+  script:
+    # Download sonar-scanner
+    - curl -sSLo ./sonar-scanner.zip 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-8.0.1.6346-linux-x64.zip'
+    - unzip -o sonar-scanner.zip
+    - mv sonar-scanner-8.0.1.6346-linux-x64 sonar-scanner
+    # Download build-wrapper
+    - curl -sSLo ./build-wrapper-linux-x86.zip "${SONAR_HOST_URL}/static/cpp/build-wrapper-linux-x86.zip"
+    - unzip -oj build-wrapper-linux-x86.zip -d ./build-wrapper
+  only:
+    - merge_requests
+    - master
+    - develop
+
+sonar-build:
+  stage: build
+  cache:
+    policy: pull-push
+    key: "${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - build-wrapper/
+      - sonar-scanner/
+  script:
+    # Run the build inside the build wrapper
+    - build-wrapper/build-wrapper-linux-x86-64 --out-dir bw-output cmake --preset Debug && cmake --build --preset "Build - Debug" --parallel $(nproc)
+    # Run the sonar-scanner in the same stage as the build
+    - sonar-scanner/bin/sonar-scanner -Dsonar.host.url="${SONAR_HOST_URL}" -Dsonar.token="${SONAR_TOKEN}" -Dsonar.cfamily.compile-commands=bw-output/compile_commands.json
+  only:
+    - merge_requests
+    - master
+    - develop
