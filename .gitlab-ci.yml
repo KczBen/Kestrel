@@ -125,10 +125,9 @@ get-sonar-binaries:
     # Download build-wrapper
     - curl -sSLo ./build-wrapper-linux-x86.zip "${SONAR_HOST_URL}/static/cpp/build-wrapper-linux-x86.zip"
     - unzip -oj build-wrapper-linux-x86.zip -d ./build-wrapper
-  only:
-    - merge_requests
-    - main
-    - develop
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
 
 sonar-build:
   stage: build
@@ -144,22 +143,6 @@ sonar-build:
     - cmake --preset Debug
     - build-wrapper/build-wrapper-linux-x86-64 --out-dir bw-output cmake --build --preset "Build - Debug" --parallel $(nproc)
     - sonar-scanner/bin/sonar-scanner -Dsonar.host.url="${SONAR_HOST_URL}" -Dsonar.token="${SONAR_TOKEN}" -Dsonar.cfamily.compile-commands=bw-output/compile_commands.json
-  only:
-    - merge_requests
-    - main
-    - develop
-
-sonarcloud-check:
-  image:
-    name: sonarsource/sonar-scanner-cli:latest
-    entrypoint: [""]
-  cache:
-    key: "${CI_JOB_NAME}"
-    paths:
-      - .sonar/cache
-  script:
-    - sonar-scanner
-  only:
-    - merge_requests
-    - main
-    - develop
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
