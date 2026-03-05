@@ -31,6 +31,7 @@ stages:
         clang-21 lld-21 libc++-21-dev libc++abi-21-dev
         libvulkan-dev glslang-tools spirv-tools
         libsdl3-dev clang-tools-21 llvm-21 libclang-rt-21-dev
+        mesa-vulkan-drivers
         
     - update-alternatives --install /usr/bin/clang   clang   /usr/bin/clang-21   100
     - update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
@@ -44,6 +45,7 @@ stages:
       fi
     - "${VCPKG_ROOT}/bootstrap-vcpkg.sh"
     - mkdir -p "${VCPKG_DEFAULT_BINARY_CACHE}"
+    - export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json
 
 build:
   extends: .linux_setup

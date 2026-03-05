@@ -141,6 +141,9 @@ if(TESTING)
     enable_testing()
     add_executable(test-bin
         tests/vertex_unittest.cpp
+        tests/device_unittest.cpp
+        tests/instance_unittest.cpp
+        tests/physicalDevice_unittest.cpp
     )
     target_include_directories(test-bin PRIVATE
         ${CMAKE_SOURCE_DIR}/src/vulkan/include
@@ -148,10 +151,15 @@ if(TESTING)
         ${CMAKE_SOURCE_DIR}/src/render/include
     )
     target_link_libraries(test-bin
-        glm::glm-header-only
         render
         vulkan-wrapper
         util
+        Vulkan::Vulkan
+        GPUOpen::VulkanMemoryAllocator
+        SDL3::SDL3
+        glslang::glslang
+        glslang::SPIRV
+        glslang::glslang-default-resource-limits
         GTest::gtest_main
     )
     include(GoogleTest)
