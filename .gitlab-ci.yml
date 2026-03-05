@@ -127,7 +127,7 @@ get-sonar-binaries:
     - unzip -oj build-wrapper-linux-x86.zip -d ./build-wrapper
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH = "main"
+    - if: $CI_COMMIT_BRANCH == "main"
 
 sonar-build:
   stage: build
@@ -145,4 +145,4 @@ sonar-build:
     - sonar-scanner/bin/sonar-scanner -Dsonar.host.url="${SONAR_HOST_URL}" -Dsonar.token="${SONAR_TOKEN}" -Dsonar.cfamily.compile-commands=bw-output/compile_commands.json
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH = "main"
+    - if: $CI_COMMIT_BRANCH == "main"
