@@ -1,35 +1,33 @@
 #include "instance.hpp"
 #include "physicalDevice.hpp"
 #include "surface.hpp"
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_events.h>
-#include <SDL3/SDL_keyboard.h>
-#include <SDL3/SDL_keycode.h>
-#include <SDL3/SDL_video.h>
 #include <gtest/gtest.h>
+#include <vulkan/vulkan.hpp>
 
 using namespace Vulkan;
 
-TEST(PhysicalDeviceTest, GettersReturnNonNull) {
-    ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
-    SDL_Window* window = SDL_CreateWindow("TestWindow", 640, 480, SDL_WINDOW_VULKAN);
-    ASSERT_TRUE(window != nullptr);
-    Instance instance("TestApp", window);
-    Surface surface(window, instance);
-    PhysicalDevice physicalDevice(instance, surface);
+class PhysicalDeviceFixture : public ::testing::Test {
+  protected:
+    Instance instance{
+        "TestApp", std::array<const char* const, 2>{vk::KHRSurfaceExtensionName, vk::EXTHeadlessSurfaceExtensionName}};
+    Surface surface{instance};
+    PhysicalDevice physicalDevice{instance, surface};
+};
 
-    ASSERT_TRUE(physicalDevice.get() != nullptr);
-    auto ext = physicalDevice.getExtensions();
-    ASSERT_FALSE(ext.empty());
+TEST_F(PhysicalDeviceFixture, GetReturnsNonNull) { ASSERT_NE(physicalDevice.get(), nullptr); }
+
+TEST_F(PhysicalDeviceFixture, ExtensionsNonEmpty) { ASSERT_FALSE(physicalDevice.getExtensions().empty()); }
+
+TEST_F(PhysicalDeviceFixture, QueueFamilyIndicesPresent) {
     auto indices = physicalDevice.getQueueFamilyIndices();
-    ASSERT_TRUE(indices.graphicsFamily.has_value());
-    ASSERT_TRUE(indices.presentFamily.has_value());
-    ASSERT_TRUE(indices.computeFamily.has_value());
-    auto swapSupport = physicalDevice.getSwapChainSupportDetails();
-    // Technically not a fault in our code, all compliant devices with a swapchain should support *a* format
-    ASSERT_FALSE(swapSupport.formats.empty());
-    ASSERT_FALSE(swapSupport.presentModes.empty());
+    EXPECT_TRUE(indices.graphicsFamily.has_value());
+    EXPECT_TRUE(indices.presentFamily.has_value());
+    EXPECT_TRUE(indices.computeFamily.has_value());
+}
 
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+TEST_F(PhysicalDeviceFixture, SwapChainSupportNonEmpty) {
+    auto swapSupport = physicalDevice.getSwapChainSupportDetails();
+    // All compliant devices with a swapchain should support at least one format and present mode
+    EXPECT_FALSE(swapSupport.formats.empty());
+    EXPECT_FALSE(swapSupport.presentModes.empty());
 }

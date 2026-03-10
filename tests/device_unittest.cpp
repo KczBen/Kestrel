@@ -1,34 +1,27 @@
 #include "device.hpp"
 #include "instance.hpp"
 #include "physicalDevice.hpp"
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_events.h>
-#include <SDL3/SDL_keyboard.h>
-#include <SDL3/SDL_keycode.h>
-#include <SDL3/SDL_video.h>
+#include "surface.hpp"
 #include <gtest/gtest.h>
+#include <vulkan/vulkan.hpp>
 
 using namespace Vulkan;
 
-TEST(DeviceTest, GettersReturnNonNull) {
-    ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
-    SDL_Window* window = SDL_CreateWindow("TestWindow", 640, 480, SDL_WINDOW_VULKAN);
-    ASSERT_NE(window, nullptr);
+class DeviceFixture : public ::testing::Test {
+  protected:
+    Instance instance{
+        "TestApp", std::array<const char* const, 2>{vk::KHRSurfaceExtensionName, vk::EXTHeadlessSurfaceExtensionName}};
+    Surface surface{instance};
+    PhysicalDevice physicalDevice{instance, surface};
+    Device device{physicalDevice, instance};
+};
 
-    Instance instance("TestApp", window);
-    Surface surface(window, instance);
+TEST_F(DeviceFixture, GetReturnsNonNull) { ASSERT_NE(device.get(), nullptr); }
 
-    PhysicalDevice physicalDevice(instance, surface);
+TEST_F(DeviceFixture, PhysicalDeviceHandleNonNull) { ASSERT_NE(device.getPhysicalDevice(), nullptr); }
 
-    Device device(physicalDevice, instance);
+TEST_F(DeviceFixture, GraphicsQueueNonNull) { ASSERT_NE(device.getGraphicsQueue(), nullptr); }
 
-    ASSERT_NE(device.get(), nullptr);
-    ASSERT_NE(device.getPhysicalDevice(), nullptr);
-    ASSERT_NE(device.getGraphicsQueue(), nullptr);
-    ASSERT_NE(device.getPresentQueue(), nullptr);
-    ASSERT_NE(device.getAllocator(), nullptr);
+TEST_F(DeviceFixture, PresentQueueNonNull) { ASSERT_NE(device.getPresentQueue(), nullptr); }
 
-    // Clean up
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-}
+TEST_F(DeviceFixture, AllocatorNonNull) { ASSERT_NE(device.getAllocator(), nullptr); }

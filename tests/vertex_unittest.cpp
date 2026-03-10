@@ -1,6 +1,4 @@
 #include "vertex.hpp"
-#include <glm/detail/qualifier.hpp>
-#include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -8,23 +6,27 @@
 
 #include <gtest/gtest.h>
 
-TEST(VertexTest, EqualityOperator) {
-    auto vertex1 = Vertex{.pos = glm::vec3{0.0, 0.0, 0.0},
-                          .color = glm::vec3{127.0, 127.0, 127.0},
-                          .texCoord = glm::vec2{0.0, 0.0},
-                          .normal = glm::vec3{0.5, 0.5, 0.5}};
+namespace {
 
-    auto vertex2 = Vertex{.pos = glm::vec3{1.0, 1.0, 1.0},
-                          .color = glm::vec3{127.0, 127.0, 127.0},
-                          .texCoord = glm::vec2{0.0, 0.0},
-                          .normal = glm::vec3{0.5, 0.5, 0.5}};
+auto makeVertex(glm::vec3 pos) -> Vertex {
+    return Vertex{
+        .pos = pos,
+        .color = glm::vec3{127.0f, 127.0f, 127.0f},
+        .texCoord = glm::vec2{0.0f, 0.0f},
+        .normal = glm::vec3{0.5f, 0.5f, 0.5f},
+    };
+}
 
-    EXPECT_NE(vertex1, vertex2);
+} // namespace
 
-    auto vertex3 = Vertex{.pos = glm::vec3{0.0, 0.0, 0.0},
-                          .color = glm::vec3{127.0, 127.0, 127.0},
-                          .texCoord = glm::vec2{0.0, 0.0},
-                          .normal = glm::vec3{0.5, 0.5, 0.5}};
+TEST(VertexTest, EqualVerticesCompareEqual) {
+    auto v1 = makeVertex({0.0f, 0.0f, 0.0f});
+    auto v2 = makeVertex({0.0f, 0.0f, 0.0f});
+    EXPECT_EQ(v1, v2);
+}
 
-    EXPECT_EQ(vertex1, vertex3);
+TEST(VertexTest, DifferentPositionsCompareUnequal) {
+    auto v1 = makeVertex({0.0f, 0.0f, 0.0f});
+    auto v2 = makeVertex({1.0f, 1.0f, 1.0f});
+    EXPECT_NE(v1, v2);
 }
