@@ -4,21 +4,12 @@
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 
-Vulkan::Instance::Instance(const std::string& appName, SDL_Window* window) {
+Vulkan::Instance::Instance(const std::string& appName, std::span<const char* const> extensions) {
     const vk::ApplicationInfo appInfo(appName.c_str(),
                                       vk::makeApiVersion(0, 1, 0, 0),
                                       "Proto Engine",
                                       vk::makeApiVersion(0, 1, 0, 0),
                                       vk::ApiVersion14);
-
-    // Get SDL extensions
-    uint32_t sdlExtensionCount = 0;
-    const auto* sdlExtensions = SDL_Vulkan_GetInstanceExtensions(&sdlExtensionCount);
-
-    // Add debug extension
-    std::vector<const char*> extensions(sdlExtensions, sdlExtensions + sdlExtensionCount);
-
-    extensions.push_back(vk::EXTDebugUtilsExtensionName);
 
     // Validation layers
     const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};

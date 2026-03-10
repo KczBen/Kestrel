@@ -24,9 +24,17 @@ class Swapchain {
     Swapchain(Vulkan::PhysicalDevice& physicalDevice,
               Vulkan::Device& device,
               Vulkan::Surface& surface,
-              SDL_Window* window,
+              uint32_t width,
+              uint32_t height,
               vk::SampleCountFlagBits msaaSamples);
-    void recreate(Vulkan::Device& device, Vulkan::Surface& surface, SDL_Window* window);
+
+    Swapchain(Vulkan::PhysicalDevice& physicalDevice,
+              Vulkan::Device& device,
+              Vulkan::Surface& surface,
+              std::pair<uint32_t, uint32_t> extent,
+              vk::SampleCountFlagBits msaaSamples);
+
+    void recreate(Vulkan::Device& device, Vulkan::Surface& surface, uint32_t width, uint32_t height);
     auto get() -> const vk::raii::SwapchainKHR&;
     auto getFormat() -> const vk::Format&;
     auto getExtent() -> const vk::Extent2D&;
@@ -37,12 +45,13 @@ class Swapchain {
     auto getMsaaSampleCount() -> vk::SampleCountFlagBits;
 
   private:
-    void createSwapchain(Vulkan::Device& device, Vulkan::Surface& surface, SDL_Window* window);
+    void createSwapchain(Vulkan::Device& device, Vulkan::Surface& surface, uint32_t width, uint32_t height);
     static auto chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats)
         -> vk::SurfaceFormatKHR;
     static auto chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes)
         -> vk::PresentModeKHR;
-    static auto chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, SDL_Window* window) -> vk::Extent2D;
+    static auto chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height)
+        -> vk::Extent2D;
     void createImageViews();
 };
 } // namespace Vulkan

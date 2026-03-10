@@ -25,13 +25,12 @@
 
 Render::Render::Render(SDL_Window* window, const uint32_t maxFramesInFlight)
     : maxFramesInFlight(maxFramesInFlight), vertexOffset(0), indexOffset(0), window(window),
-      instance("Vulkan prototype", window), surface(window, instance), physicalDevice(instance, surface),
-      device(physicalDevice, instance), commandPool(physicalDevice, device, maxFramesInFlight),
-      descriptorPool(device, maxFramesInFlight * 2),
-      swapchain(physicalDevice, device, surface, window, vk::SampleCountFlagBits::e4),
+      instance("Vulkan prototype", getInstanceExtensions()), surface(window, instance),
+      physicalDevice(instance, surface), device(physicalDevice, instance),
+      commandPool(physicalDevice, device, maxFramesInFlight), descriptorPool(device, maxFramesInFlight * 2),
+      swapchain(physicalDevice, device, surface, getWindowSizeInPixels(window), vk::SampleCountFlagBits::e4),
       syncObjects(device, swapchain.getImages().size()),
       stagingBuffer(device, static_cast<vk::DeviceSize>(5 * 1024 * 1024)) {}
-
 void Render::Render::uploadScene(const Scene& scene) {
     size_t totalVertices = 0;
     size_t totalIndices = 0;
@@ -139,7 +138,10 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     auto [result, imageIndex] = swapchain.get().acquireNextImage(UINT64_MAX, syncObjects.getImageAvailable(frameIndex));
 
     if (result == vk::Result::eErrorOutOfDateKHR) {
-        swapchain.recreate(device, surface, window);
+        int32_t width = 0;
+        int32_t height = 0;
+        SDL_GetWindowSizeInPixels(window, &width, &height);
+        swapchain.recreate(device, surface, width, height);
     }
 
     syncObjects.resetFence(frameIndex);
@@ -283,7 +285,10 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     result = device.getPresentQueue().presentKHR(presentInfo);
 
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
-        swapchain.recreate(device, surface, window);
+        int32_t width = 0;
+        int32_t height = 0;
+        SDL_GetWindowSizeInPixels(window, &width, &height);
+        swapchain.recreate(device, surface, width, height);
     }
 
     frameIndex = (frameIndex + 1) % maxFramesInFlight;
