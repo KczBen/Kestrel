@@ -45,7 +45,7 @@ stages:
       fi
     - "${VCPKG_ROOT}/bootstrap-vcpkg.sh"
     - mkdir -p "${VCPKG_DEFAULT_BINARY_CACHE}"
-    - export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+    - export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
 
 build:
   extends: .linux_setup
