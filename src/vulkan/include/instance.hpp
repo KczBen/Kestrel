@@ -11,7 +11,7 @@ class Instance {
     vk::raii::Instance instance = nullptr;
 
   public:
-    Instance(const std::string& appName, SDL_Window* window);
+    Instance(const std::string& appName, std::span<const char* const> extensions);
     auto get() -> vk::raii::Instance&;
 };
 } // namespace Vulkan

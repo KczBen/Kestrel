@@ -141,9 +141,13 @@ if(TESTING)
     enable_testing()
     add_executable(test-bin
         tests/vertex_unittest.cpp
-        # tests/device_unittest.cpp
-        # tests/instance_unittest.cpp
-        # tests/physicalDevice_unittest.cpp
+        tests/device_unittest.cpp
+        tests/instance_unittest.cpp
+        tests/physicalDevice_unittest.cpp
+        tests/commandPool_unittest.cpp
+        tests/descriptorPool_unittest.cpp
+        tests/descriptorSet_unittest.cpp
+        tests/swapchain_unittest.cpp
     )
     target_include_directories(test-bin PRIVATE
         ${CMAKE_SOURCE_DIR}/src/vulkan/include

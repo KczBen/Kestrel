@@ -11,6 +11,9 @@ class Surface {
 
   public:
     Surface(SDL_Window* window, Vulkan::Instance& instance);
+
+    // Only for testing! Makes a headless surface, it's useless for other tasks
+    Surface(Vulkan::Instance& instance);
     auto get() -> vk::raii::SurfaceKHR&;
 };
 } // namespace Vulkan

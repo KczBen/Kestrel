@@ -9,4 +9,8 @@ Vulkan::Surface::Surface(SDL_Window* window, Vulkan::Instance& instance) {
     surface = vk::raii::SurfaceKHR(instance.get(), rawSurface);
 }
 
+Vulkan::Surface::Surface(Vulkan::Instance& instance) {
+    surface = vk::raii::SurfaceKHR(instance.get(), vk::HeadlessSurfaceCreateInfoEXT());
+}
+
 auto Vulkan::Surface::get() -> vk::raii::SurfaceKHR& { return surface; }

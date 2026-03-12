@@ -17,7 +17,9 @@
 #include "swapchain.hpp"
 #include "texture.hpp"
 #include "uploadBuffer.hpp"
-#include <SDL3/SDL_video.h>
+#include <SDL3/SDL_vulkan.h>
+#include <cstdint>
+#include <utility>
 #include <vector>
 
 namespace Render {
@@ -63,5 +65,22 @@ class Render {
     ~Render() { device.get().waitIdle(); }
     void uploadScene(const Scene& scene);
     void render(Scene& scene, float deltaTime);
+
+  private:
+    static auto getInstanceExtensions() -> std::vector<const char*> {
+        uint32_t count = 0;
+        const auto* sdlExts = SDL_Vulkan_GetInstanceExtensions(&count);
+        std::vector<const char*> extensions(sdlExts, sdlExts + count);
+        extensions.push_back(vk::EXTDebugUtilsExtensionName);
+        return extensions;
+    }
+
+    static auto getWindowSizeInPixels(SDL_Window* window) -> std::pair<int32_t, int32_t> {
+        int w = 0;
+        int h = 0;
+        SDL_GetWindowSizeInPixels(window, &w, &h);
+
+        return {w, h};
+    }
 };
 } // namespace Render

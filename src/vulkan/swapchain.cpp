@@ -6,11 +6,22 @@
 Vulkan::Swapchain::Swapchain(Vulkan::PhysicalDevice& physicalDevice,
                              Vulkan::Device& device,
                              Vulkan::Surface& surface,
-                             SDL_Window* window,
+                             uint32_t width,
+                             uint32_t height,
                              vk::SampleCountFlagBits msaaSamples)
     : device(&device.get()), physicalDevice(physicalDevice), swapchainFormat(vk::Format::eB8G8R8A8Srgb),
       msaaSamples(msaaSamples) {
-    createSwapchain(device, surface, window);
+    createSwapchain(device, surface, width, height);
+}
+
+Vulkan::Swapchain::Swapchain(Vulkan::PhysicalDevice& physicalDevice,
+                             Vulkan::Device& device,
+                             Vulkan::Surface& surface,
+                             std::pair<uint32_t, uint32_t> extent,
+                             vk::SampleCountFlagBits msaaSamples)
+    : device(&device.get()), physicalDevice(physicalDevice), swapchainFormat(vk::Format::eB8G8R8A8Srgb),
+      msaaSamples(msaaSamples) {
+    createSwapchain(device, surface, extent.first, extent.second);
 }
 
 auto Vulkan::Swapchain::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats)
@@ -36,18 +47,14 @@ auto Vulkan::Swapchain::chooseSwapPresentMode(const std::vector<vk::PresentModeK
     return vk::PresentModeKHR::eFifo;
 }
 
-auto Vulkan::Swapchain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, SDL_Window* window)
-    -> vk::Extent2D {
+auto Vulkan::Swapchain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities,
+                                         uint32_t width,
+                                         uint32_t height) -> vk::Extent2D {
     if (capabilities.currentExtent.width != 0xFFFFFFFF) {
         return capabilities.currentExtent;
     }
 
-    int width = 0;
-    int height = 0;
-
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-
-    VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+    VkExtent2D actualExtent = {width, height};
     actualExtent.width =
         std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
     actualExtent.height =
@@ -56,11 +63,14 @@ auto Vulkan::Swapchain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capab
     return actualExtent;
 }
 
-void Vulkan::Swapchain::createSwapchain(Vulkan::Device& device, Vulkan::Surface& surface, SDL_Window* window) {
+void Vulkan::Swapchain::createSwapchain(Vulkan::Device& device,
+                                        Vulkan::Surface& surface,
+                                        uint32_t width,
+                                        uint32_t height) {
     auto swapChainSupport = physicalDevice.getSwapChainSupportDetails();
     auto surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    extent = chooseSwapExtent(swapChainSupport.capabilities, window);
+    extent = chooseSwapExtent(swapChainSupport.capabilities, width, height);
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
     if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -115,17 +125,8 @@ void Vulkan::Swapchain::createSwapchain(Vulkan::Device& device, Vulkan::Surface&
                                1);
 }
 
-void Vulkan::Swapchain::recreate(Vulkan::Device& device, Vulkan::Surface& surface, SDL_Window* window) {
-    int width = 0;
-    int height = 0;
-
-    SDL_GetWindowSizeInPixels(window, &width, &height);
-
-    while (width == 0 || height == 0) {
-        SDL_GetWindowSizeInPixels(window, &width, &height);
-    }
-
-    createSwapchain(device, surface, window);
+void Vulkan::Swapchain::recreate(Vulkan::Device& device, Vulkan::Surface& surface, uint32_t width, uint32_t height) {
+    createSwapchain(device, surface, width, height);
 
     this->device->waitIdle();
 }
