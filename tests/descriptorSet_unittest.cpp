@@ -2,6 +2,8 @@
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
 #include "device.hpp"
+#include "hostBuffer.hpp"
+#include "image.hpp"
 #include "instance.hpp"
 #include "physicalDevice.hpp"
 #include "surface.hpp"
@@ -36,3 +38,77 @@ class DescriptorSetFixture : public DescriptorSetLayoutFixture {
 };
 
 TEST_F(DescriptorSetFixture, GetReturnsNonNull) { ASSERT_NE(*descriptorSet.get(), VK_NULL_HANDLE); }
+
+// Covers the eUniformBuffer branch in write()
+TEST_F(DescriptorSetFixture, WriteUniformBuffer) {
+    const HostBuffer ubo{device, sizeof(float) * 16}; // defaults to eUniformBuffer
+
+    const vk::DescriptorBufferInfo bufferInfo{ubo.get(), 0, sizeof(float) * 16};
+
+    DescriptorWrite write{};
+    write.binding = 0;
+    write.type = vk::DescriptorType::eUniformBuffer;
+    write.bufferInfo = bufferInfo;
+
+    // Should not throw — validates the buffer branch in write()
+    EXPECT_NO_THROW(descriptorSet.write(std::array{write}));
+}
+
+// Covers the eStorageBuffer branch in write() — requires a layout with a storage binding
+class DescriptorSetStorageFixture : public DeviceFixture {
+  protected:
+    std::vector<vk::DescriptorSetLayoutBinding> bindings{
+        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute)};
+    DescriptorSetLayout layout{device, bindings};
+    DescriptorPool pool{device, 2};
+    DescriptorSet descriptorSet{device, pool, layout};
+};
+
+TEST_F(DescriptorSetStorageFixture, WriteStorageBuffer) {
+    const HostBuffer ssbo{device, sizeof(float) * 64, vk::BufferUsageFlagBits::eStorageBuffer};
+
+    const vk::DescriptorBufferInfo bufferInfo{ssbo.get(), 0, sizeof(float) * 64};
+
+    DescriptorWrite write{};
+    write.binding = 0;
+    write.type = vk::DescriptorType::eStorageBuffer;
+    write.bufferInfo = bufferInfo;
+
+    EXPECT_NO_THROW(descriptorSet.write(std::array{write}));
+}
+
+// Covers the image/sampler branch in write() (the else path)
+class DescriptorSetSamplerFixture : public DeviceFixture {
+  protected:
+    std::vector<vk::DescriptorSetLayoutBinding> bindings{vk::DescriptorSetLayoutBinding(
+        0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment)};
+    DescriptorSetLayout layout{device, bindings};
+    DescriptorPool pool{device, 2};
+    DescriptorSet descriptorSet{device, pool, layout};
+};
+
+TEST_F(DescriptorSetSamplerFixture, WriteImageSampler) {
+    Image img{device,
+              {64, 64, 1},
+              vk::Format::eR8G8B8A8Srgb,
+              vk::ImageUsageFlagBits::eSampled,
+              vk::ImageAspectFlagBits::eColor};
+
+    const vk::SamplerCreateInfo samplerInfo{{},
+                                            vk::Filter::eLinear,
+                                            vk::Filter::eLinear,
+                                            vk::SamplerMipmapMode::eLinear,
+                                            vk::SamplerAddressMode::eRepeat,
+                                            vk::SamplerAddressMode::eRepeat,
+                                            vk::SamplerAddressMode::eRepeat};
+    auto sampler = device.get().createSampler(samplerInfo);
+
+    const vk::DescriptorImageInfo imageInfo{*sampler, *img.getImageView(), vk::ImageLayout::eShaderReadOnlyOptimal};
+
+    DescriptorWrite write{};
+    write.binding = 0;
+    write.type = vk::DescriptorType::eCombinedImageSampler;
+    write.imageInfo = imageInfo;
+
+    EXPECT_NO_THROW(descriptorSet.write(std::array{write}));
+}

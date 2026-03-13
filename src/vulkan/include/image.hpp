@@ -76,6 +76,7 @@ class Image {
             allocator = other.allocator;
             image = std::exchange(other.image, nullptr);
             imageView = std::move(other.imageView);
+            other.imageView = nullptr;
             imageFormat = other.imageFormat;
             imageExtent = other.imageExtent;
             layout = other.layout;

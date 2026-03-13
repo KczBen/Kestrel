@@ -1,6 +1,7 @@
 #include "instance.hpp"
 #include "physicalDevice.hpp"
 #include "surface.hpp"
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <vulkan/vulkan.hpp>
 
@@ -30,4 +31,39 @@ TEST_F(PhysicalDeviceFixture, SwapChainSupportNonEmpty) {
     // All compliant devices with a swapchain should support at least one format and present mode
     EXPECT_FALSE(swapSupport.formats.empty());
     EXPECT_FALSE(swapSupport.presentModes.empty());
+}
+
+TEST_F(PhysicalDeviceFixture, SwapChainCapabilitiesValid) {
+    const auto& caps = physicalDevice.getSwapChainSupportDetails().capabilities;
+    EXPECT_GE(caps.maxImageCount, caps.minImageCount);
+    EXPECT_GE(caps.minImageExtent.width, 0u);
+    EXPECT_GE(caps.minImageExtent.height, 0u);
+}
+
+TEST_F(PhysicalDeviceFixture, QueueFamilyIndicesAreValidIndices) {
+    auto indices = physicalDevice.getQueueFamilyIndices();
+    // Queue family indices must be non-negative integers; max reasonable value is 64
+    EXPECT_LT(indices.graphicsFamily.value(), 64u);
+    EXPECT_LT(indices.presentFamily.value(), 64u);
+    EXPECT_LT(indices.computeFamily.value(), 64u);
+}
+
+TEST_F(PhysicalDeviceFixture, ExtensionsContainSwapchain) {
+    const auto& exts = physicalDevice.getExtensions();
+    const std::string_view swapchainExt = vk::KHRSwapchainExtensionName;
+    bool found = false;
+    for (const auto* ext : exts) {
+        if (ext == swapchainExt) {
+            found = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found);
+}
+
+// FIFO is guaranteed by spec on all Vulkan devices
+TEST_F(PhysicalDeviceFixture, SwapChainSupportContainsFifo) {
+    const auto& modes = physicalDevice.getSwapChainSupportDetails().presentModes;
+    const bool hasFifo = std::ranges::find(modes, vk::PresentModeKHR::eFifo) != modes.end();
+    EXPECT_TRUE(hasFifo);
 }

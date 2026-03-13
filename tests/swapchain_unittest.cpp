@@ -62,11 +62,34 @@ TEST_F(SwapchainFixture, MsaaSampleCountMatches) {
     EXPECT_EQ(swapchain.getMsaaSampleCount(), vk::SampleCountFlagBits::e4);
 }
 
+// Cover the other constructor
+TEST_F(SwapchainFixture, PairConstructorProducesValidSwapchain) {
+    Swapchain sc{physicalDevice, device, surface, std::make_pair(800u, 600u), vk::SampleCountFlagBits::e1};
+    ASSERT_NE(sc.get(), nullptr);
+    EXPECT_GT(sc.getImages().size(), 0u);
+    EXPECT_NE(sc.getExtent().width, 0u);
+    EXPECT_NE(sc.getExtent().height, 0u);
+}
+
+TEST_F(SwapchainFixture, PresentModeIsSupportedByDevice) {
+    const auto& modes = physicalDevice.getSwapChainSupportDetails().presentModes;
+    const bool hasFifo = std::find(modes.begin(), modes.end(), vk::PresentModeKHR::eFifo) != modes.end();
+    EXPECT_TRUE(hasFifo);
+}
+
+// Requestin a very large swapchain, createSwapchain clamps to maxImageCount when the driver reports one
+TEST_F(SwapchainFixture, ImageCountRespectsCap) {
+    const auto& caps = physicalDevice.getSwapChainSupportDetails().capabilities;
+    // The actual image count must stay within driver-reported bounds
+    EXPECT_GE(swapchain.getImages().size(), caps.minImageCount);
+    if (caps.maxImageCount > 0) {
+        EXPECT_LE(swapchain.getImages().size(), caps.maxImageCount);
+    }
+}
+
 // Swapchain recreation
 TEST_F(SwapchainFixture, RecreateUpdatesExtent) {
-    const uint32_t newWidth = 1024;
-    const uint32_t newHeight = 768;
-    swapchain.recreate(device, surface, newWidth, newHeight);
+    swapchain.recreate(device, surface, 1024, 768);
     const auto& extent = swapchain.getExtent();
     EXPECT_GT(extent.width, 0u);
     EXPECT_GT(extent.height, 0u);
@@ -116,4 +139,11 @@ TEST_F(SwapchainFixture, RecreateFormatReturnsCorrect) {
 TEST_F(SwapchainFixture, RecreateReturnsNonNull) {
     swapchain.recreate(device, surface, 1024, 768);
     ASSERT_NE(swapchain.get(), nullptr);
+}
+
+// Recreate with the same dimensions, covers an additional branch
+TEST_F(SwapchainFixture, RecreateSameSizeStillValid) {
+    swapchain.recreate(device, surface, 800, 600);
+    ASSERT_NE(swapchain.get(), nullptr);
+    EXPECT_GT(swapchain.getImages().size(), 0u);
 }

@@ -1,8 +1,8 @@
 #include "hostBuffer.hpp"
 
-Vulkan::HostBuffer::HostBuffer(Vulkan::Device& device, vk::DeviceSize size)
+Vulkan::HostBuffer::HostBuffer(Vulkan::Device& device, vk::DeviceSize size, vk::BufferUsageFlags usage)
     : allocator(device.getAllocator()), bufferSize(size) {
-    vk::BufferCreateInfo bufferInfo({}, size, vk::BufferUsageFlagBits::eUniformBuffer);
+    vk::BufferCreateInfo bufferInfo({}, size, usage);
 
     VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO;

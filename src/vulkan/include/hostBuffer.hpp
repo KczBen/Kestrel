@@ -14,7 +14,9 @@ class HostBuffer {
     vk::DeviceSize bufferSize{};
 
   public:
-    HostBuffer(Vulkan::Device& device, vk::DeviceSize size);
+    HostBuffer(Vulkan::Device& device,
+               vk::DeviceSize size,
+               vk::BufferUsageFlags usage = vk::BufferUsageFlagBits::eUniformBuffer);
 
     ~HostBuffer() {
         if (buffer) {
