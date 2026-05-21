@@ -1,7 +1,11 @@
+#include "device.hpp"
 #include "input.hpp"
-#include "model.hpp"
+#include "instance.hpp"
+#include "physicalDevice.hpp"
 #include "render.hpp"
+#include "resourceManager.hpp"
 #include "scene.hpp"
+#include "surface.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
@@ -16,9 +20,16 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glslang/Public/ShaderLang.h>
 
-#include <memory>
 #include <print>
 #include <vulkan/vulkan_core.h>
+
+static auto getInstanceExtensions() -> std::vector<const char*> {
+    uint32_t count = 0;
+    const auto* sdlExts = SDL_Vulkan_GetInstanceExtensions(&count);
+    std::vector<const char*> extensions(sdlExts, sdlExts + count);
+    extensions.push_back(vk::EXTDebugUtilsExtensionName);
+    return extensions;
+}
 
 auto main(int /*unused*/, char** /*unused*/) -> int {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -42,11 +53,18 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
 
     // Vulkan resource scope
     {
-        Render::Render renderer(window, 2);
-        Render::Scene scene(5.0f, 0.0f, 5.0f, 90.0f);
-        scene.addObject(std::make_unique<Model>(std::string(SDL_GetBasePath()).append("models/viking_room.obj")));
+        Vulkan::Instance instance("Vulkan prototype", getInstanceExtensions());
+        Vulkan::Surface surface(window, instance);
+        Vulkan::PhysicalDevice physicalDevice(instance, surface);
+        Vulkan::Device device(physicalDevice, instance);
 
-        renderer.uploadScene(scene);
+        Render::ResourceManager resourceManager(physicalDevice, device);
+        Render::Scene scene(std::string(SDL_GetBasePath()).append("models/BoxVertexColors.glb").c_str());
+        resourceManager.loadScene(scene);
+
+        Render::Render renderer(window, resourceManager, instance, surface, physicalDevice, device, 2);
+
+        renderer.init(scene);
 
         // Main loop
         bool running = true;

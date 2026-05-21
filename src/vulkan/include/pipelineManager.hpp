@@ -1,10 +1,11 @@
 #pragma once
 
+#include "camera.hpp"
 #include "descriptorPool.hpp"
-#include "descriptorSetLayout.hpp"
 #include "device.hpp"
 #include "graphicsPipeline.hpp"
 #include "material.hpp"
+#include "resourceHandles.hpp"
 #include "vulkan/vulkan.hpp"
 #include <unordered_map>
 #include <vulkan/vulkan_raii.hpp>
@@ -37,10 +38,10 @@ class PipelineManager {
   private:
     Vulkan::Device* device;
     Vulkan::DescriptorPool* pool;
+    std::vector<Material>* materialList;
 
     // DESIGN: Maybe not hard-code this?
     vk::PushConstantRange pushConstants;
-    Vulkan::DescriptorSetLayout* cameraLayout;
 
     // Do we already have a full pipeline for this?
     std::unordered_map<PipelineKey, GraphicsPipeline> pipelineCache;
@@ -52,9 +53,10 @@ class PipelineManager {
     // same for all the GraphicsPipelineLibrary stages
 
   public:
-    PipelineManager(Vulkan::Device& device, Vulkan::DescriptorSetLayout& cameraLayout, Vulkan::DescriptorPool& pool);
+    PipelineManager(Vulkan::Device& device, Vulkan::DescriptorPool& pool, std::vector<Material>& materialList);
 
-    void registerMaterial(Material& material);
-    auto getOrCreatePipeline(Material& material, vk::Format format) -> Vulkan::GraphicsPipeline&;
+    void registerMaterial(Render::MaterialHandle materialHandle);
+    auto getOrCreatePipeline(Render::MaterialHandle materialHandle, Render::Camera& camera, vk::Format format)
+        -> Vulkan::GraphicsPipeline&;
 };
 } // namespace Vulkan

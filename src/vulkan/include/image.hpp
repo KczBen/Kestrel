@@ -91,5 +91,6 @@ class Image {
 
     auto get() -> const vk::Image&;
     auto getImageView() -> const vk::raii::ImageView&;
+    auto getFormat() -> const vk::Format&;
 };
 } // namespace Vulkan

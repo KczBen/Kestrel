@@ -55,6 +55,7 @@ add_library(vulkan-wrapper
 target_include_directories(vulkan-wrapper PRIVATE 
     ${CMAKE_SOURCE_DIR}/src/vulkan/include
     ${CMAKE_SOURCE_DIR}/src/util/include
+    ${CMAKE_SOURCE_DIR}/src/render/scene/include
     ${CMAKE_SOURCE_DIR}/src/render/include
     ${Stb_INCLUDE_DIR}
 
@@ -65,27 +66,23 @@ target_link_libraries(vulkan-wrapper PRIVATE
     GPUOpen::VulkanMemoryAllocator
 )
 
-add_library(util
-    src/util/model.cpp
-)
-
-target_include_directories(util PRIVATE 
-    ${CMAKE_SOURCE_DIR}/src/util/include
-)
-
-target_link_libraries(util PRIVATE
-    glm::glm-header-only
-)
-
 add_library(render
     src/render/scene.cpp
     src/render/render.cpp
     src/render/material.cpp
+    src/render/geometryPass.cpp
+    src/render/camera.cpp
+    src/render/cameraController.cpp
+    src/render/pass.cpp
+    src/render/resourceManager.cpp
+    src/render/scene/object.cpp
+    src/render/cameraPass.cpp
 )
 
 target_include_directories(render PRIVATE 
     ${CMAKE_SOURCE_DIR}/src/vulkan/include
     ${CMAKE_SOURCE_DIR}/src/util/include
+    ${CMAKE_SOURCE_DIR}/src/render/scene/include
     ${CMAKE_SOURCE_DIR}/src/render/include
 )
 
@@ -103,12 +100,12 @@ target_include_directories(vulkan-sdl PRIVATE
     ${CMAKE_SOURCE_DIR}/src/vulkan/include
     ${CMAKE_SOURCE_DIR}/src/util/include
     ${CMAKE_SOURCE_DIR}/src/render/include
+    ${CMAKE_SOURCE_DIR}/src/render/scene/include
 )
 
 target_link_libraries(vulkan-sdl PRIVATE
     render
     vulkan-wrapper
-    util
     Vulkan::Vulkan
     GPUOpen::VulkanMemoryAllocator
     SDL3::SDL3
@@ -158,7 +155,6 @@ if(TESTING)
     target_link_libraries(test-bin
         render
         vulkan-wrapper
-        util
         Vulkan::Vulkan
         GPUOpen::VulkanMemoryAllocator
         SDL3::SDL3
