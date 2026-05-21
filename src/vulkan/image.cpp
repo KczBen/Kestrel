@@ -58,3 +58,4 @@ Vulkan::Image::Image(Vulkan::Device& device,
 
 auto Vulkan::Image::get() -> const vk::Image& { return image; }
 auto Vulkan::Image::getImageView() -> const vk::raii::ImageView& { return imageView; }
+auto Vulkan::Image::getFormat() -> const vk::Format& { return imageFormat; }

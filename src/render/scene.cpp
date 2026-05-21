@@ -1,35 +1,22 @@
 #include "scene.hpp"
-#include "camera.hpp"
-#include "input.hpp"
-#include "model.hpp"
 #include <glm/fwd.hpp>
-#include <memory>
 
-Render::Scene::Scene(float cameraX, float cameraY, float cameraZ, float cameraFoV) {
-    const glm::vec3 pos(cameraX, cameraY, cameraZ);
-    camera = Camera(pos);
-}
+namespace Render {
+Scene::Scene(const char* modelPath) {
+    // just make *a* camera for now
+    cameras.emplace_back();
 
-Render::Scene::Scene(Camera camera) : camera(camera) {};
+    playerCamera.emplace(*cameras.data());
 
-void Render::Scene::addObject(std::unique_ptr<Model> model) { models.push_back(std::move(model)); }
+    modelPaths.emplace_back(modelPath);
+};
 
-void Render::Scene::update(Input input, float deltaTime) {
-    for (auto& model : models) {
-        model->update(deltaTime);
+auto Scene::getCamera() -> Camera& { return *cameras.data(); }
+void Scene::update(Input inputs, float deltaTime) {
+    playerCamera->update(inputs, deltaTime);
+    for (auto& object : objects) {
+        object.tick(deltaTime);
     }
-
-    camera.update(input, deltaTime);
 }
-
-auto Render::Scene::getCamera() -> Camera& { return camera; }
-auto Render::Scene::getObjects() const -> std::span<const Model* const> {
-    static std::vector<const Model*> cache;
-    cache.clear();
-
-    for (const auto& m : models) {
-        cache.push_back(m.get());
-    }
-
-    return cache;
-}
+auto Scene::getObjects() const -> std::span<const Object> { return objects; }
+} // namespace Render

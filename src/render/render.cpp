@@ -1,135 +1,44 @@
 #include "render.hpp"
 
+#include "cameraPass.hpp"
 #include "commandPool.hpp"
-#include "descriptorSet.hpp"
-#include "descriptorSetLayout.hpp"
-#include "deviceBuffer.hpp"
 #include "frameSync.hpp"
-#include "gpuDataObjects.hpp"
+#include "geometryPass.hpp"
+#include "image.hpp"
 #include "instance.hpp"
-#include "material.hpp"
 #include "physicalDevice.hpp"
-#include "pipelineManager.hpp"
-#include "shaderDef.hpp"
+#include "resourceManager.hpp"
 #include "surface.hpp"
-#include "uploadContext.hpp"
-#include "vertex.hpp"
 #include "vulkan/vulkan.hpp"
 #include <SDL3/SDL_filesystem.h>
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <glm/common.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
+#include <memory>
 #include <vector>
 
-Render::Render::Render(SDL_Window* window, const uint32_t maxFramesInFlight)
-    : maxFramesInFlight(maxFramesInFlight), vertexOffset(0), indexOffset(0), window(window),
-      instance("Vulkan prototype", getInstanceExtensions()), surface(window, instance),
-      physicalDevice(instance, surface), device(physicalDevice, instance),
-      commandPool(physicalDevice, device, maxFramesInFlight), descriptorPool(device, maxFramesInFlight * 2),
+Render::Render::Render(SDL_Window* window,
+                       ResourceManager& resources,
+                       Vulkan::Instance& instance,
+                       Vulkan::Surface& surface,
+                       Vulkan::PhysicalDevice& physicalDevice,
+                       Vulkan::Device& device,
+                       const uint32_t maxFramesInFlight)
+    : maxFramesInFlight(maxFramesInFlight), window(window), instance(&instance), surface(&surface),
+      physicalDevice(&physicalDevice), device(&device), resourceManager(&resources),
+      commandPool(physicalDevice, device, maxFramesInFlight),
       swapchain(physicalDevice, device, surface, getWindowSizeInPixels(window), vk::SampleCountFlagBits::e4),
-      syncObjects(device, swapchain.getImages().size()),
-      stagingBuffer(device, static_cast<vk::DeviceSize>(5 * 1024 * 1024)) {}
-void Render::Render::uploadScene(const Scene& scene) {
-    size_t totalVertices = 0;
-    size_t totalIndices = 0;
+      syncObjects(device, swapchain.getImages().size()) {}
 
-    for (const auto* model : scene.getObjects()) {
-        totalVertices += model->vertices.size();
-        totalIndices += model->indices.size();
-    }
+void Render::Render::init(Scene& scene) {
+    passes.emplace_back(std::make_unique<CameraPass>(
+        CameraPass(resourceManager->getPipelineManager(), resourceManager->getMaterialList(), 1, &scene.getCamera())));
 
-    vertexBuffer.emplace(
-        Vulkan::DeviceBuffer(device,
-                             totalVertices * sizeof(Vertex),
-                             vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst));
-    indexBuffer.emplace(
-        Vulkan::DeviceBuffer(device,
-                             totalIndices * sizeof(uint32_t),
-                             vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-    uniformBuffers.reserve(maxFramesInFlight);
-    for (uint32_t i = 0; i < maxFramesInFlight; ++i) {
-        uniformBuffers.emplace_back(device, sizeof(UniformBufferObject));
-    }
-
-    cameraDescriptorSetLayout.emplace(
-        Vulkan::DescriptorSetLayout(device,
-                                    std::vector<vk::DescriptorSetLayoutBinding>{vk::DescriptorSetLayoutBinding(
-                                        0,
-                                        vk::DescriptorType::eUniformBuffer,
-                                        1,
-                                        vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)}));
-
-    cameraDescriptorSets.reserve(maxFramesInFlight);
-
-    pipelineManager.emplace(Vulkan::PipelineManager(device, cameraDescriptorSetLayout.value(), descriptorPool));
-
-    for (uint32_t i = 0; i < maxFramesInFlight; i++) {
-        cameraDescriptorSets.emplace_back(device, descriptorPool, cameraDescriptorSetLayout.value());
-        const DescriptorWrite uboWrite{.binding = 0,
-                                       .type = vk::DescriptorType::eUniformBuffer,
-                                       .bufferInfo = {uniformBuffers[i].get(), 0, sizeof(UniformBufferObject)}};
-        cameraDescriptorSets[i].write(std::span(&uboWrite, 1));
-    }
-
-    /* SHOULD BE MATERIAL DEPENDENT */
-    textures.reserve(1);
-    textures.emplace_back(device, std::string(SDL_GetBasePath()).append("models/viking_room.png").c_str());
-
-    {
-        auto context = Vulkan::UploadContext(device, commandPool, stagingBuffer);
-        uint32_t vertexOffset = 0;
-        uint32_t indexOffset = 0;
-
-        for (const auto* model : scene.getObjects()) {
-            context.upload(vertexBuffer.value(),
-                           model->vertices.data(),
-                           model->vertices.size() * sizeof(Vertex),
-                           vertexOffset * sizeof(Vertex));
-
-            context.upload(indexBuffer.value(),
-                           model->indices.data(),
-                           model->indices.size() * sizeof(uint32_t),
-                           indexOffset * sizeof(uint32_t));
-
-            vertexOffset += model->vertices.size();
-            indexOffset += model->indices.size();
-        }
-
-        context.upload(*textures.data());
-    }
-
-    materials.emplace_back(ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
-                           ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
-                           textures.data(),
-                           nullptr,
-                           nullptr,
-                           nullptr,
-                           nullptr,
-                           std::vector<vk::PushConstantRange>{
-                               vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4))});
-
-    for (auto& material : materials) {
-        pipelineManager->registerMaterial(material);
-    }
-
-    // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
-
-    sky.emplace(Material(ShaderDef{.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
-                         ShaderDef{.filePath = "shaders/skyFrag.glsl", .stage = EShLangFragment},
-                         nullptr,
-                         nullptr,
-                         nullptr,
-                         nullptr,
-                         nullptr,
-                         {},
-                         Material::VertexInputMode::None,
-                         vk::CullModeFlagBits::eNone,
-                         true,
-                         false,
-                         vk::CompareOp::eLessOrEqual));
+    passes.emplace_back(std::make_unique<GeometryPass>(GeometryPass(resourceManager->getPipelineManager(),
+                                                                    resourceManager->getMaterialList(),
+                                                                    scene.getObjects(),
+                                                                    &scene.getCamera())));
 }
 
 void Render::Render::render(Scene& scene, float deltaTime) {
@@ -141,7 +50,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
         int32_t width = 0;
         int32_t height = 0;
         SDL_GetWindowSizeInPixels(window, &width, &height);
-        swapchain.recreate(device, surface, width, height);
+        swapchain.recreate(*device, *surface, width, height);
     }
 
     syncObjects.resetFence(frameIndex);
@@ -217,49 +126,9 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     const vk::Rect2D scissor(VkOffset2D(0), swapchain.getExtent());
     cmd.setScissor(0, 1, &scissor);
 
-    const vk::Buffer vertexBuffers[] = {vertexBuffer->get()};
-
     // Draw
-    UniformBufferObject cameraUBO{};
-    cameraUBO.view = scene.getCamera().getViewMatrix();
-    cameraUBO.proj = glm::perspective(
-        glm::radians(45.0f), (float)swapchain.getExtent().width / (float)swapchain.getExtent().height, 0.1f, 100.0f);
-    cameraUBO.proj[1][1] *= -1;
-    cameraUBO.invView = glm::inverse(cameraUBO.view);
-    cameraUBO.invProj = glm::inverse(cameraUBO.proj);
-
-    uniformBuffers[frameIndex].update(&cameraUBO, sizeof(UniformBufferObject));
-
-    // draw sky
-    auto& pipeline = pipelineManager->getOrCreatePipeline(sky.value(), swapchain.getFormat());
-    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
-    cmd.bindDescriptorSets(
-        vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, {*cameraDescriptorSets[frameIndex].get()}, nullptr);
-
-    cmd.draw(3, 1, 0, 0);
-
-    for (auto& material : materials) {
-        auto& pipeline = pipelineManager->getOrCreatePipeline(material, swapchain.getFormat());
-        cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
-        cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                               pipeline.getLayout(),
-                               0,
-                               {*cameraDescriptorSets[frameIndex].get(), material.getDescriptorSet().get()},
-                               nullptr);
-
-        for (const auto* model : scene.getObjects()) {
-            const vk::DeviceSize offsets[] = {0};
-            cmd.bindVertexBuffers(0, vertexBuffers, offsets);
-            cmd.bindIndexBuffer(indexBuffer->get(), 0, vk::IndexType::eUint32);
-            const PushConstants pc{model->getModelMatrix()};
-            cmd.pushConstants(
-                pipeline.getLayout(), vk::ShaderStageFlagBits::eVertex, 0, vk::ArrayProxy<const PushConstants>(1, &pc));
-            cmd.drawIndexed(model->indices.size(), 1, indexOffset, vertexOffset, 0);
-            indexOffset += model->indices.size();
-            vertexOffset += model->vertices.size();
-        }
-        indexOffset = 0;
-        vertexOffset = 0;
+    for (auto& pass : passes) {
+        pass->record(cmd, frameIndex);
     }
 
     cmd.endRendering();
@@ -277,18 +146,18 @@ void Render::Render::render(Scene& scene, float deltaTime) {
 
     const vk::SubmitInfo submitInfo(1, waitSemaphores, waitStages, 1, &cmd, 1, signalSemaphores);
 
-    device.getGraphicsQueue().submit(submitInfo, syncObjects.getFence(frameIndex));
+    device->getGraphicsQueue().submit(submitInfo, syncObjects.getFence(frameIndex));
 
     vk::SwapchainKHR swapchains[] = {swapchain.get()};
     const vk::PresentInfoKHR presentInfo(1, signalSemaphores, 1, swapchains, &imageIndex);
 
-    result = device.getPresentQueue().presentKHR(presentInfo);
+    result = device->getPresentQueue().presentKHR(presentInfo);
 
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
         int32_t width = 0;
         int32_t height = 0;
         SDL_GetWindowSizeInPixels(window, &width, &height);
-        swapchain.recreate(device, surface, width, height);
+        swapchain.recreate(*device, *surface, width, height);
     }
 
     frameIndex = (frameIndex + 1) % maxFramesInFlight;
