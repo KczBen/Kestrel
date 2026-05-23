@@ -21,27 +21,41 @@ layout(location = 3) in vec3 fragPos;
 
 layout(location = 0) out vec4 outColor;
 
-const float roughness = 0.3;
+const float16_t roughness = float16_t(0.3);
 const vec3 lightPosWorld = vec3(10.0, 10.0, 10.0);
+const vec3 lightIntensity = vec3(1.5); // Hardcoded light color/brightness
+const float16_t INV_PI = float16_t(0.31830988618);
+
+float16_t DisneysDiffuse(float16_t NdotL, float16_t NdotV, float16_t LdotH, float16_t rough) {
+    float16_t FD90 = float16_t(0.5) + float16_t(2.0) * LdotH * LdotH * rough;
+
+    float16_t lightScatter = float16_t(1.0) + (FD90 - float16_t(1.0)) * pow(float16_t(1.0) - NdotL, float16_t(5.0));
+    float16_t viewScatter = float16_t(1.0) + (FD90 - float16_t(1.0)) * pow(float16_t(1.0) - NdotV, float16_t(5.0));
+
+    return lightScatter * viewScatter;
+}
 
 void main() {
-    // Interpolated vertex colours for now
     vec3 albedo = fragColor;
-    // vec3 albedo = texture(albedoSampler, fragTexCoord);
 
     vec3 N = normalize(fragNormal);
-    vec3 V = normalize(-fragPos); // camera at origin in view space
+    vec3 V = normalize(-fragPos);
     vec3 lightPosView = (cameraUBO.view * vec4(lightPosWorld, 1.0)).xyz;
     vec3 L = normalize(lightPosView - fragPos);
+    vec3 H = normalize(L + V);
 
-    float dotNV = dot(N, V);
-    float dotNL = dot(N, L);
+    float16_t NdotL = float16_t(max(dot(N, L), 0.0));
+    float16_t NdotV = float16_t(max(dot(N, V), 0.0));
+    float16_t LdotH = float16_t(max(dot(L, H), 0.0));
 
-    float thetaIncidence = acos(dotNL);
-    float thetaReflection = acos(dotNV);
+    float16_t diffuseScatter = DisneysDiffuse(NdotL, NdotV, LdotH, roughness);
 
-    vec3 lTan = normalize(L - dotNL * N);
-    vec3 vTan = normalize(V - dotNV * N);
+    vec3 diffuseEvaluation = (albedo * float(INV_PI)) * float(diffuseScatter * NdotL);
 
-    outColor = vec4(albedo, 1.0);
+    vec3 finalColor = diffuseEvaluation * lightIntensity;
+
+    // Simple gamma correction (approximate linear to sRGB)
+    finalColor = pow(finalColor, vec3(1.0 / 2.2));
+
+    outColor = vec4(finalColor, 1.0);
 }
