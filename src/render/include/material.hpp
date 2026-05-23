@@ -29,9 +29,8 @@ class Material {
         TextureHandle emissive;
 
         [[nodiscard]] auto isEmpty() const -> bool {
-            return baseColor.backingStorage == nullptr && metallicRoughness.backingStorage == nullptr &&
-                   normal.backingStorage == nullptr && occlusion.backingStorage == nullptr &&
-                   emissive.backingStorage == nullptr;
+            return baseColor.isPresent() && metallicRoughness.isPresent() && normal.isPresent() &&
+                   occlusion.isPresent() && emissive.isPresent();
         };
     };
 

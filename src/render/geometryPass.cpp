@@ -22,7 +22,7 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
 
         const Vulkan::DescriptorSet& cameraWS = camera->getDescriptorSet(frameIndex);
-        const Vulkan::DescriptorSet& materialWS = model.material.get()->getDescriptorSet();
+        const Vulkan::DescriptorSet& materialWS = model.material->getDescriptorSet();
 
         const std::array<vk::DescriptorSet, 2> rawSets = {cameraWS.get(), materialWS.get()};
 

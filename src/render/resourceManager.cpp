@@ -32,10 +32,6 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
                                        16384 * sizeof(uint32_t),
                                        vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst);
     stagingBuffer = Vulkan::UploadBuffer(device, static_cast<long>(128 * 1024 * 1024));
-
-    uniformBuffers.reserve(16);
-    descriptorSetLayouts.reserve(8);
-    descriptorSets.reserve(16);
 }
 
 auto ResourceManager::loadGLTF(const std::string& path) -> std::pair<MeshHandle, MaterialHandle> {
@@ -126,10 +122,16 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::pair<MeshHandle,
         const bool colorIsVec4 =
             hasColors && gltfModel.accessors[primitive.attributes.at("COLOR_0")].type == TINYGLTF_TYPE_VEC4;
 
-        vertices[i].color = (hasColors && !colors.empty())
-                                ? colorIsVec4 ? glm::vec3(colors[i * 4], colors[(i * 4) + 1], colors[(i * 4) + 2])
-                                              : glm::vec3(colors[i * 3], colors[(i * 3) + 1], colors[(i * 3) + 2])
-                                : glm::vec3(1.0f);
+        if (hasColors && !colors.empty()) {
+            if (colorIsVec4) {
+                vertices[i].color = glm::vec3(colors[i * 4], colors[(i * 4) + 1], colors[(i * 4) + 2]);
+            } else {
+                vertices[i].color =
+                    glm::vec4(colors[i * 4], colors[(i * 4) + 1], colors[(i * 4) + 2], colors[(i * 4) + 3]);
+            }
+        } else {
+            vertices[i].color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
     }
 
     const MeshHandle meshHandle = uploadMesh(vertices, indices);
@@ -229,11 +231,11 @@ void ResourceManager::loadScene(Scene& scene) {
                                               1,
                                               vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)});
 
-        camera.desecriptorSetLayout = &descriptorSetLayouts.back();
+        camera.desecriptorSetLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
 
         for (auto i = 0; i < 2; i++) {
             uniformBuffers.emplace_back(*device, sizeof(UniformBufferObject));
-            camera.uniformBuffers.emplace_back(&uniformBuffers.back());
+            camera.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
         }
 
         for (uint32_t i = 0; i < 2; i++) {
@@ -242,7 +244,7 @@ void ResourceManager::loadScene(Scene& scene) {
                                            .type = vk::DescriptorType::eUniformBuffer,
                                            .bufferInfo = {uniformBuffers[i].get(), 0, sizeof(UniformBufferObject)}};
             descriptorSets[i].write(std::span(&uboWrite, 1));
-            camera.descriptorSets.emplace_back(&descriptorSets.back());
+            camera.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
         }
     }
 

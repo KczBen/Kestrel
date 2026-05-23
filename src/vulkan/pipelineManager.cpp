@@ -20,50 +20,46 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
 
         uint32_t bindingIndex = 0;
 
-        if (material.resources.baseColor.backingStorage != nullptr) {
+        if (material.resources.baseColor.isPresent()) {
+            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
+                                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                                .bufferInfo = {},
+                                                .imageInfo = {material.resources.baseColor->getSampler(),
+                                                              material.resources.baseColor->getImage().getImageView(),
+                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        }
+        if (material.resources.metallicRoughness.isPresent()) {
             writes.emplace_back(
                 DescriptorWrite{.binding = bindingIndex++,
                                 .type = vk::DescriptorType::eCombinedImageSampler,
                                 .bufferInfo = {},
-                                .imageInfo = {material.resources.baseColor.get()->getSampler(),
-                                              material.resources.baseColor.get()->getImage().getImageView(),
+                                .imageInfo = {material.resources.metallicRoughness->getSampler(),
+                                              material.resources.metallicRoughness->getImage().getImageView(),
                                               vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
-        if (material.resources.metallicRoughness.backingStorage != nullptr) {
-            writes.emplace_back(
-                DescriptorWrite{.binding = bindingIndex++,
-                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                .bufferInfo = {},
-                                .imageInfo = {material.resources.metallicRoughness.get()->getSampler(),
-                                              material.resources.metallicRoughness.get()->getImage().getImageView(),
-                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        if (material.resources.normal.isPresent()) {
+            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
+                                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                                .bufferInfo = {},
+                                                .imageInfo = {material.resources.normal->getSampler(),
+                                                              material.resources.normal->getImage().getImageView(),
+                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
-        if (material.resources.normal.backingStorage != nullptr) {
-            writes.emplace_back(
-                DescriptorWrite{.binding = bindingIndex++,
-                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                .bufferInfo = {},
-                                .imageInfo = {material.resources.normal.get()->getSampler(),
-                                              material.resources.normal.get()->getImage().getImageView(),
-                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        if (material.resources.occlusion.isPresent()) {
+            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
+                                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                                .bufferInfo = {},
+                                                .imageInfo = {material.resources.occlusion->getSampler(),
+                                                              material.resources.occlusion->getImage().getImageView(),
+                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
-        if (material.resources.occlusion.backingStorage != nullptr) {
-            writes.emplace_back(
-                DescriptorWrite{.binding = bindingIndex++,
-                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                .bufferInfo = {},
-                                .imageInfo = {material.resources.occlusion.get()->getSampler(),
-                                              material.resources.occlusion.get()->getImage().getImageView(),
-                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
-        }
-        if (material.resources.emissive.backingStorage != nullptr) {
-            writes.emplace_back(
-                DescriptorWrite{.binding = bindingIndex++,
-                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                .bufferInfo = {},
-                                .imageInfo = {material.resources.emissive.get()->getSampler(),
-                                              material.resources.emissive.get()->getImage().getImageView(),
-                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        if (material.resources.emissive.isPresent()) {
+            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
+                                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                                .bufferInfo = {},
+                                                .imageInfo = {material.resources.emissive->getSampler(),
+                                                              material.resources.emissive->getImage().getImageView(),
+                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
 
         material.descriptorSet.value().write(std::span(writes));
@@ -73,30 +69,28 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
 auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
                                                   Render::Camera& camera,
                                                   vk::Format format) -> Vulkan::GraphicsPipeline& {
-    auto* material = materialHandle.get();
-
     // If the last rendered format matches and we have a pipeline, we're all good
-    if (material->graphicsPipeline != nullptr && material->lastRenderedFormat == format) {
-        return *material->graphicsPipeline;
+    if (materialHandle->graphicsPipeline != nullptr && materialHandle->lastRenderedFormat == format) {
+        return *materialHandle->graphicsPipeline;
     }
 
     // Do we already know of a pipeline that may work?
-    const PipelineKey key{material->pipelineConfiguration, format};
+    const PipelineKey key{materialHandle->pipelineConfiguration, format};
     if (pipelineCache.contains(key)) {
-        material->graphicsPipeline = &pipelineCache.find(key)->second;
-        return *material->graphicsPipeline;
+        materialHandle->graphicsPipeline = &pipelineCache.find(key)->second;
+        return *materialHandle->graphicsPipeline;
     }
 
     // always have the camera layout included (for now)
     std::vector<const Vulkan::DescriptorSetLayout*> layouts =
-        material->descriptorSetLayout.has_value()
+        materialHandle->descriptorSetLayout.has_value()
             ? std::vector<const Vulkan::DescriptorSetLayout*>{&camera.getDescriptorSetLayout(),
-                                                              &material->descriptorSetLayout.value()}
+                                                              &materialHandle->descriptorSetLayout.value()}
             : std::vector<const Vulkan::DescriptorSetLayout*>{&camera.getDescriptorSetLayout()};
 
     vk::BlendOp blendMode = vk::BlendOp::eAdd;
 
-    switch (material->pipelineConfiguration.blendMode) {
+    switch (materialHandle->pipelineConfiguration.blendMode) {
 
     case Material::BlendMode::Opaque:
         blendMode = vk::BlendOp::eAdd;
@@ -109,23 +103,23 @@ auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
         break;
     }
 
-    auto newPipeline =
-        Vulkan::GraphicsPipeline(*device,
-                                 format,
-                                 layouts,
-                                 material->pipelineConfiguration.pushConstants,
-                                 material->pipelineConfiguration.vertexShader,
-                                 material->pipelineConfiguration.fragmentShader,
-                                 material->pipelineConfiguration.depthTest,
-                                 material->pipelineConfiguration.depthWrite,
-                                 material->pipelineConfiguration.cullMode,
-                                 material->pipelineConfiguration.depthCompare,
-                                 blendMode,
-                                 material->pipelineConfiguration.colorWriteMask,
-                                 material->pipelineConfiguration.vertexInputMode != Material::VertexInputMode::None);
+    auto newPipeline = Vulkan::GraphicsPipeline(*device,
+                                                format,
+                                                layouts,
+                                                materialHandle->pipelineConfiguration.pushConstants,
+                                                materialHandle->pipelineConfiguration.vertexShader,
+                                                materialHandle->pipelineConfiguration.fragmentShader,
+                                                materialHandle->pipelineConfiguration.depthTest,
+                                                materialHandle->pipelineConfiguration.depthWrite,
+                                                materialHandle->pipelineConfiguration.cullMode,
+                                                materialHandle->pipelineConfiguration.depthCompare,
+                                                blendMode,
+                                                materialHandle->pipelineConfiguration.colorWriteMask,
+                                                materialHandle->pipelineConfiguration.vertexInputMode !=
+                                                    Material::VertexInputMode::None);
 
     pipelineCache.insert({key, std::move(newPipeline)});
-    material->graphicsPipeline = &pipelineCache.find(key)->second;
+    materialHandle->graphicsPipeline = &pipelineCache.find(key)->second;
 
-    return *material->graphicsPipeline;
+    return *materialHandle->graphicsPipeline;
 }

@@ -42,23 +42,23 @@ Material::Material(ShaderDef vertexShader,
 
     int bindingIndex = 0;
 
-    if (resources.baseColor.backingStorage != nullptr) {
+    if (resources.baseColor.isPresent()) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.metallicRoughness.backingStorage != nullptr) {
+    if (resources.metallicRoughness.isPresent()) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.normal.backingStorage != nullptr) {
+    if (resources.normal.isPresent()) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.occlusion.backingStorage != nullptr) {
+    if (resources.occlusion.isPresent()) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.emissive.backingStorage != nullptr) {
+    if (resources.emissive.isPresent()) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }

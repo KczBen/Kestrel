@@ -25,9 +25,9 @@ class Camera {
     glm::vec3 worldUp;
     glm::quat orientation;
 
-    Vulkan::DescriptorSetLayout* desecriptorSetLayout;
-    std::vector<Vulkan::DescriptorSet*> descriptorSets;
-    std::vector<Vulkan::HostBuffer*> uniformBuffers;
+    Vulkan::DescriptorSetLayoutHandle desecriptorSetLayout;
+    std::vector<Vulkan::DescriptorSetHandle> descriptorSets;
+    std::vector<Vulkan::HostBufferHandle> uniformBuffers;
 
     int32_t lastUpdatedIndex;
 
