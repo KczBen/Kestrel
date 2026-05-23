@@ -14,6 +14,9 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 }
 cameraUBO;
 
+layout(set = 1, binding = 0) uniform sampler2D albedoSampler;
+layout(set = 1, binding = 1) uniform sampler2D packedNormalSampler;
+
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 fragNormal;
@@ -36,7 +39,7 @@ float16_t DisneysDiffuse(float16_t NdotL, float16_t NdotV, float16_t LdotH, floa
 }
 
 void main() {
-    vec3 albedo = fragColor;
+    vec3 albedo = vec3(fragTexCoord, 1.0);
 
     vec3 N = normalize(fragNormal);
     vec3 V = normalize(-fragPos);
@@ -57,5 +60,5 @@ void main() {
     // Simple gamma correction (approximate linear to sRGB)
     finalColor = pow(finalColor, vec3(1.0 / 2.2));
 
-    outColor = vec4(finalColor, 1.0);
+    outColor = vec4(albedo, 1.0);
 }
