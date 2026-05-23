@@ -6,74 +6,74 @@
 #include "vulkan/vulkan.hpp"
 #include <utility>
 
-Vulkan::PipelineManager::PipelineManager(Vulkan::Device& device,
-                                         Vulkan::DescriptorPool& pool,
-                                         std::vector<Material>& materialList)
-    : device(&device), pool(&pool), materialList(&materialList) {}
+Vulkan::PipelineManager::PipelineManager(Vulkan::Device& device, Vulkan::DescriptorPool& pool)
+    : device(&device), pool(&pool) {}
 
-void Vulkan::PipelineManager::registerMaterial(Render::MaterialHandle materialHandle) {
+void Vulkan::PipelineManager::registerMaterial(Material& material) {
 
-    auto* material = &(*materialList)[materialHandle];
-
-    if (!material->pipelineConfiguration.descriptorSetBindings.empty()) {
-        material->descriptorSetLayout.emplace(
-            Vulkan::DescriptorSetLayout(*device, material->pipelineConfiguration.descriptorSetBindings));
-        material->descriptorSet.emplace(Vulkan::DescriptorSet(*device, *pool, material->descriptorSetLayout.value()));
+    if (!material.pipelineConfiguration.descriptorSetBindings.empty()) {
+        material.descriptorSetLayout.emplace(
+            Vulkan::DescriptorSetLayout(*device, material.pipelineConfiguration.descriptorSetBindings));
+        material.descriptorSet.emplace(Vulkan::DescriptorSet(*device, *pool, material.descriptorSetLayout.value()));
 
         std::vector<DescriptorWrite> writes;
 
         uint32_t bindingIndex = 0;
 
-        if (material->resources.baseColor != nullptr) {
-            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
-                                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                                .bufferInfo = {},
-                                                .imageInfo = {material->resources.baseColor->getSampler(),
-                                                              material->resources.baseColor->getImage().getImageView(),
-                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
-        }
-        if (material->resources.metallicRoughness != nullptr) {
+        if (material.resources.baseColor.backingStorage != nullptr) {
             writes.emplace_back(
                 DescriptorWrite{.binding = bindingIndex++,
                                 .type = vk::DescriptorType::eCombinedImageSampler,
                                 .bufferInfo = {},
-                                .imageInfo = {material->resources.metallicRoughness->getSampler(),
-                                              material->resources.metallicRoughness->getImage().getImageView(),
+                                .imageInfo = {material.resources.baseColor.get()->getSampler(),
+                                              material.resources.baseColor.get()->getImage().getImageView(),
                                               vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
-        if (material->resources.normal != nullptr) {
-            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
-                                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                                .bufferInfo = {},
-                                                .imageInfo = {material->resources.normal->getSampler(),
-                                                              material->resources.normal->getImage().getImageView(),
-                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        if (material.resources.metallicRoughness.backingStorage != nullptr) {
+            writes.emplace_back(
+                DescriptorWrite{.binding = bindingIndex++,
+                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                .bufferInfo = {},
+                                .imageInfo = {material.resources.metallicRoughness.get()->getSampler(),
+                                              material.resources.metallicRoughness.get()->getImage().getImageView(),
+                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
-        if (material->resources.occlusion != nullptr) {
-            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
-                                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                                .bufferInfo = {},
-                                                .imageInfo = {material->resources.occlusion->getSampler(),
-                                                              material->resources.occlusion->getImage().getImageView(),
-                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        if (material.resources.normal.backingStorage != nullptr) {
+            writes.emplace_back(
+                DescriptorWrite{.binding = bindingIndex++,
+                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                .bufferInfo = {},
+                                .imageInfo = {material.resources.normal.get()->getSampler(),
+                                              material.resources.normal.get()->getImage().getImageView(),
+                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
-        if (material->resources.emissive != nullptr) {
-            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
-                                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                                .bufferInfo = {},
-                                                .imageInfo = {material->resources.emissive->getSampler(),
-                                                              material->resources.emissive->getImage().getImageView(),
-                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        if (material.resources.occlusion.backingStorage != nullptr) {
+            writes.emplace_back(
+                DescriptorWrite{.binding = bindingIndex++,
+                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                .bufferInfo = {},
+                                .imageInfo = {material.resources.occlusion.get()->getSampler(),
+                                              material.resources.occlusion.get()->getImage().getImageView(),
+                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        }
+        if (material.resources.emissive.backingStorage != nullptr) {
+            writes.emplace_back(
+                DescriptorWrite{.binding = bindingIndex++,
+                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                .bufferInfo = {},
+                                .imageInfo = {material.resources.emissive.get()->getSampler(),
+                                              material.resources.emissive.get()->getImage().getImageView(),
+                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
 
-        material->descriptorSet.value().write(std::span(writes));
+        material.descriptorSet.value().write(std::span(writes));
     }
 }
 
-auto Vulkan::PipelineManager::getOrCreatePipeline(Render::MaterialHandle materialHandle,
+auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
                                                   Render::Camera& camera,
                                                   vk::Format format) -> Vulkan::GraphicsPipeline& {
-    auto* material = &(*materialList)[materialHandle];
+    auto* material = materialHandle.get();
 
     // If the last rendered format matches and we have a pipeline, we're all good
     if (material->graphicsPipeline != nullptr && material->lastRenderedFormat == format) {

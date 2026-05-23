@@ -3,11 +3,8 @@
 #include <cstdint>
 
 namespace Render {
-GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager,
-                           std::vector<Material>& materialList,
-                           std::span<const Object> models,
-                           Camera* camera)
-    : Pass(pipelineManager), models(models), materialList(&materialList), camera(camera) {}
+GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager, std::span<const Object> models, Camera* camera)
+    : Pass(pipelineManager), models(models), camera(camera) {}
 
 void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     UniformBufferObject cameraUBO{};
@@ -25,9 +22,9 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
 
         const Vulkan::DescriptorSet& cameraWS = camera->getDescriptorSet(frameIndex);
-        // const Vulkan::DescriptorSet& materialWS = (*materialList)[model.material].getDescriptorSet();
+        const Vulkan::DescriptorSet& materialWS = model.material.get()->getDescriptorSet();
 
-        const std::array<vk::DescriptorSet, 1> rawSets = {cameraWS.get()};
+        const std::array<vk::DescriptorSet, 2> rawSets = {cameraWS.get(), materialWS.get()};
 
         cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, rawSets, nullptr);
 

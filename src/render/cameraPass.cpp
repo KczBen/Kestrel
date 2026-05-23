@@ -1,11 +1,8 @@
 #include "cameraPass.hpp"
 
 namespace Render {
-CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager,
-                       std::vector<Material>& materialList,
-                       MaterialHandle materialHandle,
-                       Camera* camera)
-    : Pass(pipelineManager), materialList(&materialList), materialHandle(materialHandle), camera(camera) {}
+CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager, MaterialHandle materialHandle, Camera* camera)
+    : Pass(pipelineManager), materialHandle(materialHandle), camera(camera) {}
 
 void CameraPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     UniformBufferObject cameraUBO{};

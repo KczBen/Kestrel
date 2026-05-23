@@ -5,7 +5,6 @@
 #include "device.hpp"
 #include "graphicsPipeline.hpp"
 #include "material.hpp"
-#include "resourceHandles.hpp"
 #include "vulkan/vulkan.hpp"
 #include <unordered_map>
 #include <vulkan/vulkan_raii.hpp>
@@ -38,7 +37,6 @@ class PipelineManager {
   private:
     Vulkan::Device* device;
     Vulkan::DescriptorPool* pool;
-    std::vector<Material>* materialList;
 
     // DESIGN: Maybe not hard-code this?
     vk::PushConstantRange pushConstants;
@@ -53,10 +51,10 @@ class PipelineManager {
     // same for all the GraphicsPipelineLibrary stages
 
   public:
-    PipelineManager(Vulkan::Device& device, Vulkan::DescriptorPool& pool, std::vector<Material>& materialList);
+    PipelineManager(Vulkan::Device& device, Vulkan::DescriptorPool& pool);
 
-    void registerMaterial(Render::MaterialHandle materialHandle);
-    auto getOrCreatePipeline(Render::MaterialHandle materialHandle, Render::Camera& camera, vk::Format format)
+    void registerMaterial(Material& material);
+    auto getOrCreatePipeline(MaterialHandle materialHandle, Render::Camera& camera, vk::Format format)
         -> Vulkan::GraphicsPipeline&;
 };
 } // namespace Vulkan

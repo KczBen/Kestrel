@@ -14,6 +14,8 @@
 #include "vertex.hpp"
 #include <optional>
 
+#include <tiny_gltf.h>
+
 namespace Render {
 class ResourceManager {
   private:
@@ -40,12 +42,13 @@ class ResourceManager {
 
     Vulkan::CommandPool uploadPool;
 
-    auto loadGLTF(const std::string& path) -> MeshHandle;
+    auto loadGLTF(const std::string& path) -> std::pair<MeshHandle, MaterialHandle>;
     auto uploadMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) -> MeshHandle;
+    auto loadGltfMaterial(const tinygltf::Model& gltfModel, int materialIndex) -> MaterialHandle;
 
-    auto loadTexture(const std::string& path) -> Vulkan::Texture&;
+    auto loadTexture(const std::string& path) -> TextureHandle;
     auto createMaterial(const Material::MaterialConfiguration& config, std::span<Vulkan::Texture*> textures)
-        -> Material&;
+        -> MaterialHandle;
 
   public:
     ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::Device& device);

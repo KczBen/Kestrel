@@ -1,5 +1,6 @@
 #pragma once
 
+#include "material.hpp"
 #include "resourceHandles.hpp"
 #include <functional>
 #include <glm/detail/type_quat.hpp>
@@ -19,10 +20,14 @@ class Object {
     std::function<void(Object&, float)> onUpdate;
 
     // Default constructor, places the model at world origin with no scaling and no update function
-    Object(MeshHandle mesh);
+    Object(MeshHandle mesh, MaterialHandle material);
 
     // Fully qualified constructor
-    Object(MeshHandle mesh, glm::vec3 position, glm::quat orientation, std::function<void(Object&, float)>);
+    Object(MeshHandle mesh,
+           MaterialHandle material,
+           glm::vec3 position,
+           glm::quat orientation,
+           std::function<void(Object&, float)>);
 
     void tick(float dt);
 

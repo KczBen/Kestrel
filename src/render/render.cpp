@@ -6,6 +6,7 @@
 #include "geometryPass.hpp"
 #include "image.hpp"
 #include "instance.hpp"
+#include "material.hpp"
 #include "physicalDevice.hpp"
 #include "resourceManager.hpp"
 #include "surface.hpp"
@@ -32,13 +33,11 @@ Render::Render::Render(SDL_Window* window,
       syncObjects(device, swapchain.getImages().size()) {}
 
 void Render::Render::init(Scene& scene) {
-    passes.emplace_back(std::make_unique<CameraPass>(
-        CameraPass(resourceManager->getPipelineManager(), resourceManager->getMaterialList(), 1, &scene.getCamera())));
+    passes.emplace_back(std::make_unique<CameraPass>(CameraPass(
+        resourceManager->getPipelineManager(), {&resourceManager->getMaterialList(), 1}, &scene.getCamera())));
 
-    passes.emplace_back(std::make_unique<GeometryPass>(GeometryPass(resourceManager->getPipelineManager(),
-                                                                    resourceManager->getMaterialList(),
-                                                                    scene.getObjects(),
-                                                                    &scene.getCamera())));
+    passes.emplace_back(std::make_unique<GeometryPass>(
+        GeometryPass(resourceManager->getPipelineManager(), scene.getObjects(), &scene.getCamera())));
 }
 
 void Render::Render::render(Scene& scene, float deltaTime) {

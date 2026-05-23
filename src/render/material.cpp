@@ -8,11 +8,11 @@
 
 Material::Material(ShaderDef vertexShader,
                    ShaderDef fragmentShader,
-                   Vulkan::Texture* baseColor,
-                   Vulkan::Texture* metallicRoughness,
-                   Vulkan::Texture* normal,
-                   Vulkan::Texture* occlusion,
-                   Vulkan::Texture* emissive,
+                   TextureHandle baseColor,
+                   TextureHandle metallicRoughness,
+                   TextureHandle normal,
+                   TextureHandle occlusion,
+                   TextureHandle emissive,
                    std::vector<vk::PushConstantRange> pushConstants,
                    VertexInputMode vertexInputMode,
                    vk::CullModeFlagBits cullMode,
@@ -42,23 +42,23 @@ Material::Material(ShaderDef vertexShader,
 
     int bindingIndex = 0;
 
-    if (resources.baseColor != nullptr) {
+    if (resources.baseColor.backingStorage != nullptr) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.metallicRoughness != nullptr) {
+    if (resources.metallicRoughness.backingStorage != nullptr) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.normal != nullptr) {
+    if (resources.normal.backingStorage != nullptr) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.occlusion != nullptr) {
+    if (resources.occlusion.backingStorage != nullptr) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.emissive != nullptr) {
+    if (resources.emissive.backingStorage != nullptr) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
@@ -72,7 +72,7 @@ auto Material::MaterialConfiguration::operator==(const MaterialConfiguration& ot
            this->blendMode == other.blendMode && this->colorWriteMask == other.colorWriteMask &&
            this->cullMode == other.cullMode && this->topology == other.topology && this->depthTest == other.depthTest &&
            this->depthWrite == other.depthWrite && this->depthCompare == other.depthCompare &&
-           this->descriptorSetBindings == other.descriptorSetBindings;
+           this->descriptorSetBindings == other.descriptorSetBindings && this->pushConstants == other.pushConstants;
 }
 
 auto Material::getDescriptorSet() -> Vulkan::DescriptorSet& { return descriptorSet.value(); }

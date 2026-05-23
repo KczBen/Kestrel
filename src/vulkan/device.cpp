@@ -22,12 +22,16 @@ Vulkan::Device::Device(Vulkan::PhysicalDevice& physicalDevice, Vulkan::Instance&
     }
 
     vk::StructureChain<vk::PhysicalDeviceFeatures2,
+                       vk::PhysicalDeviceVulkan12Features,
                        vk::PhysicalDeviceVulkan13Features,
                        vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
         featureChain;
 
     auto& deviceFeatures = featureChain.get<vk::PhysicalDeviceFeatures2>();
     deviceFeatures.features.samplerAnisotropy = vk::True;
+
+    auto& vulkan12 = featureChain.get<vk::PhysicalDeviceVulkan12Features>();
+    vulkan12.shaderFloat16 = vk::True;
 
     auto& vulkan13 = featureChain.get<vk::PhysicalDeviceVulkan13Features>();
     vulkan13.dynamicRendering = vk::True;

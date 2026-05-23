@@ -1,3 +1,7 @@
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include "resourceManager.hpp"
 #include "descriptorPool.hpp"
 #include "device.hpp"
@@ -6,6 +10,8 @@
 #include "material.hpp"
 #include "pipelineManager.hpp"
 #include "resourceHandles.hpp"
+#include "shaderDef.hpp"
+#include "texture.hpp"
 #include "uploadBuffer.hpp"
 #include "uploadContext.hpp"
 #include "vertex.hpp"
@@ -13,13 +19,9 @@
 #include <SDL3/SDL_filesystem.h>
 #include <cstddef>
 #include <cstdint>
+#include <glm/ext/vector_float3.hpp>
 #include <print>
-
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-
-#include <tiny_gltf.h>
+#include <utility>
 
 namespace Render {
 ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::Device& device)
@@ -36,7 +38,7 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
     descriptorSets.reserve(16);
 }
 
-auto ResourceManager::loadGLTF(const std::string& path) -> MeshHandle {
+auto ResourceManager::loadGLTF(const std::string& path) -> std::pair<MeshHandle, MaterialHandle> {
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF loader;
     std::string err;
@@ -94,14 +96,13 @@ auto ResourceManager::loadGLTF(const std::string& path) -> MeshHandle {
         if (it == primitive.attributes.end()) {
             return {};
         }
+
         const auto& accessor = gltfModel.accessors[it->second];
         const auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
         const auto& buffer = gltfModel.buffers[bufferView.buffer];
         const uint8_t* data = buffer.data.data() + bufferView.byteOffset + accessor.byteOffset;
 
-        // Determine how many components per element (glTF spec)
-        const size_t components = (attr == "TEXCOORD_0") ? 2 : 3;
-
+        const size_t components = tinygltf::GetNumComponentsInType(accessor.type);
         std::vector<float> result(accessor.count * components);
         std::memcpy(result.data(), data, result.size() * sizeof(float));
         return result;
@@ -110,6 +111,7 @@ auto ResourceManager::loadGLTF(const std::string& path) -> MeshHandle {
     const std::vector<float> positions = readAccessor("POSITION");
     const std::vector<float> normals = readAccessor("NORMAL");
     const std::vector<float> texCoords = readAccessor("TEXCOORD_0");
+    const std::vector<float> colors = readAccessor("COLOR_0");
 
     const size_t vertexCount = gltfModel.accessors[primitive.attributes.at("POSITION")].count;
     vertices.resize(vertexCount);
@@ -120,9 +122,78 @@ auto ResourceManager::loadGLTF(const std::string& path) -> MeshHandle {
                                               : glm::vec3(0, 1, 0);
         vertices[i].texCoord =
             !texCoords.empty() ? glm::vec2(texCoords[i * 2], texCoords[(i * 2) + 1]) : glm::vec2(0, 0);
+        const bool hasColors = primitive.attributes.contains("COLOR_0");
+        const bool colorIsVec4 =
+            hasColors && gltfModel.accessors[primitive.attributes.at("COLOR_0")].type == TINYGLTF_TYPE_VEC4;
+
+        vertices[i].color = (hasColors && !colors.empty())
+                                ? colorIsVec4 ? glm::vec3(colors[i * 4], colors[(i * 4) + 1], colors[(i * 4) + 2])
+                                              : glm::vec3(colors[i * 3], colors[(i * 3) + 1], colors[(i * 3) + 2])
+                                : glm::vec3(1.0f);
     }
 
-    return uploadMesh(vertices, indices);
+    const MeshHandle meshHandle = uploadMesh(vertices, indices);
+    const MaterialHandle matHandle = loadGltfMaterial(gltfModel, primitive.material);
+    return {meshHandle, matHandle};
+}
+
+auto ResourceManager::loadGltfMaterial(const tinygltf::Model& gltfModel, int materialIndex) -> MaterialHandle {
+    // Default textures if material index is invalid
+    if (materialIndex < 0 || materialIndex >= gltfModel.materials.size()) {
+        materials.emplace_back(ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
+                               ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment});
+
+        return {&materials, materials.size() - 1};
+    }
+
+    const auto& mat = gltfModel.materials[materialIndex];
+    const auto& pbr = mat.pbrMetallicRoughness;
+
+    auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
+
+    auto loadTexture = [&](int texIndex) -> TextureHandle {
+        if (texIndex < 0) {
+            return TextureHandle{&textures, 0};
+        }
+        const auto& tex = gltfModel.textures[texIndex];
+        const auto& image = gltfModel.images[tex.source];
+        textures.emplace_back(*device, image.image.data(), image.width, image.height);
+        context.upload(textures.back());
+        return TextureHandle{&textures, textures.size() - 1};
+    };
+
+    auto baseColor = loadTexture(pbr.baseColorTexture.index);
+    auto metallicRoughness = loadTexture(pbr.metallicRoughnessTexture.index);
+    auto normal = loadTexture(mat.normalTexture.index);
+    auto occlusion = loadTexture(mat.occlusionTexture.index);
+    auto emissive = loadTexture(mat.emissiveTexture.index);
+
+    Material::BlendMode blendMode = Material::BlendMode::Opaque;
+    if (mat.alphaMode == "BLEND") {
+        blendMode = Material::BlendMode::Alpha;
+    } else if (mat.alphaMode == "MASK") {
+        blendMode = Material::BlendMode::Alpha; // treat cutout as alpha for now
+    }
+
+    const vk::CullModeFlagBits cullMode = mat.doubleSided ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack;
+
+    materials.emplace_back(ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
+                           ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
+                           baseColor,
+                           metallicRoughness,
+                           normal,
+                           occlusion,
+                           emissive,
+                           std::vector<vk::PushConstantRange>{
+                               vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4))},
+                           Material::VertexInputMode::Mesh,
+                           cullMode,
+                           true, // depthTest
+                           true, // depthWrite
+                           vk::CompareOp::eLess,
+                           blendMode);
+
+    return {&materials, materials.size() - 1};
 }
 
 auto ResourceManager::uploadMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
@@ -175,39 +246,25 @@ void ResourceManager::loadScene(Scene& scene) {
         }
     }
 
-    pipelineManager.emplace(Vulkan::PipelineManager(*device, descriptorPool, materials));
+    pipelineManager.emplace(Vulkan::PipelineManager(*device, descriptorPool));
 
     // load models
-    uint32_t i = 0;
     for (const auto& path : scene.modelPaths) {
         auto handle = loadGLTF(path);
-        // should register the materials HERE
-        // TODO: Make this actually load materials appropriate to the model
-        materials.emplace_back(ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
-                               ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
-                               textures.data(),
-                               nullptr,
-                               nullptr,
-                               nullptr,
-                               nullptr,
-                               std::vector<vk::PushConstantRange>{
-                                   vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4))});
 
-        auto object = Object(handle);
-        object.material = i;
+        auto object = Object(handle.first, handle.second);
 
         scene.objects.emplace_back(std::move(object));
-        i++;
     }
 
     // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
     materials.emplace_back(Material(ShaderDef{.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
                                     ShaderDef{.filePath = "shaders/skyFrag.glsl", .stage = EShLangFragment},
-                                    nullptr,
-                                    nullptr,
-                                    nullptr,
-                                    nullptr,
-                                    nullptr,
+                                    {},
+                                    {},
+                                    {},
+                                    {},
+                                    {},
                                     {},
                                     Material::VertexInputMode::None,
                                     vk::CullModeFlagBits::eNone,
@@ -215,8 +272,8 @@ void ResourceManager::loadScene(Scene& scene) {
                                     false,
                                     vk::CompareOp::eLessOrEqual));
 
-    for (uint32_t i = 0; i < materials.size(); i++) {
-        pipelineManager->registerMaterial(i);
+    for (auto& material : materials) {
+        pipelineManager->registerMaterial(material);
     }
 }
 

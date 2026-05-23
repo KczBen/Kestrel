@@ -3,7 +3,7 @@
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
 #include "graphicsPipeline.hpp"
-#include "object.hpp"
+#include "resourceHandles.hpp"
 #include "shaderDef.hpp"
 #include "texture.hpp"
 #include "vulkan/vulkan.hpp"
@@ -22,15 +22,16 @@ class Material {
 
     // This should be compatible with the glTF 2.0 spec
     struct MaterialResources {
-        Vulkan::Texture* baseColor;
-        Vulkan::Texture* metallicRoughness;
-        Vulkan::Texture* normal;
-        Vulkan::Texture* occlusion;
-        Vulkan::Texture* emissive;
+        TextureHandle baseColor;
+        TextureHandle metallicRoughness;
+        TextureHandle normal;
+        TextureHandle occlusion;
+        TextureHandle emissive;
 
         [[nodiscard]] auto isEmpty() const -> bool {
-            return baseColor == nullptr && metallicRoughness == nullptr && normal == nullptr && occlusion == nullptr &&
-                   emissive == nullptr;
+            return baseColor.backingStorage == nullptr && metallicRoughness.backingStorage == nullptr &&
+                   normal.backingStorage == nullptr && occlusion.backingStorage == nullptr &&
+                   emissive.backingStorage == nullptr;
         };
     };
 
@@ -59,11 +60,11 @@ class Material {
 
     Material(ShaderDef vertexShader,
              ShaderDef fragmentShader,
-             Vulkan::Texture* baseColor = nullptr,
-             Vulkan::Texture* metallicRoughness = nullptr,
-             Vulkan::Texture* normal = nullptr,
-             Vulkan::Texture* occlusion = nullptr,
-             Vulkan::Texture* emissive = nullptr,
+             TextureHandle baseColor = {nullptr},
+             TextureHandle metallicRoughness = {nullptr},
+             TextureHandle normal = {nullptr},
+             TextureHandle occlusion = {nullptr},
+             TextureHandle emissive = {nullptr},
              std::vector<vk::PushConstantRange> pushConstants = {},
              VertexInputMode vertexInputMode = VertexInputMode::Mesh,
              vk::CullModeFlagBits cullMode = vk::CullModeFlagBits::eBack,
@@ -89,6 +90,8 @@ class Material {
 
     friend class Vulkan::PipelineManager;
 };
+
+using MaterialHandle = Render::ResourceHandle<Material>;
 
 namespace std {
 template <> struct hash<Material::MaterialConfiguration> {

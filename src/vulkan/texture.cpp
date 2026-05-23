@@ -50,5 +50,36 @@ Vulkan::Texture::Texture(Device& device, const char* texturePath) {
     sampler = vk::raii::Sampler(device.get(), samplerInfo);
 }
 
+Vulkan::Texture::Texture(Device& device, const void* data, uint32_t width, uint32_t height, vk::Format format)
+    : format(format) {
+    extent = vk::Extent3D(width, height, 1);
+
+    image = Image(device,
+                  extent,
+                  format,
+                  vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst |
+                      vk::ImageUsageFlagBits::eSampled,
+                  vk::ImageAspectFlagBits::eColor);
+
+    const vk::SamplerCreateInfo samplerInfo({},
+                                            vk::Filter::eLinear,
+                                            vk::Filter::eLinear,
+                                            vk::SamplerMipmapMode::eLinear,
+                                            vk::SamplerAddressMode::eRepeat,
+                                            vk::SamplerAddressMode::eRepeat,
+                                            vk::SamplerAddressMode::eRepeat,
+                                            0.0f,
+                                            vk::True,
+                                            device.getPhysicalDevice()->getProperties().limits.maxSamplerAnisotropy,
+                                            vk::False,
+                                            vk::CompareOp::eAlways,
+                                            0.0f,
+                                            vk::LodClampNone,
+                                            vk::BorderColor::eIntOpaqueBlack,
+                                            vk::False);
+
+    sampler = vk::raii::Sampler(device.get(), samplerInfo);
+}
+
 auto Vulkan::Texture::getImage() -> Vulkan::Image& { return image; }
 auto Vulkan::Texture::getSampler() -> vk::raii::Sampler& { return sampler; }
