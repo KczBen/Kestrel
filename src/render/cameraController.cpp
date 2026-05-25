@@ -8,13 +8,25 @@ void Render::CameraController::processRotation(float mouseDeltaX, float mouseDel
 
     const glm::quat yaw = glm::angleAxis(glm::radians(yawDelta), camera->worldUp);
 
-    // this is broken, it should clamp but doesn't
+    // Apply yaw first
     const glm::quat tempOrientation = yaw * camera->orientation;
-    const glm::vec3 rightVec = glm::normalize(tempOrientation * glm::vec3(1.0f, 0.0f, 0.0f));
 
-    const glm::quat pitch = glm::angleAxis(glm::radians(pitchDelta), rightVec);
+    // Calculate current pitch from the orientation after yaw
+    // We use the front vector to determine the pitch.
+    const glm::vec3 tempFront = tempOrientation * glm::vec3(0.0f, 0.0f, -1.0f);
+    const float currentPitch = glm::degrees(std::asin(glm::clamp(tempFront.y, -1.0f, 1.0f)));
 
-    camera->orientation = pitch * tempOrientation;
+    // Clamp the pitch
+    const float newPitch = glm::clamp(currentPitch + pitchDelta, -89.999f, 89.999f);
+    const float actualPitchDelta = newPitch - currentPitch;
+
+    if (std::abs(actualPitchDelta) > 0.0001f) {
+        const glm::vec3 rightVec = glm::normalize(tempOrientation * glm::vec3(1.0f, 0.0f, 0.0f));
+        const glm::quat pitch = glm::angleAxis(glm::radians(actualPitchDelta), rightVec);
+        camera->orientation = pitch * tempOrientation;
+    } else {
+        camera->orientation = tempOrientation;
+    }
     updateVectors();
 }
 
