@@ -10,7 +10,7 @@ class DescriptorPool {
     vk::raii::DescriptorPool pool = nullptr;
 
   public:
-    DescriptorPool(Vulkan::Device& device, uint32_t maxFramesInFlight);
+    DescriptorPool(Vulkan::Device& device);
     auto get() -> const vk::raii::DescriptorPool&;
 };
 } // namespace Vulkan

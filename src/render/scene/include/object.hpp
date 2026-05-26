@@ -9,28 +9,35 @@
 class Material;
 
 namespace Render {
+struct Primitive {
+    MeshHandle mesh{};
+    MaterialHandle material;
+};
+
+struct Node {
+    glm::quat rotation;
+    glm::vec3 position;
+    glm::vec3 scale;
+
+    // Primitives are technically a Mesh member, but we don't care about meshes
+    std::vector<Primitive> primitives;
+    std::vector<Node> children;
+
+    [[nodiscard]] auto getModelMatrix() const -> glm::mat4;
+};
+
 class Object {
   public:
-    MeshHandle mesh;
-    MaterialHandle material;
-
-    glm::vec3 position{};
-    glm::quat orientation{};
+    Node model;
 
     std::function<void(Object&, float)> onUpdate;
 
     // Default constructor, places the model at world origin with no scaling and no update function
-    Object(MeshHandle mesh, MaterialHandle material);
+    Object(Node model);
 
     // Fully qualified constructor
-    Object(MeshHandle mesh,
-           MaterialHandle material,
-           glm::vec3 position,
-           glm::quat orientation,
-           std::function<void(Object&, float)>);
+    Object(Node model, std::function<void(Object&, float)>);
 
     void tick(float dt);
-
-    [[nodiscard]] auto getModelMatrix() const -> glm::mat4;
 };
 } // namespace Render

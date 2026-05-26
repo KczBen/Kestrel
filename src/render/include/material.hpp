@@ -3,6 +3,7 @@
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
 #include "graphicsPipeline.hpp"
+#include "hostBuffer.hpp"
 #include "resourceHandles.hpp"
 #include "shaderDef.hpp"
 #include "texture.hpp"
@@ -15,6 +16,10 @@ namespace Vulkan {
 class PipelineManager;
 }
 
+namespace Render {
+class ResourceManager;
+}
+
 class Material {
   public:
     enum class BlendMode : uint8_t { Opaque, Alpha, Premultiplied, Additive };
@@ -22,15 +27,24 @@ class Material {
 
     // This should be compatible with the glTF 2.0 spec
     struct MaterialResources {
-        TextureHandle baseColor;
-        TextureHandle metallicRoughness;
-        TextureHandle normal;
-        TextureHandle occlusion;
-        TextureHandle emissive;
+        // Textures
+        TextureHandle baseColorTexture;
+        TextureHandle metallicRoughnessTexture;
+        TextureHandle normalTexture;
+        TextureHandle occlusionTexture;
+        TextureHandle emissiveTexture;
+
+        // glTF Factors / Uniforms
+        std::vector<double> baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
+        std::vector<double> emissiveFactor{0.0f, 0.0f, 0.0f};
+        float metallicFactor{1.0f};
+        float roughnessFactor{1.0f};
+        float normalScale{1.0f};
+        float occlusionStrength{1.0f};
 
         [[nodiscard]] auto isEmpty() const -> bool {
-            return baseColor.isPresent() && metallicRoughness.isPresent() && normal.isPresent() &&
-                   occlusion.isPresent() && emissive.isPresent();
+            return !baseColorTexture.isPresent() && !metallicRoughnessTexture.isPresent() &&
+                   !normalTexture.isPresent() && !occlusionTexture.isPresent() && !emissiveTexture.isPresent();
         };
     };
 
@@ -59,11 +73,7 @@ class Material {
 
     Material(ShaderDef vertexShader,
              ShaderDef fragmentShader,
-             TextureHandle baseColor = {nullptr},
-             TextureHandle metallicRoughness = {nullptr},
-             TextureHandle normal = {nullptr},
-             TextureHandle occlusion = {nullptr},
-             TextureHandle emissive = {nullptr},
+             const MaterialResources& materialResources,
              std::vector<vk::PushConstantRange> pushConstants = {},
              VertexInputMode vertexInputMode = VertexInputMode::Mesh,
              vk::CullModeFlagBits cullMode = vk::CullModeFlagBits::eBack,
@@ -75,6 +85,7 @@ class Material {
                                                       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 
     auto getDescriptorSet() -> Vulkan::DescriptorSet&;
+    [[nodiscard]] auto getResources() const -> const MaterialResources& { return resources; }
 
   private:
     MaterialResources resources;
@@ -82,12 +93,14 @@ class Material {
 
     std::optional<Vulkan::DescriptorSetLayout> descriptorSetLayout;
     std::optional<Vulkan::DescriptorSet> descriptorSet;
+    Vulkan::HostBufferHandle materialBufferHandle;
     Vulkan::GraphicsPipeline* graphicsPipeline = nullptr;
 
     // Reduce the number of hash map lookups we need to do
     vk::Format lastRenderedFormat = vk::Format::eUndefined;
 
     friend class Vulkan::PipelineManager;
+    friend class Render::ResourceManager;
 };
 
 using MaterialHandle = Render::ResourceHandle<Material>;

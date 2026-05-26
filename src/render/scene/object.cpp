@@ -1,31 +1,29 @@
 #include "object.hpp"
-#include "resourceHandles.hpp"
 #include <functional>
 #include <glm/ext/quaternion_transform.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/fwd.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/trigonometric.hpp>
 #include <utility>
 
-Render::Object::Object(Render::MeshHandle mesh, MaterialHandle material)
-    : mesh(mesh), material(material), position(glm::vec3{0.0f, 0.0f, 0.0f}),
-      orientation(glm::quat{1.0, 0.0, 0.0, 0.0}) {};
+namespace Render {
+Object::Object(Node model) : model(std::move(model)) {};
 
-Render::Object::Object(Render::MeshHandle mesh,
-                       MaterialHandle material,
-                       glm::vec3 position,
-                       glm::quat orientation,
-                       std::function<void(Object&, float)> updateFunction)
-    : mesh(mesh), material(material), position(position), orientation(orientation),
-      onUpdate(std::move(updateFunction)) {};
+Object::Object(Node model, std::function<void(Object&, float)> updateFunction)
+    : model(std::move(model)), onUpdate(std::move(updateFunction)) {};
 
-void Render::Object::tick(float dt) {
+void Object::tick(float dt) {
     if (onUpdate) {
         onUpdate(*this, dt);
     }
 }
 
-auto Render::Object::getModelMatrix() const -> glm::mat4 {
-    return glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(orientation);
+auto Node::getModelMatrix() const -> glm::mat4 {
+    glm::mat4 m = glm::translate(glm::mat4(1.0f), position);
+    m *= glm::mat4_cast(rotation);
+    return glm::scale(m, scale);
 }
+
+} // namespace Render

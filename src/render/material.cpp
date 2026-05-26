@@ -8,11 +8,7 @@
 
 Material::Material(ShaderDef vertexShader,
                    ShaderDef fragmentShader,
-                   TextureHandle baseColor,
-                   TextureHandle metallicRoughness,
-                   TextureHandle normal,
-                   TextureHandle occlusion,
-                   TextureHandle emissive,
+                   const MaterialResources& materialResources,
                    std::vector<vk::PushConstantRange> pushConstants,
                    VertexInputMode vertexInputMode,
                    vk::CullModeFlagBits cullMode,
@@ -20,8 +16,10 @@ Material::Material(ShaderDef vertexShader,
                    bool depthWrite,
                    vk::CompareOp depthCompare,
                    BlendMode colorBlendMode,
-                   vk::ColorComponentFlags colorWriteMask) {
+                   vk::ColorComponentFlags colorWriteMask)
+    : resources(materialResources) {
 
+    // Retain full, explicit control over pipeline state for flexibility
     pipelineConfiguration = MaterialConfiguration{.vertexShader = std::move(vertexShader),
                                                   .fragmentShader = std::move(fragmentShader),
                                                   .vertexInputMode = vertexInputMode,
@@ -34,31 +32,28 @@ Material::Material(ShaderDef vertexShader,
                                                   .colorWriteMask = colorWriteMask,
                                                   .pushConstants = std::move(pushConstants)};
 
-    resources = MaterialResources{.baseColor = baseColor,
-                                  .metallicRoughness = metallicRoughness,
-                                  .normal = normal,
-                                  .occlusion = occlusion,
-                                  .emissive = emissive};
+    uint32_t bindingIndex = 0;
 
-    int bindingIndex = 0;
+    pipelineConfiguration.descriptorSetBindings.emplace_back(
+        bindingIndex++, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment);
 
-    if (resources.baseColor.isPresent()) {
+    if (resources.baseColorTexture.isPresent()) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.metallicRoughness.isPresent()) {
+    if (resources.metallicRoughnessTexture.isPresent()) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.normal.isPresent()) {
+    if (resources.normalTexture.isPresent()) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.occlusion.isPresent()) {
+    if (resources.occlusionTexture.isPresent()) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }
-    if (resources.emissive.isPresent()) {
+    if (resources.emissiveTexture.isPresent()) {
         pipelineConfiguration.descriptorSetBindings.emplace_back(
             bindingIndex++, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
     }

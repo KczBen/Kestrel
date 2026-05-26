@@ -2,12 +2,11 @@
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 
-Vulkan::DescriptorPool::DescriptorPool(Vulkan::Device& device, uint32_t maxFramesInFlight) : device(&device.get()) {
-    std::array poolSize{vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, maxFramesInFlight),
-                        vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, maxFramesInFlight)};
+Vulkan::DescriptorPool::DescriptorPool(Vulkan::Device& device) : device(&device.get()) {
+    std::array poolSize{vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1000),
+                        vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1000)};
 
-    const vk::DescriptorPoolCreateInfo poolInfo(
-        vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, maxFramesInFlight, poolSize);
+    const vk::DescriptorPoolCreateInfo poolInfo(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, 200, poolSize);
 
     pool = vk::raii::DescriptorPool(*this->device, poolInfo);
 }

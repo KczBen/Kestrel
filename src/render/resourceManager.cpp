@@ -20,21 +20,41 @@
 #include <cstddef>
 #include <cstdint>
 #include <glm/ext/vector_float3.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <print>
 #include <utility>
 
 namespace Render {
 ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::Device& device)
-    : device(&device), uploadPool(physicalDevice, device, 2), descriptorPool(device, 4), vBufferEnd(0), iBufferEnd(0) {
-    vertexBuffer = Vulkan::DeviceBuffer(
-        device, 65565 * sizeof(Vertex), vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst);
+    : device(&device), uploadPool(physicalDevice, device, 2), descriptorPool(device), vBufferEnd(0), iBufferEnd(0) {
+    vertexBuffer = Vulkan::DeviceBuffer(device,
+                                        5000000 * sizeof(Vertex),
+                                        vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst);
     indexBuffer = Vulkan::DeviceBuffer(device,
-                                       16384 * sizeof(uint32_t),
+                                       1000000 * sizeof(uint32_t),
                                        vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst);
-    stagingBuffer = Vulkan::UploadBuffer(device, static_cast<long>(128 * 1024 * 1024));
+    stagingBuffer = Vulkan::UploadBuffer(device, static_cast<long>(512 * 1024 * 1024));
+
+    // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
+    materials.emplace_back(Material(ShaderDef{.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
+                                    ShaderDef{.filePath = "shaders/skyFrag.glsl", .stage = EShLangFragment},
+                                    {},
+                                    {},
+                                    Material::VertexInputMode::None,
+                                    vk::CullModeFlagBits::eNone,
+                                    true,
+                                    false,
+                                    vk::CompareOp::eLessOrEqual));
+
+    auto context = Vulkan::UploadContext(device, uploadPool, *stagingBuffer);
+
+    auto data = std::array<uint8_t, 4>({255, 255, 255, 255});
+
+    textures.emplace_back(device, &data, 1, 1);
+    context.upload(textures.back());
 }
 
-auto ResourceManager::loadGLTF(const std::string& path) -> std::pair<MeshHandle, MaterialHandle> {
+auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF loader;
     std::string err;
@@ -51,151 +71,222 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::pair<MeshHandle,
         throw std::runtime_error("Failed to load GLTF: " + path);
     }
 
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
+    std::vector<MaterialHandle> materialHandles;
 
-    // Just load the first mesh/primitive for now
-    const auto& mesh = gltfModel.meshes[0];
-    const auto& primitive = mesh.primitives[0];
+    for (auto& material : gltfModel.materials) {
 
-    // --- Indices ---
-    {
-        const auto& accessor = gltfModel.accessors[primitive.indices];
-        const auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
-        const auto& buffer = gltfModel.buffers[bufferView.buffer];
-        const uint8_t* data = buffer.data.data() + bufferView.byteOffset + accessor.byteOffset;
+        const auto& pbr = material.pbrMetallicRoughness;
 
-        indices.resize(accessor.count);
-        switch (accessor.componentType) {
-        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-            for (size_t i = 0; i < accessor.count; i++) {
-                uint16_t val = 0;
-                std::memcpy(&val, data + (i * sizeof(uint16_t)), sizeof(uint16_t));
-                indices[i] = val;
+        auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
+
+        auto loadTexture = [&](int texIndex) -> TextureHandle {
+            if (texIndex < 0) {
+                return TextureHandle{&textures, 0};
             }
-            break;
-        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
-            for (size_t i = 0; i < accessor.count; i++) {
-                uint32_t val = 0;
-                std::memcpy(&val, data + (i * sizeof(uint32_t)), sizeof(uint32_t));
-                indices[i] = val;
-            }
-            break;
-        default:
-            break;
+            const auto& tex = gltfModel.textures[texIndex];
+            const auto& image = gltfModel.images[tex.source];
+            textures.emplace_back(*device, image.image.data(), image.width, image.height);
+            context.upload(textures.back());
+            return TextureHandle{&textures, textures.size() - 1};
+        };
+
+        auto baseColor = loadTexture(pbr.baseColorTexture.index);
+        auto metallicRoughness = loadTexture(pbr.metallicRoughnessTexture.index);
+        auto normal = loadTexture(material.normalTexture.index);
+        auto occlusion = loadTexture(material.occlusionTexture.index);
+        auto emissive = loadTexture(material.emissiveTexture.index);
+
+        Material::BlendMode blendMode = Material::BlendMode::Opaque;
+        if (material.alphaMode == "BLEND" || material.alphaMode == "MASK") { // treat cutout as alpha for now
+            blendMode = Material::BlendMode::Alpha;
         }
+
+        const vk::CullModeFlagBits cullMode =
+            material.doubleSided ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack;
+
+        Material::MaterialResources resources;
+        resources.baseColorTexture = baseColor;
+        resources.metallicRoughnessTexture = metallicRoughness;
+        resources.normalTexture = normal;
+        resources.occlusionTexture = occlusion;
+        resources.emissiveTexture = emissive;
+
+        resources.baseColorFactor = pbr.baseColorFactor;
+        resources.emissiveFactor = material.emissiveFactor;
+        resources.metallicFactor = pbr.metallicFactor;
+        resources.roughnessFactor = pbr.roughnessFactor;
+
+        auto mat = Material(ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
+                            ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
+                            resources,
+                            std::vector<vk::PushConstantRange>{
+                                vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4))},
+                            Material::VertexInputMode::Mesh,
+                            cullMode,
+                            true, // depthTest
+                            true, // depthWrite
+                            vk::CompareOp::eLess,
+                            blendMode);
+
+        uniformBuffers.emplace_back(*device, sizeof(UniformBufferObject));
+        mat.materialBufferHandle = {&uniformBuffers, uniformBuffers.size() - 1};
+
+        materials.emplace_back(std::move(mat));
+
+        materialHandles.emplace_back(&materials, materials.size() - 1);
     }
 
-    // --- Positions ---
-    auto readAccessor = [&](const std::string& attr) -> std::vector<float> {
-        auto it = primitive.attributes.find(attr);
-        if (it == primitive.attributes.end()) {
-            return {};
+    auto loadMesh = [&](tinygltf::Primitive& primitive) -> std::pair<std::vector<Vertex>, std::vector<uint32_t>> {
+        // --- Indices ---
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+        {
+            const auto& accessor = gltfModel.accessors[primitive.indices];
+            const auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
+            const auto& buffer = gltfModel.buffers[bufferView.buffer];
+            const uint8_t* data = buffer.data.data() + bufferView.byteOffset + accessor.byteOffset;
+
+            indices.resize(accessor.count);
+            switch (accessor.componentType) {
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                for (size_t i = 0; i < accessor.count; i++) {
+                    uint16_t val = 0;
+                    std::memcpy(&val, data + (i * sizeof(uint16_t)), sizeof(uint16_t));
+                    indices[i] = val;
+                }
+                break;
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+                for (size_t i = 0; i < accessor.count; i++) {
+                    uint32_t val = 0;
+                    std::memcpy(&val, data + (i * sizeof(uint32_t)), sizeof(uint32_t));
+                    indices[i] = val;
+                }
+                break;
+            default:
+                break;
+            }
         }
 
-        const auto& accessor = gltfModel.accessors[it->second];
-        const auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
-        const auto& buffer = gltfModel.buffers[bufferView.buffer];
-        const uint8_t* data = buffer.data.data() + bufferView.byteOffset + accessor.byteOffset;
+        // --- Positions ---
+        auto readAccessor = [&](const std::string& attr) -> std::vector<float> {
+            auto it = primitive.attributes.find(attr);
+            if (it == primitive.attributes.end()) {
+                return {};
+            }
 
-        const size_t components = tinygltf::GetNumComponentsInType(accessor.type);
-        std::vector<float> result(accessor.count * components);
-        std::memcpy(result.data(), data, result.size() * sizeof(float));
-        return result;
-    };
+            const auto& accessor = gltfModel.accessors[it->second];
+            const auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
+            const auto& buffer = gltfModel.buffers[bufferView.buffer];
+            const uint8_t* data = buffer.data.data() + bufferView.byteOffset + accessor.byteOffset;
 
-    const std::vector<float> positions = readAccessor("POSITION");
-    const std::vector<float> normals = readAccessor("NORMAL");
-    const std::vector<float> texCoords = readAccessor("TEXCOORD_0");
-    const std::vector<float> colors = readAccessor("COLOR_0");
+            const size_t components = tinygltf::GetNumComponentsInType(accessor.type);
+            std::vector<float> result(accessor.count * components);
+            std::memcpy(result.data(), data, result.size() * sizeof(float));
+            return result;
+        };
 
-    const size_t vertexCount = gltfModel.accessors[primitive.attributes.at("POSITION")].count;
-    vertices.resize(vertexCount);
+        const std::vector<float> positions = readAccessor("POSITION");
+        const std::vector<float> normals = readAccessor("NORMAL");
+        const std::vector<float> texCoords = readAccessor("TEXCOORD_0");
+        const std::vector<float> colors = readAccessor("COLOR_0");
 
-    for (size_t i = 0; i < vertexCount; i++) {
-        vertices[i].pos = {positions[i * 3], positions[(i * 3) + 1], positions[(i * 3) + 2]};
-        vertices[i].normal = !normals.empty() ? glm::vec3(normals[i * 3], normals[(i * 3) + 1], normals[(i * 3) + 2])
-                                              : glm::vec3(0, 1, 0);
-        vertices[i].texCoord =
-            !texCoords.empty() ? glm::vec2(texCoords[i * 2], texCoords[(i * 2) + 1]) : glm::vec2(0, 0);
-        const bool hasColors = primitive.attributes.contains("COLOR_0");
-        const bool colorIsVec4 =
-            hasColors && gltfModel.accessors[primitive.attributes.at("COLOR_0")].type == TINYGLTF_TYPE_VEC4;
+        const size_t vertexCount = gltfModel.accessors[primitive.attributes.at("POSITION")].count;
+        vertices.resize(vertexCount);
 
-        if (hasColors && !colors.empty()) {
-            if (colorIsVec4) {
-                vertices[i].color = glm::vec3(colors[i * 4], colors[(i * 4) + 1], colors[(i * 4) + 2]);
+        for (size_t i = 0; i < vertexCount; i++) {
+            vertices[i].pos = {positions[i * 3], positions[(i * 3) + 1], positions[(i * 3) + 2]};
+            vertices[i].normal = !normals.empty()
+                                     ? glm::vec3(normals[i * 3], normals[(i * 3) + 1], normals[(i * 3) + 2])
+                                     : glm::vec3(0, 1, 0);
+            vertices[i].texCoord =
+                !texCoords.empty() ? glm::vec2(texCoords[i * 2], texCoords[(i * 2) + 1]) : glm::vec2(0, 0);
+            const bool hasColors = primitive.attributes.contains("COLOR_0");
+            const bool colorIsVec4 =
+                hasColors && gltfModel.accessors[primitive.attributes.at("COLOR_0")].type == TINYGLTF_TYPE_VEC4;
+
+            if (hasColors && !colors.empty()) {
+                if (colorIsVec4) {
+                    vertices[i].color = glm::vec3(colors[i * 4], colors[(i * 4) + 1], colors[(i * 4) + 2]);
+                } else {
+                    vertices[i].color =
+                        glm::vec4(colors[i * 4], colors[(i * 4) + 1], colors[(i * 4) + 2], colors[(i * 4) + 3]);
+                }
             } else {
-                vertices[i].color =
-                    glm::vec4(colors[i * 4], colors[(i * 4) + 1], colors[(i * 4) + 2], colors[(i * 4) + 3]);
+                vertices[i].color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
             }
-        } else {
-            vertices[i].color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         }
-    }
 
-    const MeshHandle meshHandle = uploadMesh(vertices, indices);
-    const MaterialHandle matHandle = loadGltfMaterial(gltfModel, primitive.material);
-    return {meshHandle, matHandle};
-}
-
-auto ResourceManager::loadGltfMaterial(const tinygltf::Model& gltfModel, int materialIndex) -> MaterialHandle {
-    // Default textures if material index is invalid
-    if (materialIndex < 0 || materialIndex >= gltfModel.materials.size()) {
-        materials.emplace_back(ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
-                               ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment});
-
-        return {&materials, materials.size() - 1};
-    }
-
-    const auto& mat = gltfModel.materials[materialIndex];
-    const auto& pbr = mat.pbrMetallicRoughness;
-
-    auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
-
-    auto loadTexture = [&](int texIndex) -> TextureHandle {
-        if (texIndex < 0) {
-            return TextureHandle{&textures, 0};
-        }
-        const auto& tex = gltfModel.textures[texIndex];
-        const auto& image = gltfModel.images[tex.source];
-        textures.emplace_back(*device, image.image.data(), image.width, image.height);
-        context.upload(textures.back());
-        return TextureHandle{&textures, textures.size() - 1};
+        return {vertices, indices};
     };
 
-    auto baseColor = loadTexture(pbr.baseColorTexture.index);
-    auto metallicRoughness = loadTexture(pbr.metallicRoughnessTexture.index);
-    auto normal = loadTexture(mat.normalTexture.index);
-    auto occlusion = loadTexture(mat.occlusionTexture.index);
-    auto emissive = loadTexture(mat.emissiveTexture.index);
+    auto buildNode = [&](this auto& self, tinygltf::Node& gltfNode) -> Node {
+        auto node = Node();
 
-    Material::BlendMode blendMode = Material::BlendMode::Opaque;
-    if (mat.alphaMode == "BLEND") {
-        blendMode = Material::BlendMode::Alpha;
-    } else if (mat.alphaMode == "MASK") {
-        blendMode = Material::BlendMode::Alpha; // treat cutout as alpha for now
+        if (!gltfNode.matrix.empty()) {
+            glm::mat4 matrix;
+            for (auto i = 0; i < 16; ++i) {
+                matrix[i / 4][i % 4] = static_cast<float>(gltfNode.matrix[i]);
+            }
+
+            glm::vec3 skew;
+            glm::vec4 perspective;
+            glm::decompose(matrix, node.scale, node.rotation, node.position, skew, perspective);
+        } else {
+            if (!gltfNode.translation.empty()) {
+                node.position = {static_cast<float>(gltfNode.translation[0]),
+                                 static_cast<float>(gltfNode.translation[1]),
+                                 static_cast<float>(gltfNode.translation[2])};
+            } else {
+                node.position = glm::vec3(0.0f);
+            }
+
+            if (!gltfNode.rotation.empty()) {
+                node.rotation = glm::quat(static_cast<float>(gltfNode.rotation[3]),
+                                          static_cast<float>(gltfNode.rotation[0]),
+                                          static_cast<float>(gltfNode.rotation[1]),
+                                          static_cast<float>(gltfNode.rotation[2]));
+            } else {
+                node.rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+            }
+
+            if (!gltfNode.scale.empty()) {
+                node.scale = {static_cast<float>(gltfNode.scale[0]),
+                              static_cast<float>(gltfNode.scale[1]),
+                              static_cast<float>(gltfNode.scale[2])};
+            } else {
+                node.scale = glm::vec3(1.0f);
+            }
+        }
+
+        if (gltfNode.mesh >= 0) {
+            auto gltfMesh = gltfModel.meshes[gltfNode.mesh];
+            for (auto& gltfPrimitive : gltfMesh.primitives) {
+                auto meshData = loadMesh(gltfPrimitive);
+                auto meshHandle = uploadMesh(meshData.first, meshData.second);
+                auto materialHandle = materialHandles[gltfPrimitive.material];
+                node.primitives.emplace_back(meshHandle, materialHandle);
+            }
+        }
+
+        for (const auto& childID : gltfNode.children) {
+            auto& gltfChild = gltfModel.nodes[childID];
+            auto child = self(gltfChild);
+            node.children.push_back(child);
+        }
+
+        return node;
+    };
+
+    // Root nodes correspond to our "Objects"
+    std::vector<Object> objects;
+
+    for (const auto& nodeIdx : gltfModel.scenes[gltfModel.defaultScene].nodes) {
+        auto& rootNode = gltfModel.nodes[nodeIdx];
+
+        objects.emplace_back(buildNode(rootNode));
     }
 
-    const vk::CullModeFlagBits cullMode = mat.doubleSided ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack;
-
-    materials.emplace_back(ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
-                           ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
-                           baseColor,
-                           metallicRoughness,
-                           normal,
-                           occlusion,
-                           emissive,
-                           std::vector<vk::PushConstantRange>{
-                               vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4))},
-                           Material::VertexInputMode::Mesh,
-                           cullMode,
-                           true, // depthTest
-                           true, // depthWrite
-                           vk::CompareOp::eLess,
-                           blendMode);
-
-    return {&materials, materials.size() - 1};
+    return objects;
 }
 
 auto ResourceManager::uploadMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
@@ -252,27 +343,12 @@ void ResourceManager::loadScene(Scene& scene) {
 
     // load models
     for (const auto& path : scene.modelPaths) {
-        auto handle = loadGLTF(path);
+        auto objects = loadGLTF(path);
 
-        auto object = Object(handle.first, handle.second);
-
-        scene.objects.emplace_back(std::move(object));
+        for (auto object : objects) {
+            scene.objects.emplace_back(std::move(object));
+        }
     }
-
-    // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
-    materials.emplace_back(Material(ShaderDef{.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
-                                    ShaderDef{.filePath = "shaders/skyFrag.glsl", .stage = EShLangFragment},
-                                    {},
-                                    {},
-                                    {},
-                                    {},
-                                    {},
-                                    {},
-                                    Material::VertexInputMode::None,
-                                    vk::CullModeFlagBits::eNone,
-                                    true,
-                                    false,
-                                    vk::CompareOp::eLessOrEqual));
 
     for (auto& material : materials) {
         pipelineManager->registerMaterial(material);

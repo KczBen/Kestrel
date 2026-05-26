@@ -6,6 +6,10 @@
 struct ShaderDef {
     std::string filePath;
     EShLanguage stage;
+
+    auto operator==(const ShaderDef& other) const noexcept -> bool {
+        return filePath == other.filePath && stage == other.stage;
+    }
 };
 
 namespace std {

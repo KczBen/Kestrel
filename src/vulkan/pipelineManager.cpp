@@ -2,6 +2,7 @@
 #include "descriptorPool.hpp"
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
+#include "gpuDataObjects.hpp"
 #include "graphicsPipeline.hpp"
 #include "vulkan/vulkan.hpp"
 #include <utility>
@@ -20,46 +21,72 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
 
         uint32_t bindingIndex = 0;
 
-        if (material.resources.baseColor.isPresent()) {
-            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
-                                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                                .bufferInfo = {},
-                                                .imageInfo = {material.resources.baseColor->getSampler(),
-                                                              material.resources.baseColor->getImage().getImageView(),
-                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        if (material.materialBufferHandle.isPresent()) {
+            auto ubo = MaterialUBO{.baseColorFactor = {material.resources.baseColorFactor[0],
+                                                       material.resources.baseColorFactor[1],
+                                                       material.resources.baseColorFactor[2],
+                                                       material.resources.baseColorFactor[3]},
+                                   .emissiveFactor = {material.resources.emissiveFactor[0],
+                                                      material.resources.emissiveFactor[1],
+                                                      material.resources.emissiveFactor[2],
+                                                      0.0f},
+                                   .metallicFactor = material.resources.metallicFactor,
+                                   .roughnessFactor = material.resources.roughnessFactor,
+                                   .normalScale = material.resources.normalScale,
+                                   .occlusionStrength = material.resources.occlusionStrength};
+
+            material.materialBufferHandle->update(&ubo, sizeof(MaterialUBO));
+
+            writes.emplace_back(
+                DescriptorWrite{.binding = bindingIndex++,
+                                .type = vk::DescriptorType::eUniformBuffer,
+                                .bufferInfo = {material.materialBufferHandle->get(), 0, sizeof(MaterialUBO)}});
         }
-        if (material.resources.metallicRoughness.isPresent()) {
+
+        if (material.resources.baseColorTexture.isPresent()) {
             writes.emplace_back(
                 DescriptorWrite{.binding = bindingIndex++,
                                 .type = vk::DescriptorType::eCombinedImageSampler,
                                 .bufferInfo = {},
-                                .imageInfo = {material.resources.metallicRoughness->getSampler(),
-                                              material.resources.metallicRoughness->getImage().getImageView(),
+                                .imageInfo = {material.resources.baseColorTexture->getSampler(),
+                                              material.resources.baseColorTexture->getImage().getImageView(),
                                               vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
-        if (material.resources.normal.isPresent()) {
-            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
-                                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                                .bufferInfo = {},
-                                                .imageInfo = {material.resources.normal->getSampler(),
-                                                              material.resources.normal->getImage().getImageView(),
-                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        if (material.resources.metallicRoughnessTexture.isPresent()) {
+            writes.emplace_back(
+                DescriptorWrite{.binding = bindingIndex++,
+                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                .bufferInfo = {},
+                                .imageInfo = {material.resources.metallicRoughnessTexture->getSampler(),
+                                              material.resources.metallicRoughnessTexture->getImage().getImageView(),
+                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
-        if (material.resources.occlusion.isPresent()) {
-            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
-                                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                                .bufferInfo = {},
-                                                .imageInfo = {material.resources.occlusion->getSampler(),
-                                                              material.resources.occlusion->getImage().getImageView(),
-                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        if (material.resources.normalTexture.isPresent()) {
+            writes.emplace_back(
+                DescriptorWrite{.binding = bindingIndex++,
+                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                .bufferInfo = {},
+                                .imageInfo = {material.resources.normalTexture->getSampler(),
+                                              material.resources.normalTexture->getImage().getImageView(),
+                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
-        if (material.resources.emissive.isPresent()) {
-            writes.emplace_back(DescriptorWrite{.binding = bindingIndex++,
-                                                .type = vk::DescriptorType::eCombinedImageSampler,
-                                                .bufferInfo = {},
-                                                .imageInfo = {material.resources.emissive->getSampler(),
-                                                              material.resources.emissive->getImage().getImageView(),
-                                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        if (material.resources.occlusionTexture.isPresent()) {
+            writes.emplace_back(
+                DescriptorWrite{.binding = bindingIndex++,
+                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                .bufferInfo = {},
+                                .imageInfo = {material.resources.occlusionTexture->getSampler(),
+                                              material.resources.occlusionTexture->getImage().getImageView(),
+                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
+        }
+        if (material.resources.emissiveTexture.isPresent()) {
+            writes.emplace_back(
+                DescriptorWrite{.binding = bindingIndex++,
+                                .type = vk::DescriptorType::eCombinedImageSampler,
+                                .bufferInfo = {},
+                                .imageInfo = {material.resources.emissiveTexture->getSampler(),
+                                              material.resources.emissiveTexture->getImage().getImageView(),
+                                              vk::ImageLayout::eShaderReadOnlyOptimal}});
         }
 
         material.descriptorSet.value().write(std::span(writes));

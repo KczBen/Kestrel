@@ -54,6 +54,10 @@ Vulkan::Texture::Texture(Device& device, const void* data, uint32_t width, uint3
     : format(format) {
     extent = vk::Extent3D(width, height, 1);
 
+    const auto dataSize = width * height * 4;
+    pixelData.resize(dataSize);
+    std::memcpy(pixelData.data(), data, dataSize);
+
     image = Image(device,
                   extent,
                   format,

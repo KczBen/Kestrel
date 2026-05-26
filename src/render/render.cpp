@@ -34,7 +34,7 @@ Render::Render::Render(SDL_Window* window,
 
 void Render::Render::init(Scene& scene) {
     passes.emplace_back(std::make_unique<CameraPass>(CameraPass(
-        resourceManager->getPipelineManager(), {&resourceManager->getMaterialList(), 1}, &scene.getCamera())));
+        resourceManager->getPipelineManager(), {&resourceManager->getMaterialList(), 0}, &scene.getCamera())));
 
     passes.emplace_back(std::make_unique<GeometryPass>(
         GeometryPass(resourceManager->getPipelineManager(), scene.getObjects(), &scene.getCamera())));
