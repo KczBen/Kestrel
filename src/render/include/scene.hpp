@@ -21,7 +21,7 @@ class Scene {
     std::vector<std::string> modelPaths;
 
   public:
-    Scene(const char* modelPath);
+    Scene(std::vector<std::string> modelPaths);
     void update(Input inputs, float deltaTime);
     void addObject(std::unique_ptr<Object> model);
     void addControlledCamera(CameraController cameraController);

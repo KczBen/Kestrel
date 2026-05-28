@@ -21,6 +21,7 @@
 #include <glslang/Public/ShaderLang.h>
 
 #include <print>
+#include <string>
 #include <vulkan/vulkan_core.h>
 
 static auto getInstanceExtensions() -> std::vector<const char*> {
@@ -59,7 +60,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
         Vulkan::Device device(physicalDevice, instance);
 
         Render::ResourceManager resourceManager(physicalDevice, device);
-        Render::Scene scene(std::string(SDL_GetBasePath()).append("models/CarConcept.glb").c_str());
+        Render::Scene scene({std::string(SDL_GetBasePath()).append("models/CarConcept.glb")});
         resourceManager.loadScene(scene);
 
         Render::Render renderer(window, resourceManager, instance, surface, physicalDevice, device, 2);

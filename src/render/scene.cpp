@@ -1,14 +1,13 @@
 #include "scene.hpp"
 #include <glm/fwd.hpp>
+#include <utility>
 
 namespace Render {
-Scene::Scene(const char* modelPath) {
+Scene::Scene(std::vector<std::string> modelPaths) : modelPaths(std::move(modelPaths)) {
     // just make *a* camera for now
     cameras.emplace_back();
 
     playerCamera.emplace(*cameras.data());
-
-    modelPaths.emplace_back(modelPath);
 };
 
 auto Scene::getCamera() -> Camera& { return *cameras.data(); }
