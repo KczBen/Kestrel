@@ -151,6 +151,7 @@ if(TESTING)
         ${CMAKE_SOURCE_DIR}/src/vulkan/include
         ${CMAKE_SOURCE_DIR}/src/util/include
         ${CMAKE_SOURCE_DIR}/src/render/include
+        ${CMAKE_SOURCE_DIR}/src/render/scene/include
     )
     target_link_libraries(test-bin
         render
@@ -168,7 +169,6 @@ if(TESTING)
     if(TEST_EXPORT_COVERAGE)
         target_compile_options(render PRIVATE -fprofile-instr-generate -fcoverage-mapping)
         target_compile_options(vulkan-wrapper PRIVATE -fprofile-instr-generate -fcoverage-mapping)
-        target_compile_options(util PRIVATE -fprofile-instr-generate -fcoverage-mapping)
         target_compile_options(test-bin PRIVATE -fprofile-instr-generate -fcoverage-mapping)
 
         target_link_options(test-bin PRIVATE -fprofile-instr-generate)
@@ -200,7 +200,6 @@ if(TESTING)
             COMMAND ${LLVM_COV} show $<TARGET_FILE:test-bin>
                 -object $<TARGET_FILE:render>
                 -object $<TARGET_FILE:vulkan-wrapper>
-                -object $<TARGET_FILE:util>
                 -instr-profile=${CMAKE_BINARY_DIR}/coverage.profdata
                 -format=html
                 -output-dir=${CMAKE_BINARY_DIR}/coverage-html

@@ -33,7 +33,7 @@ TEST_F(DescriptorSetLayoutFixture, GetReturnsNonNull) { ASSERT_NE(*layout.get(),
 
 class DescriptorSetFixture : public DescriptorSetLayoutFixture {
   protected:
-    DescriptorPool pool{device, 2};
+    DescriptorPool pool{device};
     DescriptorSet descriptorSet{device, pool, layout};
 };
 
@@ -60,7 +60,7 @@ class DescriptorSetStorageFixture : public DeviceFixture {
     std::vector<vk::DescriptorSetLayoutBinding> bindings{
         vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute)};
     DescriptorSetLayout layout{device, bindings};
-    DescriptorPool pool{device, 2};
+    DescriptorPool pool{device};
     DescriptorSet descriptorSet{device, pool, layout};
 };
 
@@ -83,7 +83,7 @@ class DescriptorSetSamplerFixture : public DeviceFixture {
     std::vector<vk::DescriptorSetLayoutBinding> bindings{vk::DescriptorSetLayoutBinding(
         0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment)};
     DescriptorSetLayout layout{device, bindings};
-    DescriptorPool pool{device, 2};
+    DescriptorPool pool{device};
     DescriptorSet descriptorSet{device, pool, layout};
 };
 

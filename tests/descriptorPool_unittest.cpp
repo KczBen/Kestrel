@@ -14,7 +14,7 @@ class DescriptorPoolFixture : public ::testing::Test {
     Surface surface{instance};
     PhysicalDevice physicalDevice{instance, surface};
     Device device{physicalDevice, instance};
-    DescriptorPool descriptorPool{device, 2};
+    DescriptorPool descriptorPool{device};
 };
 
 TEST_F(DescriptorPoolFixture, GetReturnsNonNull) { ASSERT_NE(*descriptorPool.get(), VK_NULL_HANDLE); }
