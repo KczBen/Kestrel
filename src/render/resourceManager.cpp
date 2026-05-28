@@ -60,7 +60,13 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
     std::string err;
     std::string warn;
 
-    const bool success = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, path);
+    bool success = false;
+    if (path.ends_with(".gltf")) {
+        success = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, path);
+    } else {
+        success = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, path);
+    }
+
     if (!warn.empty()) {
         std::println("GLTF warning: {}", warn);
     }
