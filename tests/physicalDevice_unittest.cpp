@@ -35,7 +35,11 @@ TEST_F(PhysicalDeviceFixture, SwapChainSupportNonEmpty) {
 
 TEST_F(PhysicalDeviceFixture, SwapChainCapabilitiesValid) {
     const auto& caps = physicalDevice.getSwapChainSupportDetails().capabilities;
-    EXPECT_GE(caps.maxImageCount, caps.minImageCount);
+    // zero is a valid maxImageCount, see
+    // https://docs.vulkan.org/refpages/latest/refpages/source/VkSurfaceCapabilitiesKHR.html
+    if (caps.maxImageCount != 0) {
+        EXPECT_GE(caps.maxImageCount, caps.minImageCount);
+    }
     EXPECT_GE(caps.minImageExtent.width, 0u);
     EXPECT_GE(caps.minImageExtent.height, 0u);
 }
