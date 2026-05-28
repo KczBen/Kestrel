@@ -18,7 +18,6 @@ stages:
     prefix: "vcpkg-${CI_COMMIT_REF_SLUG}"
   paths:
     - .vcpkg-binary-cache/
-    - out/build/Debug/vcpkg_installed/
     - out/build/coverage/vcpkg_installed/
   policy: pull-push
 
@@ -27,11 +26,11 @@ stages:
     - export DEBIAN_FRONTEND=noninteractive
     - apt-get update -qq
     - apt-get install -y --no-install-recommends
-        cmake ninja-build git curl zip unzip tar pkg-config ca-certificates
-        clang-21 lld-21 libc++-21-dev libc++abi-21-dev
-        libvulkan-dev glslang-tools spirv-tools
-        libsdl3-dev clang-tools-21 llvm-21 libclang-rt-21-dev
-        mesa-vulkan-drivers vulkan-validationlayers
+      cmake ninja-build git curl zip unzip tar pkg-config ca-certificates
+      clang-21 lld-21 libc++-21-dev libc++abi-21-dev
+      libvulkan-dev glslang-tools spirv-tools
+      libsdl3-dev clang-tools-21 llvm-21 libclang-rt-21-dev
+      mesa-vulkan-drivers vulkan-validationlayers
 
     - update-alternatives --install /usr/bin/clang   clang   /usr/bin/clang-21   100
     - update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
@@ -47,23 +46,60 @@ stages:
     - mkdir -p "${VCPKG_DEFAULT_BINARY_CACHE}"
     - export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
 
-build:
+get-sonar-binaries:
+  stage: .pre
+  extends: .linux_setup
+
+  cache:
+    policy: push
+    key: "${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - build-wrapper/
+      - sonar-scanner/
+  script:
+    - curl -sSLo ./sonar-scanner.zip 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-8.0.1.6346-linux-x64.zip'
+    - unzip -o sonar-scanner.zip
+    - mv sonar-scanner-8.0.1.6346-linux-x64 sonar-scanner
+    - curl -sSLo ./build-wrapper-linux-x86.zip "${SONAR_HOST_URL}/static/cpp/build-wrapper-linux-x86.zip"
+    - unzip -oj build-wrapper-linux-x86.zip -d ./build-wrapper
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+sonar-build:
   extends: .linux_setup
   stage: build
 
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
   cache:
     - <<: *vcpkg_cache
+    - policy: pull
+      key: "${CI_COMMIT_SHORT_SHA}"
+      paths:
+        - build-wrapper/
+        - sonar-scanner/
 
   script:
-    - cmake --preset Debug
-    - cmake --build --preset "Build - Debug" --parallel $(nproc)
+    - cmake --preset clang-coverage
+    - build-wrapper/build-wrapper-linux-x86-64 --out-dir bw-output
+      cmake --build out/build/coverage --parallel $(nproc)
+    - sonar-scanner/bin/sonar-scanner
+      -Dsonar.host.url="${SONAR_HOST_URL}"
+      -Dsonar.token="${SONAR_TOKEN}"
+      -Dsonar.cfamily.compile-commands=bw-output/compile_commands.json
+
+  artifacts:
+    expire_in: 2 weeks
+    paths:
+      - out/build/coverage/
 
 coverage:
   extends: .linux_setup
   stage: test
-
-  before_script:
-    - !reference [.linux_setup, before_script]
+  needs: ["sonar-build"]
 
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -74,8 +110,6 @@ coverage:
       policy: pull
 
   script:
-    - cmake --preset clang-coverage
-    - cmake --build out/build/coverage --parallel $(nproc)
     - cd out/build/coverage
     - ctest --output-on-failure
     - |
@@ -106,43 +140,3 @@ pages:
   artifacts:
     paths:
       - public/
-
-get-sonar-binaries:
-  stage: .pre
-  extends: .linux_setup
-
-  cache:
-    policy: push
-    key: "${CI_COMMIT_SHORT_SHA}"
-    paths:
-      - build-wrapper/
-      - sonar-scanner/
-  script:
-    # Download sonar-scanner
-    - curl -sSLo ./sonar-scanner.zip 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-8.0.1.6346-linux-x64.zip'
-    - unzip -o sonar-scanner.zip
-    - mv sonar-scanner-8.0.1.6346-linux-x64 sonar-scanner
-    # Download build-wrapper
-    - curl -sSLo ./build-wrapper-linux-x86.zip "${SONAR_HOST_URL}/static/cpp/build-wrapper-linux-x86.zip"
-    - unzip -oj build-wrapper-linux-x86.zip -d ./build-wrapper
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
-
-sonar-build:
-  stage: build
-  extends: .linux_setup
-
-  cache:
-    policy: pull-push
-    key: "${CI_COMMIT_SHORT_SHA}"
-    paths:
-      - build-wrapper/
-      - sonar-scanner/
-  script:
-    - cmake --preset Debug
-    - build-wrapper/build-wrapper-linux-x86-64 --out-dir bw-output cmake --build --preset "Build - Debug" --parallel $(nproc)
-    - sonar-scanner/bin/sonar-scanner -Dsonar.host.url="${SONAR_HOST_URL}" -Dsonar.token="${SONAR_TOKEN}" -Dsonar.cfamily.compile-commands=bw-output/compile_commands.json
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
