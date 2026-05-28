@@ -77,23 +77,35 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
         throw std::runtime_error("Failed to load GLTF: " + path);
     }
 
+    auto uploadTexture = [&](int texIndex) -> TextureHandle {
+        auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
+        const auto& tex = gltfModel.textures[texIndex];
+        const auto& image = gltfModel.images[tex.source];
+        textures.emplace_back(*device, image.image.data(), image.width, image.height);
+        context.upload(textures.back());
+        return TextureHandle{&textures, textures.size() - 1};
+    };
+
+    std::vector<TextureHandle> textureHandles;
+
+    textureHandles.reserve(gltfModel.textures.size());
+    for (auto i = 0; i < gltfModel.textures.size(); i++) {
+        textureHandles.emplace_back(uploadTexture(i));
+    }
+
     std::vector<MaterialHandle> materialHandles;
 
+    materialHandles.reserve(gltfModel.materials.size());
     for (auto& material : gltfModel.materials) {
 
         const auto& pbr = material.pbrMetallicRoughness;
-
-        auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
 
         auto loadTexture = [&](int texIndex) -> TextureHandle {
             if (texIndex < 0) {
                 return TextureHandle{&textures, 0};
             }
-            const auto& tex = gltfModel.textures[texIndex];
-            const auto& image = gltfModel.images[tex.source];
-            textures.emplace_back(*device, image.image.data(), image.width, image.height);
-            context.upload(textures.back());
-            return TextureHandle{&textures, textures.size() - 1};
+
+            return textureHandles[texIndex];
         };
 
         auto baseColor = loadTexture(pbr.baseColorTexture.index);
