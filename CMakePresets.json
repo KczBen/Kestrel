@@ -2,6 +2,22 @@
     "version": 8,
     "configurePresets": [
         {
+            "name": "Profile",
+            "generator": "Ninja",
+            "displayName": "Clang - Profile",
+            "description": "Optimized build with debug symbols for perf profiling",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_C_FLAGS": "-fno-omit-frame-pointer",
+                "CMAKE_CXX_FLAGS": "-fno-omit-frame-pointer"
+            }
+        },
+        {
             "name": "Debug",
             "generator": "Ninja",
             "displayName": "Clang - Debug",
