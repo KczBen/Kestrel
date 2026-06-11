@@ -54,6 +54,8 @@ void Render::Render::render(Scene& scene, float deltaTime) {
 
     syncObjects.resetFence(frameIndex);
 
+    auto& target = swapchain.getRenderTarget(imageIndex);
+
     const auto cmd = *commandPool.getCommandBuffer(frameIndex);
 
     cmd.reset();
@@ -63,7 +65,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     cmd.begin(beginInfo);
 
     // Transition framebuffer for dynamic rendering
-    Vulkan::CommandPool::transitionImage(swapchain.getImage(imageIndex),
+    Vulkan::CommandPool::transitionImage(target.getColorImage(),
                                          vk::ImageLayout::eColorAttachmentOptimal,
                                          vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                                          vk::AccessFlagBits2::eColorAttachmentWrite,
@@ -71,7 +73,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
                                          cmd);
 
     // Transition MSAA buffer
-    Vulkan::CommandPool::transitionImage(swapchain.getMsaaImage(),
+    Vulkan::CommandPool::transitionImage(target.getMsaaImage(),
                                          vk::ImageLayout::eColorAttachmentOptimal,
                                          vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                                          vk::AccessFlagBits2::eColorAttachmentWrite,
@@ -79,7 +81,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
                                          cmd);
 
     // Transition depth buffer for dynamic rendering (it doesn't need to be done again, unless it's read!)
-    Vulkan::CommandPool::transitionImage(swapchain.getDepthImage(),
+    Vulkan::CommandPool::transitionImage(target.getDepthImage(),
                                          vk::ImageLayout::eDepthAttachmentOptimal,
                                          vk::PipelineStageFlagBits2::eEarlyFragmentTests |
                                              vk::PipelineStageFlagBits2::eLateFragmentTests,
@@ -90,16 +92,16 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     const vk::ClearValue clearColor{std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f}};
     const vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
 
-    const vk::RenderingAttachmentInfo colorAttachmentInfo(swapchain.getMsaaImage().getImageView(),
+    const vk::RenderingAttachmentInfo colorAttachmentInfo(target.getMsaaImage().getImageView(),
                                                           vk::ImageLayout::eColorAttachmentOptimal,
                                                           vk::ResolveModeFlagBits::eAverage,
-                                                          swapchain.getImage(imageIndex).getImageView(),
+                                                          target.getColorImage().getImageView(),
                                                           vk::ImageLayout::eColorAttachmentOptimal,
                                                           vk::AttachmentLoadOp::eClear,
                                                           vk::AttachmentStoreOp::eStore,
                                                           clearColor);
 
-    const vk::RenderingAttachmentInfo depthAttachmentInfo(swapchain.getDepthImage().getImageView(),
+    const vk::RenderingAttachmentInfo depthAttachmentInfo(target.getDepthImage().getImageView(),
                                                           vk::ImageLayout::eDepthAttachmentOptimal,
                                                           vk::ResolveModeFlagBits::eNone,
                                                           {},
@@ -109,20 +111,20 @@ void Render::Render::render(Scene& scene, float deltaTime) {
                                                           clearDepth);
 
     const vk::RenderingInfo renderInfo(
-        {}, {{0, 0}, swapchain.getExtent()}, 1, {}, 1, &colorAttachmentInfo, &depthAttachmentInfo);
+        {}, {{0, 0}, target.getExtent()}, 1, {}, 1, &colorAttachmentInfo, &depthAttachmentInfo);
 
     cmd.beginRendering(renderInfo);
 
     const vk::Viewport viewport(0.0,
                                 1.0,
-                                static_cast<float>(swapchain.getExtent().width),
-                                static_cast<float>(swapchain.getExtent().height),
+                                static_cast<float>(target.getExtent().width),
+                                static_cast<float>(target.getExtent().height),
                                 0.0,
                                 1.0);
 
     cmd.setViewport(0, 1, &viewport);
 
-    const vk::Rect2D scissor(VkOffset2D(0), swapchain.getExtent());
+    const vk::Rect2D scissor(VkOffset2D(0), target.getExtent());
     cmd.setScissor(0, 1, &scissor);
 
     // Draw
@@ -131,7 +133,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     }
 
     cmd.endRendering();
-    Vulkan::CommandPool::transitionImage(swapchain.getImage(imageIndex),
+    Vulkan::CommandPool::transitionImage(target.getColorImage(),
                                          vk::ImageLayout::ePresentSrcKHR,
                                          vk::PipelineStageFlagBits2::eBottomOfPipe,
                                          {},
