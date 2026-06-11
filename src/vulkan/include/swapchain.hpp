@@ -3,6 +3,7 @@
 #include "device.hpp"
 #include "image.hpp"
 #include "physicalDevice.hpp"
+#include "renderTarget.hpp"
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -19,6 +20,8 @@ class Swapchain {
     vk::Extent2D extent;
 
     vk::SampleCountFlagBits msaaSamples;
+
+    std::vector<Render::RenderTarget> renderTargets;
 
   public:
     Swapchain(Vulkan::PhysicalDevice& physicalDevice,
@@ -43,6 +46,8 @@ class Swapchain {
     auto getDepthImage() -> Vulkan::Image&;
     auto getMsaaImage() -> Vulkan::Image&;
     auto getMsaaSampleCount() -> vk::SampleCountFlagBits;
+    auto getRenderTargets() -> std::span<Render::RenderTarget>;
+    auto getRenderTarget(uint32_t index) -> Render::RenderTarget&;
 
   private:
     void createSwapchain(Vulkan::Device& device, Vulkan::Surface& surface, uint32_t width, uint32_t height);

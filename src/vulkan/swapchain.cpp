@@ -108,6 +108,11 @@ void Vulkan::Swapchain::createSwapchain(Vulkan::Device& device,
         images.emplace_back(this->device, img, extent, swapchainFormat, vk::ImageAspectFlagBits::eColor);
     }
 
+    renderTargets.clear();
+    for (auto& img : images) {
+        renderTargets.emplace_back(msaaImage, img, depthImage, extent, swapchainFormat);
+    }
+
     msaaImage = Vulkan::Image(device,
                               vk::Extent3D(extent, 1),
                               swapchainFormat,
@@ -146,3 +151,7 @@ auto Vulkan::Swapchain::getDepthImage() -> Vulkan::Image& { return depthImage; }
 auto Vulkan::Swapchain::getMsaaImage() -> Vulkan::Image& { return msaaImage; }
 
 auto Vulkan::Swapchain::getMsaaSampleCount() -> vk::SampleCountFlagBits { return msaaSamples; }
+
+auto Vulkan::Swapchain::getRenderTargets() -> std::span<Render::RenderTarget> { return renderTargets; }
+
+auto Vulkan::Swapchain::getRenderTarget(uint32_t index) -> Render::RenderTarget& { return renderTargets[index]; }
