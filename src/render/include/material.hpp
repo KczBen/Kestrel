@@ -86,6 +86,7 @@ class Material {
 
     auto getDescriptorSet() -> Vulkan::DescriptorSet&;
     [[nodiscard]] auto getResources() const -> const MaterialResources& { return resources; }
+    [[nodiscard]] auto getBlendMode() const -> BlendMode { return pipelineConfiguration.blendMode; }
 
   private:
     MaterialResources resources;

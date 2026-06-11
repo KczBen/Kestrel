@@ -6,6 +6,11 @@
 #include <unordered_map>
 
 namespace Render {
+
+auto GeometryPass::supportedMaterialTypes() const -> uint32_t {
+    return 1u << static_cast<uint32_t>(Material::BlendMode::Opaque);
+}
+
 GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager, std::span<const Object> models, Camera* camera)
     : Pass(pipelineManager), models(models), camera(camera) {}
 
@@ -48,6 +53,11 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     }
 
     for (const auto& [material, drawCalls] : drawCalls) {
+        auto materialType = static_cast<uint32_t>(material->getBlendMode());
+        if (!(supportedMaterialTypes() & (1u << materialType))) {
+            continue;
+        }
+
         auto& pipeline = pipelineManager->getOrCreatePipeline(material, *camera, vk::Format::eB8G8R8A8Srgb);
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
 

@@ -1,6 +1,15 @@
 #include "cameraPass.hpp"
+#include "material.hpp"
 
 namespace Render {
+
+auto CameraPass::supportedMaterialTypes() const -> uint32_t {
+    return (1u << static_cast<uint32_t>(Material::BlendMode::Opaque)) |
+           (1u << static_cast<uint32_t>(Material::BlendMode::Alpha)) |
+           (1u << static_cast<uint32_t>(Material::BlendMode::Premultiplied)) |
+           (1u << static_cast<uint32_t>(Material::BlendMode::Additive));
+}
+
 CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager, MaterialHandle materialHandle, Camera* camera)
     : Pass(pipelineManager), materialHandle(materialHandle), camera(camera) {}
 

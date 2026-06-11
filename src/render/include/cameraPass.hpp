@@ -11,5 +11,6 @@ class CameraPass : public Pass {
     CameraPass(Vulkan::PipelineManager& pipelineManager, MaterialHandle materialHandle, Camera* camera);
 
     void record(vk::CommandBuffer cmd, uint32_t frameIndex) override;
+    [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override;
 };
 } // namespace Render
