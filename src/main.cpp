@@ -93,6 +93,15 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
                 if (event.type == SDL_EVENT_MOUSE_WHEEL) {
                     input.updateScroll(event.wheel);
                 }
+
+                if (event.type == SDL_EVENT_WINDOW_RESIZED) {
+                    int32_t width = 0;
+                    int32_t height = 0;
+                    SDL_GetWindowSizeInPixels(window, &width, &height);
+                    if (height > 0) {
+                        scene.getCamera().setAspectRatio(static_cast<float>(width) / height);
+                    }
+                }
             }
 
             input.updateKeys(SDL_GetKeyboardState(nullptr));
