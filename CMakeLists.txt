@@ -69,6 +69,7 @@ target_link_libraries(vulkan-wrapper PRIVATE
 add_library(render
     src/render/scene.cpp
     src/render/render.cpp
+    src/render/renderTarget.cpp
     src/render/material.cpp
     src/render/geometryPass.cpp
     src/render/camera.cpp
