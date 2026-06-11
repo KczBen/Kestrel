@@ -39,10 +39,20 @@ class HostBuffer {
     }
 
     auto operator=(HostBuffer&& other) noexcept -> HostBuffer& {
-        std::swap(buffer, other.buffer);
-        std::swap(allocation, other.allocation);
-        std::swap(bufferSize, other.bufferSize);
-        std::swap(allocator, other.allocator);
+        if (this != &other) {
+            if (buffer) {
+                vmaDestroyBuffer(allocator, buffer, allocation);
+            }
+            allocator = other.allocator;
+            buffer = other.buffer;
+            allocation = other.allocation;
+            bufferSize = other.bufferSize;
+            mapped = other.mapped;
+            other.buffer = VK_NULL_HANDLE;
+            other.allocation = nullptr;
+            other.bufferSize = 0;
+            other.mapped = nullptr;
+        }
         return *this;
     }
 

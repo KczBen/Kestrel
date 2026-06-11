@@ -50,6 +50,7 @@ add_library(vulkan-wrapper
     src/vulkan/descriptorSet.cpp
     src/vulkan/hostBuffer.cpp
     src/vulkan/pipelineManager.cpp
+    src/render/renderTarget.cpp
 )
 
 target_include_directories(vulkan-wrapper PRIVATE 
@@ -69,7 +70,6 @@ target_link_libraries(vulkan-wrapper PRIVATE
 add_library(render
     src/render/scene.cpp
     src/render/render.cpp
-    src/render/renderTarget.cpp
     src/render/material.cpp
     src/render/geometryPass.cpp
     src/render/camera.cpp
@@ -147,6 +147,16 @@ if(TESTING)
         tests/descriptorSet_unittest.cpp
         tests/swapchain_unittest.cpp
         tests/image_unittest.cpp
+        tests/fence_unittest.cpp
+        tests/semaphore_unittest.cpp
+        tests/deviceBuffer_unittest.cpp
+        tests/uploadBuffer_unittest.cpp
+        tests/hostBuffer_unittest.cpp
+        tests/renderTarget_unittest.cpp
+        tests/uploadContext_unittest.cpp
+        tests/material_unittest.cpp
+        tests/camera_unittest.cpp
+        tests/object_unittest.cpp
     )
     target_include_directories(test-bin PRIVATE
         ${CMAKE_SOURCE_DIR}/src/vulkan/include

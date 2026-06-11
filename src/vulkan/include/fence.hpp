@@ -10,7 +10,7 @@ class Fence {
     vk::raii::Fence fence = nullptr;
 
   public:
-    Fence(Vulkan::Device& device, vk::FenceCreateFlags& flags);
+    Fence(Vulkan::Device& device, vk::FenceCreateFlags flags);
     auto get() -> const vk::raii::Fence&;
 };
 } // namespace Vulkan
