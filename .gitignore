@@ -4,6 +4,7 @@ CMakeFiles/
 out/
 .devcontainer/
 opencode.json
+AGENTS.md
 CMakeUserPresets.json
 Makefile
 compile_commands.json
