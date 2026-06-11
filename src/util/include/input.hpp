@@ -27,12 +27,15 @@ struct Input {
 
     float mouseX = 0.0f;
     float mouseY = 0.0f;
+    float mouseScrollY = 0.0f;
 
     // Could be lots of mouse movements per frame, we only care about the final result
     void updateMouse(SDL_MouseMotionEvent motion) {
         mouseX += motion.xrel;
         mouseY += motion.yrel;
     };
+
+    void updateScroll(SDL_MouseWheelEvent wheel) { mouseScrollY += wheel.y; }
 
     void updateKeys(const bool* keys) {
         movement = MovementDirection::none;

@@ -50,6 +50,12 @@ void Render::CameraController::processMovement(MovementDirection movement, float
 void Render::CameraController::update(const Input& input, float deltaTime) {
     processRotation(input.mouseX, input.mouseY, deltaTime);
     processMovement(input.movement, deltaTime);
+
+    if (input.mouseScrollY != 0.0f) {
+        const float fovDelta = -input.mouseScrollY * zoomSpeed * (camera->fov / maxFov);
+        const float currentFov = camera->fov;
+        camera->setFov(glm::clamp(currentFov + fovDelta, minFov, maxFov));
+    }
 }
 
 void Render::CameraController::updateVectors() {

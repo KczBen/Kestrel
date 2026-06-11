@@ -15,15 +15,7 @@ GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager, std::span<c
     : Pass(pipelineManager), models(models), camera(camera) {}
 
 void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
-    UniformBufferObject cameraUBO{};
-    cameraUBO.view = camera->getViewMatrix();
-    // Should get actual camera settings here
-    cameraUBO.proj = glm::perspective(glm::radians(45.0f), (float)1280 / (float)720, 0.1f, 100.0f);
-    cameraUBO.proj[1][1] *= -1;
-    cameraUBO.invView = glm::inverse(cameraUBO.view);
-    cameraUBO.invProj = glm::inverse(cameraUBO.proj);
-
-    camera->updateUniformBuffer(frameIndex, cameraUBO);
+    camera->updateUniformBuffer(frameIndex);
 
     struct DrawCall {
         Primitive primitive;

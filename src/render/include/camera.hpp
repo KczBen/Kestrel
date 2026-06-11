@@ -25,6 +25,12 @@ class Camera {
     glm::vec3 worldUp;
     glm::quat orientation;
 
+    glm::mat4 viewMatrix;
+    float fov = 45.0f;
+    float aspectRatio = 1280.0f / 720.0f;
+    float nearPlane = 0.1f;
+    float farPlane = 100.0f;
+
     Vulkan::DescriptorSetLayoutHandle desecriptorSetLayout;
     std::vector<Vulkan::DescriptorSetHandle> descriptorSets;
     std::vector<Vulkan::HostBufferHandle> uniformBuffers;
@@ -36,16 +42,22 @@ class Camera {
            const glm::vec3& worldUp = glm::vec3(0.0f, 1.0f, 0.0f));
 
     [[nodiscard]] auto getViewMatrix() const -> glm::mat4;
+    [[nodiscard]] auto getProjectionMatrix() const -> glm::mat4;
     [[nodiscard]] auto getPosition() const -> glm::vec3;
     [[nodiscard]] auto getOrientation() const -> glm::quat;
+    [[nodiscard]] auto getFov() const -> float;
+    [[nodiscard]] auto getAspectRatio() const -> float;
 
     auto getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout&;
     auto getDescriptorSet(uint32_t index) -> Vulkan::DescriptorSet&;
 
     void setPosition(const glm::vec3& pos);
     void setOrientation(const glm::quat& quat);
+    void setFov(float newFov);
+    void setAspectRatio(float aspect);
 
-    void updateUniformBuffer(uint32_t index, UniformBufferObject& ubo);
+    void updateViewMatrix();
+    void updateUniformBuffer(uint32_t index);
 
     friend class CameraController;
     friend class ResourceManager;

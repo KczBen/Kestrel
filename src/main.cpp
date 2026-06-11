@@ -89,6 +89,10 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
                 if (event.type == SDL_EVENT_MOUSE_MOTION) {
                     input.updateMouse(event.motion);
                 }
+
+                if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+                    input.updateScroll(event.wheel);
+                }
             }
 
             input.updateKeys(SDL_GetKeyboardState(nullptr));
