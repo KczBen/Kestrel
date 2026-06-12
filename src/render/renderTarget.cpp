@@ -5,13 +5,13 @@ Render::RenderTarget::RenderTarget(Vulkan::Image& msaaImage,
                                    Vulkan::Image& depthImage,
                                    vk::Extent2D extent,
                                    vk::Format format)
-    : msaaImage(msaaImage), colorImage(colorImage), depthImage(depthImage), extent(extent), format(format) {}
+    : msaaImage(&msaaImage), colorImage(&colorImage), depthImage(&depthImage), extent(extent), format(format) {}
 
-auto Render::RenderTarget::getMsaaImage() -> Vulkan::Image& { return msaaImage; }
+auto Render::RenderTarget::getMsaaImage() -> Vulkan::Image& { return *msaaImage; }
 
-auto Render::RenderTarget::getColorImage() -> Vulkan::Image& { return colorImage; }
+auto Render::RenderTarget::getColorImage() -> Vulkan::Image& { return *colorImage; }
 
-auto Render::RenderTarget::getDepthImage() -> Vulkan::Image& { return depthImage; }
+auto Render::RenderTarget::getDepthImage() -> Vulkan::Image& { return *depthImage; }
 
 auto Render::RenderTarget::getExtent() -> const vk::Extent2D& { return extent; }
 

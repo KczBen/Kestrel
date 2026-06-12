@@ -6,9 +6,9 @@
 namespace Render {
 class RenderTarget {
   private:
-    Vulkan::Image& msaaImage;
-    Vulkan::Image& colorImage;
-    Vulkan::Image& depthImage;
+    Vulkan::Image* msaaImage;
+    Vulkan::Image* colorImage;
+    Vulkan::Image* depthImage;
     vk::Extent2D extent;
     vk::Format format;
     vk::raii::Framebuffer framebuffer = nullptr;

@@ -2,14 +2,14 @@
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
 #include "gpuDataObjects.hpp"
+#include <cstdint>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <cstdint>
 
 namespace Render {
 Camera::Camera(const glm::vec3& position, const glm::vec3& worldUp)
-    : position(position), worldUp(worldUp), orientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f)),
-      viewMatrix(glm::mat4(1.0f)), desecriptorSetLayout(nullptr), lastUpdatedIndex(-1) {}
+    : position(position), worldUp(worldUp), orientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f)), viewMatrix(glm::mat4(1.0f)),
+      desecriptorSetLayout(nullptr), lastUpdatedIndex(-1) {}
 
 auto Camera::getViewMatrix() const -> glm::mat4 { return viewMatrix; }
 

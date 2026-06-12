@@ -19,10 +19,10 @@ class RenderTargetFixture : public ::testing::Test {
     Device device{physicalDevice, instance};
     Swapchain swapchain{physicalDevice, device, surface, 256, 256, vk::SampleCountFlagBits::e4};
     Render::RenderTarget target{swapchain.getMsaaImage(),
-                        swapchain.getImages()[0],
-                        swapchain.getDepthImage(),
-                        swapchain.getExtent(),
-                        swapchain.getFormat()};
+                                swapchain.getImages()[0],
+                                swapchain.getDepthImage(),
+                                swapchain.getExtent(),
+                                swapchain.getFormat()};
 };
 
 TEST_F(RenderTargetFixture, GetMsaaImageValid) {
@@ -46,6 +46,4 @@ TEST_F(RenderTargetFixture, GetExtentCorrect) {
     EXPECT_EQ(extent.height, 256u);
 }
 
-TEST_F(RenderTargetFixture, GetFormatCorrect) {
-    EXPECT_EQ(target.getFormat(), swapchain.getFormat());
-}
+TEST_F(RenderTargetFixture, GetFormatCorrect) { EXPECT_EQ(target.getFormat(), swapchain.getFormat()); }

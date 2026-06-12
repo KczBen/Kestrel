@@ -18,4 +18,3 @@ class SemaphoreFixture : public ::testing::Test {
 };
 
 TEST_F(SemaphoreFixture, GetReturnsNonNull) { ASSERT_NE(*semaphore.get(), VK_NULL_HANDLE); }
-

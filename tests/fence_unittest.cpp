@@ -19,4 +19,3 @@ class FenceFixture : public ::testing::Test {
 };
 
 TEST_F(FenceFixture, GetReturnsNonNull) { ASSERT_NE(*fence.get(), VK_NULL_HANDLE); }
-

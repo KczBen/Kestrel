@@ -78,6 +78,9 @@ void Vulkan::Swapchain::createSwapchain(Vulkan::Device& device,
     }
 
     auto indices = physicalDevice.getQueueFamilyIndices();
+    if (!indices.graphicsFamily.has_value() || !indices.presentFamily.has_value()) {
+        throw std::runtime_error("Required queue family not found");
+    }
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
     // SwapchainCreateInfoKHR needs the raw handle, not RAII

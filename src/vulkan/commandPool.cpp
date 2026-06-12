@@ -5,8 +5,12 @@ Vulkan::CommandPool::CommandPool(Vulkan::PhysicalDevice& physicalDevice,
                                  Vulkan::Device& device,
                                  uint32_t maxFramesInFlight)
     : device(&device.get()), graphicsQueue(device.getGraphicsQueue()) {
+    const auto& indices = physicalDevice.getQueueFamilyIndices();
+    if (!indices.computeFamily.has_value()) {
+        throw std::runtime_error("Compute queue family not found");
+    }
     const vk::CommandPoolCreateInfo commandPoolInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-                                                    physicalDevice.getQueueFamilyIndices().computeFamily.value());
+                                                    indices.computeFamily.value());
 
     pool = vk::raii::CommandPool(*this->device, commandPoolInfo);
 

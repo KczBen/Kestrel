@@ -2,7 +2,7 @@
 #include "device.hpp"
 
 Vulkan::FrameSync::FrameSync(Vulkan::Device& device, uint32_t maxFramesInFlight) : device(device.get()) {
-    vk::FenceCreateFlags flags(vk::FenceCreateFlagBits::eSignaled);
+    const vk::FenceCreateFlags flags(vk::FenceCreateFlagBits::eSignaled);
 
     inFlightFences.reserve(maxFramesInFlight);
     imageAvailable.reserve(maxFramesInFlight);

@@ -6,10 +6,10 @@
 #include "resourceHandles.hpp"
 #include "shaderDef.hpp"
 #include "surface.hpp"
-#include <gtest/gtest.h>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+#include <gtest/gtest.h>
 #include <vulkan/vulkan.hpp>
 
 using namespace Vulkan;

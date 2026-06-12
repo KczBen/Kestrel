@@ -13,7 +13,9 @@ Vulkan::UploadContext::UploadContext(Vulkan::Device& device, Vulkan::CommandPool
 }
 
 void Vulkan::UploadContext::upload(DeviceBuffer& dst, const void* data, vk::DeviceSize size, vk::DeviceSize offset) {
-    if (size == 0) return;
+    if (size == 0) {
+        return;
+    }
 
     auto alloc = staging->allocate(size, 16);
     std::memcpy(alloc.cpuPtr, data, size);
