@@ -26,8 +26,9 @@ Render::Render::Render(SDL_Window* window,
                        Vulkan::PhysicalDevice& physicalDevice,
                        Vulkan::Device& device,
                        const uint32_t maxFramesInFlight)
-    : maxFramesInFlight(maxFramesInFlight), window(window), surface(&surface), device(&device),
-      resourceManager(&resources), commandPool(physicalDevice, device, maxFramesInFlight),
+    : maxFramesInFlight(maxFramesInFlight), window(window), instance(&instance), surface(&surface),
+      physicalDevice(&physicalDevice), device(&device), resourceManager(&resources),
+      commandPool(physicalDevice, device, maxFramesInFlight),
       swapchain(physicalDevice, device, surface, getWindowSizeInPixels(window), vk::SampleCountFlagBits::e4),
       syncObjects(device, swapchain.getImages().size()) {}
 
@@ -148,18 +149,16 @@ void Render::Render::render(Scene& scene, float deltaTime) {
 
     device->getGraphicsQueue().submit(submitInfo, syncObjects.getFence(frameIndex));
 
-    if (window != nullptr) {
-        vk::SwapchainKHR swapchains[] = {swapchain.get()};
-        const vk::PresentInfoKHR presentInfo(1, signalSemaphores, 1, swapchains, &imageIndex);
+    vk::SwapchainKHR swapchains[] = {swapchain.get()};
+    const vk::PresentInfoKHR presentInfo(1, signalSemaphores, 1, swapchains, &imageIndex);
 
-        result = device->getPresentQueue().presentKHR(presentInfo);
+    result = device->getPresentQueue().presentKHR(presentInfo);
 
-        if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
-            int32_t width = 0;
-            int32_t height = 0;
-            SDL_GetWindowSizeInPixels(window, &width, &height);
-            swapchain.recreate(*device, *surface, width, height);
-        }
+    if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
+        int32_t width = 0;
+        int32_t height = 0;
+        SDL_GetWindowSizeInPixels(window, &width, &height);
+        swapchain.recreate(*device, *surface, width, height);
     }
 
     frameIndex = (frameIndex + 1) % maxFramesInFlight;

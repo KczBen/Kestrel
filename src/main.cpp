@@ -99,7 +99,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
                     int32_t height = 0;
                     SDL_GetWindowSizeInPixels(window, &width, &height);
                     if (height > 0) {
-                        scene.getCamera().setAspectRatio(static_cast<float>(width) / static_cast<float>(height));
+                        scene.getCamera().setAspectRatio(static_cast<float>(width) / height);
                     }
                 }
             }
