@@ -9,20 +9,16 @@
 #include "physicalDevice.hpp"
 #include "resourceManager.hpp"
 #include "scene.hpp"
+#include "surface.hpp"
 #include "swapchain.hpp"
 #include <SDL3/SDL_vulkan.h>
 #include <cstdint>
 #include <memory>
 #include <utility>
-#include <vector>
 
 namespace Render {
 class Render {
   private:
-    Vulkan::Instance* instance;
-    Vulkan::Surface* surface;
-    Vulkan::PhysicalDevice* physicalDevice;
-    Vulkan::Device* device;
     ResourceManager* resourceManager;
     Vulkan::CommandPool commandPool;
 
@@ -32,6 +28,9 @@ class Render {
     std::vector<std::unique_ptr<Pass>> passes;
 
     SDL_Window* window;
+    Vulkan::Surface* surface;
+    Vulkan::Device* device;
+
     uint32_t frameIndex = 0;
     uint32_t maxFramesInFlight;
 
@@ -43,6 +42,7 @@ class Render {
            Vulkan::PhysicalDevice& physicalDevice,
            Vulkan::Device& device,
            uint32_t maxFramesInFlight);
+
     Render(const Render&) = delete;
     Render(Render&&) = delete;
     auto operator=(const Render&) -> Render& = delete;
