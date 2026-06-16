@@ -34,6 +34,8 @@ class Render {
     SDL_Window* window;
     uint32_t frameIndex = 0;
     uint32_t maxFramesInFlight;
+    uint32_t width;
+    uint32_t height;
 
   public:
     Render(SDL_Window* window,
@@ -43,6 +45,16 @@ class Render {
            Vulkan::PhysicalDevice& physicalDevice,
            Vulkan::Device& device,
            uint32_t maxFramesInFlight);
+
+    Render(ResourceManager& resources,
+           Vulkan::Instance& instance,
+           Vulkan::Surface& surface,
+           Vulkan::PhysicalDevice& physicalDevice,
+           Vulkan::Device& device,
+           uint32_t maxFramesInFlight,
+           uint32_t width,
+           uint32_t height);
+
     Render(const Render&) = delete;
     Render(Render&&) = delete;
     auto operator=(const Render&) -> Render& = delete;
@@ -52,12 +64,19 @@ class Render {
     void render(Scene& scene, float deltaTime);
 
   private:
-    static auto getWindowSizeInPixels(SDL_Window* window) -> std::pair<int32_t, int32_t> {
+    static auto getWindowSizeInPixels(SDL_Window* window) -> std::pair<uint32_t, uint32_t> {
         int w = 0;
         int h = 0;
         SDL_GetWindowSizeInPixels(window, &w, &h);
 
-        return {w, h};
+        return {static_cast<uint32_t>(w), static_cast<uint32_t>(h)};
+    }
+
+    auto getCurrentExtent() -> std::pair<uint32_t, uint32_t> {
+        if (window != nullptr) {
+            return getWindowSizeInPixels(window);
+        }
+        return {width, height};
     }
 };
 } // namespace Render

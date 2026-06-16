@@ -32,6 +32,20 @@ Render::Render::Render(SDL_Window* window,
       swapchain(physicalDevice, device, surface, getWindowSizeInPixels(window), vk::SampleCountFlagBits::e4),
       syncObjects(device, swapchain.getImages().size()) {}
 
+Render::Render::Render(ResourceManager& resources,
+                       Vulkan::Instance& instance,
+                       Vulkan::Surface& surface,
+                       Vulkan::PhysicalDevice& physicalDevice,
+                       Vulkan::Device& device,
+                       const uint32_t maxFramesInFlight,
+                       const uint32_t width,
+                       const uint32_t height)
+    : maxFramesInFlight(maxFramesInFlight), window(nullptr), instance(&instance), surface(&surface),
+      physicalDevice(&physicalDevice), device(&device), resourceManager(&resources),
+      commandPool(physicalDevice, device, maxFramesInFlight),
+      swapchain(physicalDevice, device, surface, {width, height}, vk::SampleCountFlagBits::e4),
+      syncObjects(device, swapchain.getImages().size()), width(width), height(height) {}
+
 void Render::Render::init(Scene& scene) {
     passes.emplace_back(std::make_unique<CameraPass>(CameraPass(
         resourceManager->getPipelineManager(), {&resourceManager->getMaterialList(), 0}, &scene.getCamera())));
@@ -46,10 +60,8 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     auto [result, imageIndex] = swapchain.get().acquireNextImage(UINT64_MAX, syncObjects.getImageAvailable(frameIndex));
 
     if (result == vk::Result::eErrorOutOfDateKHR) {
-        int32_t width = 0;
-        int32_t height = 0;
-        SDL_GetWindowSizeInPixels(window, &width, &height);
-        swapchain.recreate(*device, *surface, width, height);
+        auto [w, h] = getCurrentExtent();
+        swapchain.recreate(*device, *surface, w, h);
     }
 
     syncObjects.resetFence(frameIndex);
@@ -155,10 +167,8 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     result = device->getPresentQueue().presentKHR(presentInfo);
 
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
-        int32_t width = 0;
-        int32_t height = 0;
-        SDL_GetWindowSizeInPixels(window, &width, &height);
-        swapchain.recreate(*device, *surface, width, height);
+        auto [w, h] = getCurrentExtent();
+        swapchain.recreate(*device, *surface, w, h);
     }
 
     frameIndex = (frameIndex + 1) % maxFramesInFlight;
