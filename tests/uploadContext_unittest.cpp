@@ -22,28 +22,36 @@ class UploadContextFixture : public ::testing::Test {
     Device device{physicalDevice, instance};
     CommandPool commandPool{physicalDevice, device, maxFramesInFlight};
     UploadBuffer staging{device, 4096};
-    UploadContext context{device, commandPool, staging};
 };
 
 TEST_F(UploadContextFixture, ContextCreated) { SUCCEED(); }
 
 TEST_F(UploadContextFixture, UploadSmallBuffer) {
-    DeviceBuffer dst{device, 64, vk::BufferUsageFlagBits::eStorageBuffer};
+    DeviceBuffer dst{device, 64, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
     const char data[] = "hello";
-    context.upload(dst, data, 6, 0);
+    {
+        UploadContext context{device, commandPool, staging};
+        context.upload(dst, data, 6, 0);
+    }
     SUCCEED();
 }
 
 TEST_F(UploadContextFixture, UploadZeroSizeBuffer) {
-    DeviceBuffer dst{device, 0, vk::BufferUsageFlagBits::eStorageBuffer};
+    DeviceBuffer dst{device, 0, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
     const char data[] = "test";
-    context.upload(dst, data, 0, 0);
+    {
+        UploadContext context{device, commandPool, staging};
+        context.upload(dst, data, 0, 0);
+    }
     SUCCEED();
 }
 
 TEST_F(UploadContextFixture, UploadDifferentOffsets) {
-    DeviceBuffer dst{device, 256, vk::BufferUsageFlagBits::eStorageBuffer};
+    DeviceBuffer dst{device, 256, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
     const char data[] = "test";
-    context.upload(dst, data, 4, 128);
+    {
+        UploadContext context{device, commandPool, staging};
+        context.upload(dst, data, 4, 128);
+    }
     SUCCEED();
 }
