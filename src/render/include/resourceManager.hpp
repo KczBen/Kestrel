@@ -8,13 +8,14 @@
 #include "physicalDevice.hpp"
 #include "pipelineManager.hpp"
 #include "resourceHandles.hpp"
+#include "sampler.hpp"
 #include "scene.hpp"
 #include "texture.hpp"
 #include "uploadBuffer.hpp"
 #include "vertex.hpp"
-#include <optional>
-
+#include <functional>
 #include <tiny_gltf.h>
+#include <unordered_map>
 
 namespace Render {
 class ResourceManager {
@@ -35,12 +36,18 @@ class ResourceManager {
     std::vector<Vulkan::DescriptorSetLayout> descriptorSetLayouts;
     std::vector<Vulkan::DescriptorSet> descriptorSets;
 
+    using SamplerHandle = Vulkan::SamplerHandle;
+    using SamplerHandleHash = std::hash<Vulkan::SamplerConfig>;
+    std::vector<Vulkan::Sampler> samplers;
+    std::unordered_map<Vulkan::SamplerConfig, size_t, SamplerHandleHash> samplerIndex;
     std::vector<Vulkan::Texture> textures;
     std::vector<Material> materials;
 
     std::optional<Vulkan::PipelineManager> pipelineManager;
 
     Vulkan::CommandPool uploadPool;
+
+    auto getOrCreateSampler(const Vulkan::SamplerConfig& config) -> SamplerHandle;
 
     auto loadGLTF(const std::string& path) -> std::vector<Object>;
     auto uploadMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) -> MeshHandle;

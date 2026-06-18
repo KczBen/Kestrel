@@ -35,6 +35,7 @@ add_library(vulkan-wrapper
     src/vulkan/surface.cpp
     src/vulkan/swapchain.cpp
     src/vulkan/image.cpp
+    src/vulkan/sampler.cpp
     src/vulkan/texture.cpp
     src/vulkan/commandPool.cpp
     src/vulkan/descriptorPool.cpp
@@ -155,6 +156,7 @@ if(TESTING)
         tests/renderTarget_unittest.cpp
         tests/uploadContext_unittest.cpp
         tests/material_unittest.cpp
+        tests/sampler_unittest.cpp
         tests/camera_unittest.cpp
         tests/object_unittest.cpp
         tests/renderIntegration_unittest.cpp

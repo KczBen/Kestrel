@@ -10,6 +10,7 @@
 #include "material.hpp"
 #include "pipelineManager.hpp"
 #include "resourceHandles.hpp"
+#include "sampler.hpp"
 #include "shaderDef.hpp"
 #include "texture.hpp"
 #include "uploadBuffer.hpp"
@@ -46,11 +47,14 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
                                     false,
                                     vk::CompareOp::eLessOrEqual));
 
+    auto defaultSamplerConfig = Vulkan::SamplerConfig{};
+    auto whitePixelHandle = getOrCreateSampler(defaultSamplerConfig);
+
     auto context = Vulkan::UploadContext(device, uploadPool, *stagingBuffer);
 
     auto data = std::array<uint8_t, 4>({255, 255, 255, 255});
 
-    textures.emplace_back(device, &data, 1, 1);
+    textures.emplace_back(device, &data, 1, 1, whitePixelHandle);
     context.upload(textures.back());
 }
 
@@ -81,7 +85,8 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
         auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
         const auto& tex = gltfModel.textures[texIndex];
         const auto& image = gltfModel.images[tex.source];
-        textures.emplace_back(*device, image.image.data(), image.width, image.height);
+        auto texSampler = getOrCreateSampler(Vulkan::SamplerConfig{});
+        textures.emplace_back(*device, image.image.data(), image.width, image.height, texSampler);
         context.upload(textures.back());
         return TextureHandle{&textures, textures.size() - 1};
     };
@@ -375,4 +380,14 @@ void ResourceManager::loadScene(Scene& scene) {
 
 auto ResourceManager::getPipelineManager() -> Vulkan::PipelineManager& { return *pipelineManager; }
 auto ResourceManager::getMaterialList() -> std::vector<Material>& { return materials; }
+
+auto ResourceManager::getOrCreateSampler(const Vulkan::SamplerConfig& config) -> SamplerHandle {
+    if (auto it = samplerIndex.find(config); it != samplerIndex.end()) {
+        return SamplerHandle{&samplers[it->second]};
+    }
+    samplers.emplace_back(*device, config);
+    auto index = samplers.size() - 1;
+    samplerIndex[config] = index;
+    return SamplerHandle{&samplers[index]};
+}
 } // namespace Render
