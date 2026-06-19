@@ -68,7 +68,7 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
                                                                vk::False);
 
     const vk::PipelineMultisampleStateCreateInfo msaa(
-        {}, vk::SampleCountFlagBits::e4, vk::False, 1.0f, {}, vk::False, vk::False);
+        {}, vk::SampleCountFlagBits::e1, vk::False, 1.0f, {}, vk::False, vk::False);
 
     const vk::PipelineColorBlendAttachmentState colorBlendAttachment(
         vk::True,

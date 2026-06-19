@@ -7,6 +7,7 @@
 #include "material.hpp"
 #include "physicalDevice.hpp"
 #include "pipelineManager.hpp"
+#include "renderTarget.hpp"
 #include "resourceHandles.hpp"
 #include "sampler.hpp"
 #include "scene.hpp"
@@ -16,11 +17,13 @@
 #include <functional>
 #include <tiny_gltf.h>
 #include <unordered_map>
+#include <vector>
 
 namespace Render {
 class ResourceManager {
   private:
     Vulkan::Device* device;
+    std::vector<RenderTargetInfo> renderTargets;
 
     Vulkan::DescriptorPool descriptorPool;
 
@@ -62,5 +65,6 @@ class ResourceManager {
     auto getPipelineManager() -> Vulkan::PipelineManager&;
     auto getMaterialList() -> std::vector<Material>&;
     void loadScene(Scene& scene);
+    auto createRenderTarget(const RenderTargetCreateInfo& info) -> RenderTargetHandle;
 };
 } // namespace Render

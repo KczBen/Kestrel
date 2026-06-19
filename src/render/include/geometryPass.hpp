@@ -3,6 +3,7 @@
 #include "camera.hpp"
 #include "object.hpp"
 #include "pass.hpp"
+#include "resourceHandles.hpp"
 
 namespace Render {
 class GeometryPass : public Pass {
@@ -11,7 +12,10 @@ class GeometryPass : public Pass {
     std::span<const Object> models;
 
   public:
-    GeometryPass(Vulkan::PipelineManager& pipelineManager, std::span<const Object> models, Camera* camera);
+    GeometryPass(Vulkan::PipelineManager& pipelineManager,
+                 RenderTargetHandle target,
+                 std::span<const Object> models,
+                 Camera* camera);
 
     void record(vk::CommandBuffer cmd, uint32_t frameIndex) override;
     [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override;

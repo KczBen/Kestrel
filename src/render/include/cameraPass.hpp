@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pass.hpp"
+#include "resourceHandles.hpp"
 namespace Render {
 class CameraPass : public Pass {
   private:
@@ -8,7 +9,10 @@ class CameraPass : public Pass {
     MaterialHandle materialHandle;
 
   public:
-    CameraPass(Vulkan::PipelineManager& pipelineManager, MaterialHandle materialHandle, Camera* camera);
+    CameraPass(Vulkan::PipelineManager& pipelineManager,
+               RenderTargetHandle target,
+               MaterialHandle materialHandle,
+               Camera* camera);
 
     void record(vk::CommandBuffer cmd, uint32_t frameIndex) override;
     [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override;

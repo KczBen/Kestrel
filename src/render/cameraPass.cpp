@@ -10,8 +10,11 @@ auto CameraPass::supportedMaterialTypes() const -> uint32_t {
            (1u << static_cast<uint32_t>(Material::BlendMode::Additive));
 }
 
-CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager, MaterialHandle materialHandle, Camera* camera)
-    : Pass(pipelineManager), materialHandle(materialHandle), camera(camera) {}
+CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager,
+                       RenderTargetHandle target,
+                       MaterialHandle materialHandle,
+                       Camera* camera)
+    : Pass(pipelineManager, target), materialHandle(materialHandle), camera(camera) {}
 
 void CameraPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);

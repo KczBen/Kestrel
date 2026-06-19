@@ -11,8 +11,11 @@ auto GeometryPass::supportedMaterialTypes() const -> uint32_t {
     return 1u << static_cast<uint32_t>(Material::BlendMode::Opaque);
 }
 
-GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager, std::span<const Object> models, Camera* camera)
-    : Pass(pipelineManager), models(models), camera(camera) {}
+GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager,
+                           RenderTargetHandle target,
+                           std::span<const Object> models,
+                           Camera* camera)
+    : Pass(pipelineManager, target), models(models), camera(camera) {}
 
 void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);

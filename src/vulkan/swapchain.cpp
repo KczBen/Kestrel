@@ -7,20 +7,16 @@ Vulkan::Swapchain::Swapchain(Vulkan::PhysicalDevice& physicalDevice,
                              Vulkan::Device& device,
                              Vulkan::Surface& surface,
                              uint32_t width,
-                             uint32_t height,
-                             vk::SampleCountFlagBits msaaSamples)
-    : device(&device.get()), physicalDevice(physicalDevice), swapchainFormat(vk::Format::eB8G8R8A8Srgb),
-      msaaSamples(msaaSamples) {
+                             uint32_t height)
+    : device(&device.get()), physicalDevice(physicalDevice), swapchainFormat(vk::Format::eB8G8R8A8Srgb) {
     createSwapchain(device, surface, width, height);
 }
 
 Vulkan::Swapchain::Swapchain(Vulkan::PhysicalDevice& physicalDevice,
                              Vulkan::Device& device,
                              Vulkan::Surface& surface,
-                             std::pair<uint32_t, uint32_t> extent,
-                             vk::SampleCountFlagBits msaaSamples)
-    : device(&device.get()), physicalDevice(physicalDevice), swapchainFormat(vk::Format::eB8G8R8A8Srgb),
-      msaaSamples(msaaSamples) {
+                             std::pair<uint32_t, uint32_t> extent)
+    : device(&device.get()), physicalDevice(physicalDevice), swapchainFormat(vk::Format::eB8G8R8A8Srgb) {
     createSwapchain(device, surface, extent.first, extent.second);
 }
 
@@ -94,7 +90,7 @@ void Vulkan::Swapchain::createSwapchain(Vulkan::Device& device,
         surfaceFormat.colorSpace,
         extent,
         1,
-        vk::ImageUsageFlagBits::eColorAttachment,
+        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst,
         indices.graphicsFamily == indices.presentFamily ? vk::SharingMode::eExclusive : vk::SharingMode::eConcurrent,
         static_cast<uint32_t>(indices.graphicsFamily == indices.presentFamily ? 0 : 2),
         indices.graphicsFamily == indices.presentFamily ? nullptr : queueFamilyIndices,
@@ -110,27 +106,6 @@ void Vulkan::Swapchain::createSwapchain(Vulkan::Device& device,
     for (auto img : swapchain.getImages()) {
         images.emplace_back(this->device, img, extent, swapchainFormat, vk::ImageAspectFlagBits::eColor);
     }
-
-    renderTargets.clear();
-    for (auto& img : images) {
-        renderTargets.emplace_back(msaaImage, img, depthImage, extent, swapchainFormat);
-    }
-
-    msaaImage = Vulkan::Image(device,
-                              vk::Extent3D(extent, 1),
-                              swapchainFormat,
-                              vk::ImageUsageFlagBits::eColorAttachment,
-                              vk::ImageAspectFlagBits::eColor,
-                              msaaSamples,
-                              1);
-
-    depthImage = Vulkan::Image(device,
-                               vk::Extent3D(extent, 1),
-                               vk::Format::eD32Sfloat,
-                               vk::ImageUsageFlagBits::eDepthStencilAttachment,
-                               vk::ImageAspectFlagBits::eDepth,
-                               msaaSamples,
-                               1);
 }
 
 void Vulkan::Swapchain::recreate(Vulkan::Device& device, Vulkan::Surface& surface, uint32_t width, uint32_t height) {
@@ -148,13 +123,3 @@ auto Vulkan::Swapchain::getExtent() -> const vk::Extent2D& { return extent; }
 auto Vulkan::Swapchain::getImages() -> std::span<Vulkan::Image> { return images; }
 
 auto Vulkan::Swapchain::getImage(size_t index) -> Vulkan::Image& { return images[index]; }
-
-auto Vulkan::Swapchain::getDepthImage() -> Vulkan::Image& { return depthImage; }
-
-auto Vulkan::Swapchain::getMsaaImage() -> Vulkan::Image& { return msaaImage; }
-
-auto Vulkan::Swapchain::getMsaaSampleCount() -> vk::SampleCountFlagBits { return msaaSamples; }
-
-auto Vulkan::Swapchain::getRenderTargets() -> std::span<Render::RenderTarget> { return renderTargets; }
-
-auto Vulkan::Swapchain::getRenderTarget(uint32_t index) -> Render::RenderTarget& { return renderTargets[index]; }

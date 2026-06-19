@@ -51,7 +51,7 @@ add_library(vulkan-wrapper
     src/vulkan/descriptorSet.cpp
     src/vulkan/hostBuffer.cpp
     src/vulkan/pipelineManager.cpp
-    src/render/renderTarget.cpp
+    
 )
 
 target_include_directories(vulkan-wrapper PRIVATE 
@@ -153,7 +153,7 @@ if(TESTING)
         tests/deviceBuffer_unittest.cpp
         tests/uploadBuffer_unittest.cpp
         tests/hostBuffer_unittest.cpp
-        tests/renderTarget_unittest.cpp
+ 
         tests/uploadContext_unittest.cpp
         tests/material_unittest.cpp
         tests/sampler_unittest.cpp

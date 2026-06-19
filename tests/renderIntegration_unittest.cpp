@@ -70,7 +70,7 @@ class RenderWithSwapchainFixture : public ::testing::Test {
     PhysicalDevice physicalDevice{instance, surface};
     Device device{physicalDevice, instance};
 
-    Swapchain swapchain{physicalDevice, device, surface, 256, 640, vk::SampleCountFlagBits::e4};
+    Swapchain swapchain{physicalDevice, device, surface, 256, 640};
     DescriptorPool descriptorPool{device};
 
     PipelineManager pipelineManager{device, descriptorPool};
@@ -79,12 +79,9 @@ class RenderWithSwapchainFixture : public ::testing::Test {
 };
 
 TEST_F(RenderWithSwapchainFixture, SwapchainRenderTargetsValid) {
-    auto targets = swapchain.getRenderTargets();
-    EXPECT_GT(targets.size(), 0u);
-    auto& target = targets[0];
-    ASSERT_NE(&target.getMsaaImage(), nullptr);
-    ASSERT_NE(&target.getColorImage(), nullptr);
-    ASSERT_NE(&target.getDepthImage(), nullptr);
+    // Render targets are now managed by ResourceManager, not Swapchain
+    // This test verifies the swapchain can still be created without issues
+    EXPECT_NO_THROW(swapchain.recreate(device, surface, 256, 640));
 }
 
 class RenderSceneFixture : public ::testing::Test {

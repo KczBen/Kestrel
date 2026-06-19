@@ -18,6 +18,7 @@
 #include <glm/ext/matrix_float4x4.hpp>
 #include <memory>
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 Render::Render::Render(SDL_Window* window,
                        ResourceManager& resources,
@@ -29,7 +30,7 @@ Render::Render::Render(SDL_Window* window,
     : maxFramesInFlight(maxFramesInFlight), window(window), instance(&instance), surface(&surface),
       physicalDevice(&physicalDevice), device(&device), resourceManager(&resources),
       commandPool(physicalDevice, device, maxFramesInFlight),
-      swapchain(physicalDevice, device, surface, getWindowSizeInPixels(window), vk::SampleCountFlagBits::e4),
+      swapchain(physicalDevice, device, surface, getWindowSizeInPixels(window)),
       syncObjects(device, swapchain.getImages().size()) {}
 
 Render::Render::Render(ResourceManager& resources,
@@ -43,15 +44,33 @@ Render::Render::Render(ResourceManager& resources,
     : maxFramesInFlight(maxFramesInFlight), window(nullptr), instance(&instance), surface(&surface),
       physicalDevice(&physicalDevice), device(&device), resourceManager(&resources),
       commandPool(physicalDevice, device, maxFramesInFlight),
-      swapchain(physicalDevice, device, surface, {width, height}, vk::SampleCountFlagBits::e4),
-      syncObjects(device, swapchain.getImages().size()), width(width), height(height) {}
+      swapchain(physicalDevice, device, surface, {width, height}), syncObjects(device, swapchain.getImages().size()),
+      width(width), height(height) {}
 
 void Render::Render::init(Scene& scene) {
-    passes.emplace_back(std::make_unique<CameraPass>(CameraPass(
-        resourceManager->getPipelineManager(), {&resourceManager->getMaterialList(), 0}, &scene.getCamera())));
+    auto targetExtent = vk::Extent2D{swapchain.getExtent().width, swapchain.getExtent().height};
+    auto targetUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment;
+
+    colorTarget = resourceManager->createRenderTarget({
+        .extent = targetExtent,
+        .format = vk::Format::eB8G8R8A8Srgb,
+        .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc,
+    });
+
+    depthTarget = resourceManager->createRenderTarget({
+        .extent = targetExtent,
+        .format = vk::Format::eD32Sfloat,
+        .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        .aspect = vk::ImageAspectFlagBits::eDepth,
+    });
+
+    passes.emplace_back(std::make_unique<CameraPass>(CameraPass(resourceManager->getPipelineManager(),
+                                                                colorTarget,
+                                                                {&resourceManager->getMaterialList(), 0},
+                                                                &scene.getCamera())));
 
     passes.emplace_back(std::make_unique<GeometryPass>(
-        GeometryPass(resourceManager->getPipelineManager(), scene.getObjects(), &scene.getCamera())));
+        GeometryPass(resourceManager->getPipelineManager(), colorTarget, scene.getObjects(), &scene.getCamera())));
 }
 
 void Render::Render::render(Scene& scene, float deltaTime) {
@@ -66,7 +85,9 @@ void Render::Render::render(Scene& scene, float deltaTime) {
 
     syncObjects.resetFence(frameIndex);
 
-    auto& target = swapchain.getRenderTarget(imageIndex);
+    auto& colorImage = colorTarget->colorImage;
+    auto& depthImage = depthTarget->depthImage;
+    const auto& extent = swapchain.getExtent();
 
     const auto cmd = *commandPool.getCommandBuffer(frameIndex);
 
@@ -76,44 +97,37 @@ void Render::Render::render(Scene& scene, float deltaTime) {
 
     cmd.begin(beginInfo);
 
-    // Transition framebuffer for dynamic rendering
-    Vulkan::CommandPool::transitionImage(target.getColorImage(),
+    // Transition color render target for dynamic rendering
+    Vulkan::CommandPool::transitionImage(*colorImage,
                                          vk::ImageLayout::eColorAttachmentOptimal,
                                          vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                                          vk::AccessFlagBits2::eColorAttachmentWrite,
                                          vk::ImageAspectFlagBits::eColor,
                                          cmd);
 
-    // Transition MSAA buffer
-    Vulkan::CommandPool::transitionImage(target.getMsaaImage(),
-                                         vk::ImageLayout::eColorAttachmentOptimal,
-                                         vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                                         vk::AccessFlagBits2::eColorAttachmentWrite,
-                                         vk::ImageAspectFlagBits::eColor,
-                                         cmd);
-
-    // Transition depth buffer for dynamic rendering (it doesn't need to be done again, unless it's read!)
-    Vulkan::CommandPool::transitionImage(target.getDepthImage(),
+    // Transition depth render target for dynamic rendering
+    Vulkan::CommandPool::transitionImage(*depthImage,
                                          vk::ImageLayout::eDepthAttachmentOptimal,
                                          vk::PipelineStageFlagBits2::eEarlyFragmentTests |
                                              vk::PipelineStageFlagBits2::eLateFragmentTests,
                                          vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
                                          vk::ImageAspectFlagBits::eDepth,
                                          cmd);
+
     // Begin render
     const vk::ClearValue clearColor{std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f}};
     const vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
 
-    const vk::RenderingAttachmentInfo colorAttachmentInfo(target.getMsaaImage().getImageView(),
+    const vk::RenderingAttachmentInfo colorAttachmentInfo(colorImage->getImageView(),
                                                           vk::ImageLayout::eColorAttachmentOptimal,
-                                                          vk::ResolveModeFlagBits::eAverage,
-                                                          target.getColorImage().getImageView(),
+                                                          vk::ResolveModeFlagBits::eNone,
+                                                          colorImage->getImageView(),
                                                           vk::ImageLayout::eColorAttachmentOptimal,
                                                           vk::AttachmentLoadOp::eClear,
                                                           vk::AttachmentStoreOp::eStore,
                                                           clearColor);
 
-    const vk::RenderingAttachmentInfo depthAttachmentInfo(target.getDepthImage().getImageView(),
+    const vk::RenderingAttachmentInfo depthAttachmentInfo(depthImage->getImageView(),
                                                           vk::ImageLayout::eDepthAttachmentOptimal,
                                                           vk::ResolveModeFlagBits::eNone,
                                                           {},
@@ -122,21 +136,16 @@ void Render::Render::render(Scene& scene, float deltaTime) {
                                                           vk::AttachmentStoreOp::eStore,
                                                           clearDepth);
 
-    const vk::RenderingInfo renderInfo(
-        {}, {{0, 0}, target.getExtent()}, 1, {}, 1, &colorAttachmentInfo, &depthAttachmentInfo);
+    const vk::RenderingInfo renderInfo({}, {{0, 0}, extent}, 1, {}, 1, &colorAttachmentInfo, &depthAttachmentInfo);
 
     cmd.beginRendering(renderInfo);
 
-    const vk::Viewport viewport(0.0,
-                                1.0,
-                                static_cast<float>(target.getExtent().width),
-                                static_cast<float>(target.getExtent().height),
-                                0.0,
-                                1.0);
+    const vk::Viewport viewport(
+        0.0, 1.0, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0, 1.0);
 
     cmd.setViewport(0, 1, &viewport);
 
-    const vk::Rect2D scissor(VkOffset2D(0), target.getExtent());
+    const vk::Rect2D scissor(VkOffset2D(0), extent);
     cmd.setScissor(0, 1, &scissor);
 
     // Draw
@@ -145,12 +154,63 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     }
 
     cmd.endRendering();
-    Vulkan::CommandPool::transitionImage(target.getColorImage(),
+
+    // Transition render target to transfer src
+    Vulkan::CommandPool::transitionImage(*colorImage,
+                                         vk::ImageLayout::eTransferSrcOptimal,
+                                         vk::PipelineStageFlagBits2::eAllGraphics,
+                                         vk::AccessFlagBits2::eTransferRead,
+                                         vk::ImageAspectFlagBits::eColor,
+                                         cmd);
+
+    // Transition swapchain image to transfer dst
+    Vulkan::CommandPool::transitionImage(swapchain.getImage(imageIndex),
+                                         vk::ImageLayout::eTransferDstOptimal,
+                                         vk::PipelineStageFlagBits2::eBottomOfPipe,
+                                         {},
+                                         vk::ImageAspectFlagBits::eColor,
+                                         cmd);
+
+    // Blit render target to swapchain image
+    VkImageBlit blitInfo = {};
+    blitInfo.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blitInfo.srcSubresource.mipLevel = 0;
+    blitInfo.srcSubresource.baseArrayLayer = 0;
+    blitInfo.srcSubresource.layerCount = 1;
+    blitInfo.srcOffsets[0].x = 0;
+    blitInfo.srcOffsets[0].y = 0;
+    blitInfo.srcOffsets[0].z = 0;
+    blitInfo.srcOffsets[1].x = static_cast<int32_t>(extent.width);
+    blitInfo.srcOffsets[1].y = static_cast<int32_t>(extent.height);
+    blitInfo.srcOffsets[1].z = 1;
+    blitInfo.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blitInfo.dstSubresource.mipLevel = 0;
+    blitInfo.dstSubresource.baseArrayLayer = 0;
+    blitInfo.dstSubresource.layerCount = 1;
+    blitInfo.dstOffsets[0].x = 0;
+    blitInfo.dstOffsets[0].y = 0;
+    blitInfo.dstOffsets[0].z = 0;
+    blitInfo.dstOffsets[1].x = static_cast<int32_t>(extent.width);
+    blitInfo.dstOffsets[1].y = static_cast<int32_t>(extent.height);
+    blitInfo.dstOffsets[1].z = 1;
+
+    vkCmdBlitImage(static_cast<VkCommandBuffer>(cmd),
+                   colorImage->get(),
+                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   swapchain.getImage(imageIndex).get(),
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   1,
+                   &blitInfo,
+                   VK_FILTER_LINEAR);
+
+    // Transition swapchain image to present
+    Vulkan::CommandPool::transitionImage(swapchain.getImage(imageIndex),
                                          vk::ImageLayout::ePresentSrcKHR,
                                          vk::PipelineStageFlagBits2::eBottomOfPipe,
                                          {},
                                          vk::ImageAspectFlagBits::eColor,
                                          cmd);
+
     cmd.end();
 
     vk::Semaphore waitSemaphores[] = {syncObjects.getImageAvailable(frameIndex)};

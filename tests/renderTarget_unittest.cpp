@@ -1,11 +1,12 @@
 #include "device.hpp"
 #include "image.hpp"
 #include "instance.hpp"
+#include "material.hpp"
+#include "pass.hpp"
 #include "physicalDevice.hpp"
 #include "renderTarget.hpp"
+#include "resourceManager.hpp"
 #include "surface.hpp"
-#include "swapchain.hpp"
-#include <glm/vec2.hpp>
 #include <gtest/gtest.h>
 
 using namespace Vulkan;
@@ -17,33 +18,57 @@ class RenderTargetFixture : public ::testing::Test {
     Surface surface{instance};
     PhysicalDevice physicalDevice{instance, surface};
     Device device{physicalDevice, instance};
-    Swapchain swapchain{physicalDevice, device, surface, 256, 256, vk::SampleCountFlagBits::e4};
-    Render::RenderTarget target{swapchain.getMsaaImage(),
-                                swapchain.getImages()[0],
-                                swapchain.getDepthImage(),
-                                swapchain.getExtent(),
-                                swapchain.getFormat()};
+    ResourceManager resources{physicalDevice, device};
 };
 
-TEST_F(RenderTargetFixture, GetMsaaImageValid) {
-    auto& msaa = target.getMsaaImage();
-    ASSERT_NE(msaa.getImageView(), VK_NULL_HANDLE);
+TEST_F(RenderTargetFixture, CreateRenderTargetCreatesValidImages) {
+    auto handle = resources.createRenderTarget(
+        RenderTarget::CreateInfo{
+            .extent = vk::Extent2D{800, 600},
+            .format = vk::Format::eB8G8R8A8Srgb,
+            .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
+        },
+        vk::SampleCountFlagBits::e1);
+
+    ASSERT_TRUE(handle.isPresent());
+    EXPECT_TRUE(handle->colorImage != nullptr);
+    EXPECT_TRUE(handle->depthImage != nullptr);
 }
 
-TEST_F(RenderTargetFixture, GetColorImageValid) {
-    auto& color = target.getColorImage();
-    ASSERT_NE(color.getImageView(), VK_NULL_HANDLE);
+TEST_F(RenderTargetFixture, CreateRenderTargetCreatesDepthImage) {
+    auto handle = resources.createRenderTarget(
+        RenderTarget::CreateInfo{
+            .extent = vk::Extent2D{800, 600},
+            .format = vk::Format::eB8G8R8A8Srgb,
+            .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
+        },
+        vk::SampleCountFlagBits::e1);
+
+    auto& depthImage = handle->depthImage;
+    auto imageView = depthImage->getImageView();
+    ASSERT_NE(imageView.get(), VK_NULL_HANDLE);
 }
 
-TEST_F(RenderTargetFixture, GetDepthImageValid) {
-    auto& depth = target.getDepthImage();
-    ASSERT_NE(depth.getImageView(), VK_NULL_HANDLE);
-}
+TEST_F(RenderTargetFixture, MultipleTargetsAreDistinct) {
+    auto handle0 = resources.createRenderTarget(
+        RenderTarget::CreateInfo{
+            .extent = vk::Extent2D{800, 600},
+            .format = vk::Format::eB8G8R8A8Srgb,
+            .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
+        },
+        vk::SampleCountFlagBits::e1);
 
-TEST_F(RenderTargetFixture, GetExtentCorrect) {
-    const auto& extent = target.getExtent();
-    EXPECT_EQ(extent.width, 256u);
-    EXPECT_EQ(extent.height, 256u);
-}
+    auto handle1 = resources.createRenderTarget(
+        RenderTarget::CreateInfo{
+            .extent = vk::Extent2D{800, 600},
+            .format = vk::Format::eB8G8R8A8Srgb,
+            .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
+        },
+        vk::SampleCountFlagBits::e1);
 
-TEST_F(RenderTargetFixture, GetFormatCorrect) { EXPECT_EQ(target.getFormat(), swapchain.getFormat()); }
+    ASSERT_TRUE(handle0.isPresent());
+    ASSERT_TRUE(handle1.isPresent());
+    ASSERT_NE(handle0, handle1);
+    ASSERT_NE(handle0->colorImage, handle1->colorImage);
+    ASSERT_NE(handle0->depthImage, handle1->depthImage);
+}

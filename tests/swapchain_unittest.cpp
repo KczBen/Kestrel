@@ -15,7 +15,7 @@ class SwapchainFixture : public ::testing::Test {
     Surface surface{instance};
     PhysicalDevice physicalDevice{instance, surface};
     Device device{physicalDevice, instance};
-    Swapchain swapchain{physicalDevice, device, surface, 800, 600, vk::SampleCountFlagBits::e4};
+    Swapchain swapchain{physicalDevice, device, surface, 800, 600};
 };
 
 TEST_F(SwapchainFixture, GetReturnsNonNull) { ASSERT_NE(swapchain.get(), nullptr); }
@@ -48,23 +48,9 @@ TEST_F(SwapchainFixture, GetImageReturnsValid) {
     ASSERT_NE(img.getImageView(), nullptr);
 }
 
-TEST_F(SwapchainFixture, GetDepthImageReturnsValid) {
-    auto& depth = swapchain.getDepthImage();
-    ASSERT_NE(depth.getImageView(), nullptr);
-}
-
-TEST_F(SwapchainFixture, GetMsaaImageReturnsValid) {
-    auto& msaa = swapchain.getMsaaImage();
-    ASSERT_NE(msaa.getImageView(), nullptr);
-}
-
-TEST_F(SwapchainFixture, MsaaSampleCountMatches) {
-    EXPECT_EQ(swapchain.getMsaaSampleCount(), vk::SampleCountFlagBits::e4);
-}
-
 // Cover the other constructor
 TEST_F(SwapchainFixture, PairConstructorProducesValidSwapchain) {
-    Swapchain sc{physicalDevice, device, surface, std::make_pair(800u, 600u), vk::SampleCountFlagBits::e1};
+    Swapchain sc{physicalDevice, device, surface, std::make_pair(800u, 600u)};
     ASSERT_NE(sc.get(), nullptr);
     EXPECT_GT(sc.getImages().size(), 0u);
     EXPECT_NE(sc.getExtent().width, 0u);
@@ -104,23 +90,6 @@ TEST_F(SwapchainFixture, RecreateGetImageReturnsValid) {
     swapchain.recreate(device, surface, 1024, 768);
     auto& img = swapchain.getImage(0);
     ASSERT_NE(img.getImageView(), nullptr);
-}
-
-TEST_F(SwapchainFixture, RecreateGetDepthImageReturnsValid) {
-    swapchain.recreate(device, surface, 1024, 768);
-    auto& depth = swapchain.getDepthImage();
-    ASSERT_NE(depth.getImageView(), nullptr);
-}
-
-TEST_F(SwapchainFixture, RecreateGetMsaaImageReturnsValid) {
-    swapchain.recreate(device, surface, 1024, 768);
-    auto& msaa = swapchain.getMsaaImage();
-    ASSERT_NE(msaa.getImageView(), nullptr);
-}
-
-TEST_F(SwapchainFixture, RecreateMsaaSampleCountMatches) {
-    swapchain.recreate(device, surface, 1024, 768);
-    EXPECT_EQ(swapchain.getMsaaSampleCount(), vk::SampleCountFlagBits::e4);
 }
 
 TEST_F(SwapchainFixture, RecreateFormatReturnsCorrect) {

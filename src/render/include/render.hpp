@@ -31,6 +31,9 @@ class Render {
 
     std::vector<std::unique_ptr<Pass>> passes;
 
+    RenderTargetHandle colorTarget;
+    RenderTargetHandle depthTarget;
+
     SDL_Window* window;
     uint32_t frameIndex = 0;
     uint32_t maxFramesInFlight;
