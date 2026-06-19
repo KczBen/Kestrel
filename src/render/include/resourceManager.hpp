@@ -23,7 +23,7 @@ namespace Render {
 class ResourceManager {
   private:
     Vulkan::Device* device;
-    std::vector<RenderTargetInfo> renderTargets;
+    std::vector<RenderTarget> renderTargets;
 
     Vulkan::DescriptorPool descriptorPool;
 
@@ -65,6 +65,9 @@ class ResourceManager {
     auto getPipelineManager() -> Vulkan::PipelineManager&;
     auto getMaterialList() -> std::vector<Material>&;
     void loadScene(Scene& scene);
-    auto createRenderTarget(const RenderTargetCreateInfo& info) -> RenderTargetHandle;
+    auto createRenderTarget(vk::Extent3D extent,
+                            vk::Format format,
+                            vk::ImageUsageFlags usageFlags,
+                            vk::ImageAspectFlags aspectFlags) -> RenderTargetHandle;
 };
 } // namespace Render

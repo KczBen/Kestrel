@@ -160,6 +160,7 @@ if(TESTING)
         tests/camera_unittest.cpp
         tests/object_unittest.cpp
         tests/renderIntegration_unittest.cpp
+        tests/renderTarget_unittest.cpp
     )
     target_include_directories(test-bin PRIVATE
         ${CMAKE_SOURCE_DIR}/src/vulkan/include

@@ -2,7 +2,7 @@
 
 #include "material.hpp"
 #include "pipelineManager.hpp"
-#include "resourceHandles.hpp"
+#include "renderTarget.hpp"
 #include "vulkan/vulkan.hpp"
 
 namespace Render {

@@ -381,24 +381,13 @@ void ResourceManager::loadScene(Scene& scene) {
 auto ResourceManager::getPipelineManager() -> Vulkan::PipelineManager& { return *pipelineManager; }
 auto ResourceManager::getMaterialList() -> std::vector<Material>& { return materials; }
 
-auto ResourceManager::createRenderTarget(const RenderTargetCreateInfo& info) -> RenderTargetHandle {
-    auto* devicePtr = this->device;
-    auto extent3D = vk::Extent3D{info.extent.width, info.extent.height, 1};
+auto ResourceManager::createRenderTarget(vk::Extent3D extent,
+                                         vk::Format format,
+                                         vk::ImageUsageFlags usageFlags,
+                                         vk::ImageAspectFlags aspectFlags) -> RenderTargetHandle {
+    renderTargets.emplace_back(*device, extent, format, usageFlags, aspectFlags, vk::SampleCountFlagBits::e1);
 
-    auto* colorImage =
-        new Vulkan::Image(*devicePtr, extent3D, info.format, info.usage, info.aspect, vk::SampleCountFlagBits::e1);
-
-    auto* depthImage =
-        new Vulkan::Image(*devicePtr,
-                          extent3D,
-                          vk::Format::eD32Sfloat,
-                          vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eInputAttachment,
-                          vk::ImageAspectFlagBits::eDepth,
-                          vk::SampleCountFlagBits::e1);
-
-    auto handle = RenderTargetHandle(&renderTargets, renderTargets.size());
-    renderTargets.emplace_back(RenderTargetInfo{.colorImage = colorImage, .depthImage = depthImage});
-    return handle;
+    return RenderTargetHandle{&renderTargets, renderTargets.size() - 1};
 }
 
 auto ResourceManager::getOrCreateSampler(const Vulkan::SamplerConfig& config) -> SamplerHandle {

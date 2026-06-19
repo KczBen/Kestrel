@@ -1,7 +1,6 @@
 #pragma once
 
 #include "deviceBuffer.hpp"
-#include "renderTarget.hpp"
 #include <cassert>
 #include <cstdint>
 
@@ -43,5 +42,3 @@ template <typename T, typename Container> struct std::hash<Render::ResourceHandl
         return std::hash<size_t>{}(handle.index);
     }
 };
-
-using RenderTargetHandle = Render::ResourceHandle<Render::RenderTargetInfo>;

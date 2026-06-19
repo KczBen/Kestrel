@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 using namespace Vulkan;
+using namespace Render;
 
 class RenderTargetFixture : public ::testing::Test {
   protected:
@@ -21,54 +22,42 @@ class RenderTargetFixture : public ::testing::Test {
     ResourceManager resources{physicalDevice, device};
 };
 
-TEST_F(RenderTargetFixture, CreateRenderTargetCreatesValidImages) {
-    auto handle = resources.createRenderTarget(
-        RenderTarget::CreateInfo{
-            .extent = vk::Extent2D{800, 600},
-            .format = vk::Format::eB8G8R8A8Srgb,
-            .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
-        },
-        vk::SampleCountFlagBits::e1);
+TEST_F(RenderTargetFixture, CreateRenderTargetCreatesValidImage) {
+    auto handle = resources.createRenderTarget(vk::Extent3D{800, 600, 1},
+                                               vk::Format::eB8G8R8A8Srgb,
+                                               vk::ImageUsageFlagBits::eColorAttachment |
+                                                   vk::ImageUsageFlagBits::eTransientAttachment,
+                                               vk::ImageAspectFlagBits::eColor);
 
     ASSERT_TRUE(handle.isPresent());
-    EXPECT_TRUE(handle->colorImage != nullptr);
-    EXPECT_TRUE(handle->depthImage != nullptr);
+    EXPECT_NE(&*handle, static_cast<RenderTarget*>(nullptr));
 }
 
-TEST_F(RenderTargetFixture, CreateRenderTargetCreatesDepthImage) {
-    auto handle = resources.createRenderTarget(
-        RenderTarget::CreateInfo{
-            .extent = vk::Extent2D{800, 600},
-            .format = vk::Format::eB8G8R8A8Srgb,
-            .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
-        },
-        vk::SampleCountFlagBits::e1);
+TEST_F(RenderTargetFixture, CreateDepthRenderTarget) {
+    auto handle = resources.createRenderTarget(vk::Extent3D{800, 600, 1},
+                                               vk::Format::eD32Sfloat,
+                                               vk::ImageUsageFlagBits::eDepthStencilAttachment,
+                                               vk::ImageAspectFlagBits::eDepth);
 
-    auto& depthImage = handle->depthImage;
-    auto imageView = depthImage->getImageView();
-    ASSERT_NE(imageView.get(), VK_NULL_HANDLE);
+    ASSERT_TRUE(handle.isPresent());
+    EXPECT_NE(handle->getImageView(), vk::raii::ImageView{VK_NULL_HANDLE});
 }
 
 TEST_F(RenderTargetFixture, MultipleTargetsAreDistinct) {
-    auto handle0 = resources.createRenderTarget(
-        RenderTarget::CreateInfo{
-            .extent = vk::Extent2D{800, 600},
-            .format = vk::Format::eB8G8R8A8Srgb,
-            .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
-        },
-        vk::SampleCountFlagBits::e1);
+    auto handle0 = resources.createRenderTarget(vk::Extent3D{800, 600, 1},
+                                                vk::Format::eB8G8R8A8Srgb,
+                                                vk::ImageUsageFlagBits::eColorAttachment |
+                                                    vk::ImageUsageFlagBits::eTransientAttachment,
+                                                vk::ImageAspectFlagBits::eColor);
 
-    auto handle1 = resources.createRenderTarget(
-        RenderTarget::CreateInfo{
-            .extent = vk::Extent2D{800, 600},
-            .format = vk::Format::eB8G8R8A8Srgb,
-            .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
-        },
-        vk::SampleCountFlagBits::e1);
+    auto handle1 = resources.createRenderTarget(vk::Extent3D{800, 600, 1},
+                                                vk::Format::eB8G8R8A8Srgb,
+                                                vk::ImageUsageFlagBits::eColorAttachment |
+                                                    vk::ImageUsageFlagBits::eTransientAttachment,
+                                                vk::ImageAspectFlagBits::eColor);
 
     ASSERT_TRUE(handle0.isPresent());
     ASSERT_TRUE(handle1.isPresent());
     ASSERT_NE(handle0, handle1);
-    ASSERT_NE(handle0->colorImage, handle1->colorImage);
-    ASSERT_NE(handle0->depthImage, handle1->depthImage);
+    ASSERT_NE(&*handle0, &*handle1);
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "resourceHandles.hpp"
 #include <vulkan/vulkan.hpp>
 
 namespace Vulkan {
@@ -8,16 +9,7 @@ class Image;
 
 namespace Render {
 
-struct RenderTargetInfo {
-    Vulkan::Image* colorImage;
-    Vulkan::Image* depthImage;
-};
-
-struct RenderTargetCreateInfo {
-    vk::Extent2D extent;
-    vk::Format format;
-    vk::ImageUsageFlags usage;
-    vk::ImageAspectFlagBits aspect = vk::ImageAspectFlagBits::eColor;
-};
+using RenderTarget = Vulkan::Image;
+using RenderTargetHandle = ResourceHandle<RenderTarget>;
 
 } // namespace Render

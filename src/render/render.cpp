@@ -48,21 +48,18 @@ Render::Render::Render(ResourceManager& resources,
       width(width), height(height) {}
 
 void Render::Render::init(Scene& scene) {
-    auto targetExtent = vk::Extent2D{swapchain.getExtent().width, swapchain.getExtent().height};
-    auto targetUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment;
+    const auto& swapchainExtent = swapchain.getExtent();
 
-    colorTarget = resourceManager->createRenderTarget({
-        .extent = targetExtent,
-        .format = vk::Format::eB8G8R8A8Srgb,
-        .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc,
-    });
+    colorTarget = resourceManager->createRenderTarget(vk::Extent3D{swapchainExtent.width, swapchainExtent.height, 1},
+                                                      vk::Format::eB8G8R8A8Srgb,
+                                                      vk::ImageUsageFlagBits::eColorAttachment |
+                                                          vk::ImageUsageFlagBits::eTransferSrc,
+                                                      vk::ImageAspectFlagBits::eColor);
 
-    depthTarget = resourceManager->createRenderTarget({
-        .extent = targetExtent,
-        .format = vk::Format::eD32Sfloat,
-        .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
-        .aspect = vk::ImageAspectFlagBits::eDepth,
-    });
+    depthTarget = resourceManager->createRenderTarget(vk::Extent3D{swapchainExtent.width, swapchainExtent.height, 1},
+                                                      vk::Format::eD32Sfloat,
+                                                      vk::ImageUsageFlagBits::eDepthStencilAttachment,
+                                                      vk::ImageAspectFlagBits::eDepth);
 
     passes.emplace_back(std::make_unique<CameraPass>(CameraPass(resourceManager->getPipelineManager(),
                                                                 colorTarget,
@@ -85,8 +82,8 @@ void Render::Render::render(Scene& scene, float deltaTime) {
 
     syncObjects.resetFence(frameIndex);
 
-    auto& colorImage = colorTarget->colorImage;
-    auto& depthImage = depthTarget->depthImage;
+    auto& colorImage = *colorTarget;
+    auto& depthImage = *depthTarget;
     const auto& extent = swapchain.getExtent();
 
     const auto cmd = *commandPool.getCommandBuffer(frameIndex);
@@ -98,7 +95,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     cmd.begin(beginInfo);
 
     // Transition color render target for dynamic rendering
-    Vulkan::CommandPool::transitionImage(*colorImage,
+    Vulkan::CommandPool::transitionImage(colorImage,
                                          vk::ImageLayout::eColorAttachmentOptimal,
                                          vk::PipelineStageFlagBits2::eColorAttachmentOutput,
                                          vk::AccessFlagBits2::eColorAttachmentWrite,
@@ -106,7 +103,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
                                          cmd);
 
     // Transition depth render target for dynamic rendering
-    Vulkan::CommandPool::transitionImage(*depthImage,
+    Vulkan::CommandPool::transitionImage(depthImage,
                                          vk::ImageLayout::eDepthAttachmentOptimal,
                                          vk::PipelineStageFlagBits2::eEarlyFragmentTests |
                                              vk::PipelineStageFlagBits2::eLateFragmentTests,
@@ -118,16 +115,16 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     const vk::ClearValue clearColor{std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f}};
     const vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
 
-    const vk::RenderingAttachmentInfo colorAttachmentInfo(colorImage->getImageView(),
+    const vk::RenderingAttachmentInfo colorAttachmentInfo(colorImage.getImageView(),
                                                           vk::ImageLayout::eColorAttachmentOptimal,
                                                           vk::ResolveModeFlagBits::eNone,
-                                                          colorImage->getImageView(),
+                                                          colorImage.getImageView(),
                                                           vk::ImageLayout::eColorAttachmentOptimal,
                                                           vk::AttachmentLoadOp::eClear,
                                                           vk::AttachmentStoreOp::eStore,
                                                           clearColor);
 
-    const vk::RenderingAttachmentInfo depthAttachmentInfo(depthImage->getImageView(),
+    const vk::RenderingAttachmentInfo depthAttachmentInfo(depthImage.getImageView(),
                                                           vk::ImageLayout::eDepthAttachmentOptimal,
                                                           vk::ResolveModeFlagBits::eNone,
                                                           {},
@@ -156,7 +153,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     cmd.endRendering();
 
     // Transition render target to transfer src
-    Vulkan::CommandPool::transitionImage(*colorImage,
+    Vulkan::CommandPool::transitionImage(colorImage,
                                          vk::ImageLayout::eTransferSrcOptimal,
                                          vk::PipelineStageFlagBits2::eAllGraphics,
                                          vk::AccessFlagBits2::eTransferRead,
@@ -195,7 +192,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
     blitInfo.dstOffsets[1].z = 1;
 
     vkCmdBlitImage(static_cast<VkCommandBuffer>(cmd),
-                   colorImage->get(),
+                   colorImage.get(),
                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                    swapchain.getImage(imageIndex).get(),
                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
