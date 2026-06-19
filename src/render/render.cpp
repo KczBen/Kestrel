@@ -174,36 +174,20 @@ void Render::Render::render(Scene& scene, float deltaTime) {
                                          cmd);
 
     // Blit render target to swapchain image
-    VkImageBlit blitInfo = {};
-    blitInfo.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    blitInfo.srcSubresource.mipLevel = 0;
-    blitInfo.srcSubresource.baseArrayLayer = 0;
-    blitInfo.srcSubresource.layerCount = 1;
-    blitInfo.srcOffsets[0].x = 0;
-    blitInfo.srcOffsets[0].y = 0;
-    blitInfo.srcOffsets[0].z = 0;
-    blitInfo.srcOffsets[1].x = static_cast<int32_t>(extent.width);
-    blitInfo.srcOffsets[1].y = static_cast<int32_t>(extent.height);
-    blitInfo.srcOffsets[1].z = 1;
-    blitInfo.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    blitInfo.dstSubresource.mipLevel = 0;
-    blitInfo.dstSubresource.baseArrayLayer = 0;
-    blitInfo.dstSubresource.layerCount = 1;
-    blitInfo.dstOffsets[0].x = 0;
-    blitInfo.dstOffsets[0].y = 0;
-    blitInfo.dstOffsets[0].z = 0;
-    blitInfo.dstOffsets[1].x = static_cast<int32_t>(extent.width);
-    blitInfo.dstOffsets[1].y = static_cast<int32_t>(extent.height);
-    blitInfo.dstOffsets[1].z = 1;
+    const vk::ImageBlit blitInfo(
+        vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1),
+        std::array{vk::Offset3D(0, 0, 0),
+                   vk::Offset3D(static_cast<int32_t>(extent.width), static_cast<int32_t>(extent.height), 1)},
+        vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1),
+        std::array{vk::Offset3D(0, 0, 0),
+                   vk::Offset3D(static_cast<int32_t>(extent.width), static_cast<int32_t>(extent.height), 1)});
 
-    vkCmdBlitImage(static_cast<VkCommandBuffer>(cmd),
-                   colorImage.get(),
-                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   swapchain.getImage(imageIndex).get(),
-                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                   1,
-                   &blitInfo,
-                   VK_FILTER_LINEAR);
+    cmd.blitImage(colorImage.get(),
+                  vk::ImageLayout::eTransferSrcOptimal,
+                  swapchain.getImage(imageIndex).get(),
+                  vk::ImageLayout::eTransferDstOptimal,
+                  {blitInfo},
+                  vk::Filter::eLinear);
 
     // Transition swapchain image to present
     Vulkan::CommandPool::transitionImage(swapchain.getImage(imageIndex),
