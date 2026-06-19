@@ -384,8 +384,9 @@ auto ResourceManager::getMaterialList() -> std::vector<Material>& { return mater
 auto ResourceManager::createRenderTarget(vk::Extent3D extent,
                                          vk::Format format,
                                          vk::ImageUsageFlags usageFlags,
-                                         vk::ImageAspectFlags aspectFlags) -> RenderTargetHandle {
-    renderTargets.emplace_back(*device, extent, format, usageFlags, aspectFlags, vk::SampleCountFlagBits::e1);
+                                         vk::ImageAspectFlags aspectFlags,
+                                         vk::SampleCountFlagBits sampleCount) -> RenderTargetHandle {
+    renderTargets.emplace_back(*device, extent, format, usageFlags, aspectFlags, sampleCount);
 
     return RenderTargetHandle{&renderTargets, renderTargets.size() - 1};
 }

@@ -66,6 +66,7 @@ class ResourceManager {
     auto createRenderTarget(vk::Extent3D extent,
                             vk::Format format,
                             vk::ImageUsageFlags usageFlags,
-                            vk::ImageAspectFlags aspectFlags) -> RenderTargetHandle;
+                            vk::ImageAspectFlags aspectFlags,
+                            vk::SampleCountFlagBits sampleCount = vk::SampleCountFlagBits::e1) -> RenderTargetHandle;
 };
 } // namespace Render

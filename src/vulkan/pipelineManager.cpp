@@ -95,14 +95,10 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
 
 auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
                                                   Render::Camera& camera,
-                                                  vk::Format format) -> Vulkan::GraphicsPipeline& {
-    // If the last rendered format matches and we have a pipeline, we're all good
-    if (materialHandle->graphicsPipeline != nullptr && materialHandle->lastRenderedFormat == format) {
-        return *materialHandle->graphicsPipeline;
-    }
-
+                                                  vk::Format format,
+                                                  vk::SampleCountFlagBits sampleCount) -> Vulkan::GraphicsPipeline& {
     // Do we already know of a pipeline that may work?
-    const PipelineKey key{materialHandle->pipelineConfiguration, format};
+    const PipelineKey key{materialHandle->pipelineConfiguration, format, sampleCount};
     if (pipelineCache.contains(key)) {
         materialHandle->graphicsPipeline = &pipelineCache.find(key)->second;
         return *materialHandle->graphicsPipeline;
@@ -142,6 +138,7 @@ auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
                                                 materialHandle->pipelineConfiguration.depthCompare,
                                                 blendMode,
                                                 materialHandle->pipelineConfiguration.colorWriteMask,
+                                                sampleCount,
                                                 materialHandle->pipelineConfiguration.vertexInputMode !=
                                                     Material::VertexInputMode::None);
 

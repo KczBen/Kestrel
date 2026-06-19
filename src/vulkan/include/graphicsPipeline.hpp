@@ -30,6 +30,7 @@ class GraphicsPipeline {
                      vk::CompareOp depthCompareMode,
                      vk::BlendOp colorBlendMode,
                      vk::ColorComponentFlags colorWriteMask,
+                     vk::SampleCountFlagBits sampleCount,
                      bool useVertexBinding);
 
     auto get() -> const vk::raii::Pipeline&;

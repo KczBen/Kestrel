@@ -18,6 +18,7 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
                                            vk::CompareOp depthCompareMode,
                                            vk::BlendOp colorBlendMode,
                                            vk::ColorComponentFlags colorWriteMask,
+                                           vk::SampleCountFlagBits sampleCount,
                                            bool useVertexBinding)
     : device(&device.get()), vertexModule(this->device, vertexShader), fragmentModule(this->device, fragmentShader) {
     const vk::PipelineShaderStageCreateInfo vertexShaderStageInfo(
@@ -67,8 +68,7 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
                                                                vk::False,
                                                                vk::False);
 
-    const vk::PipelineMultisampleStateCreateInfo msaa(
-        {}, vk::SampleCountFlagBits::e1, vk::False, 1.0f, {}, vk::False, vk::False);
+    const vk::PipelineMultisampleStateCreateInfo msaa({}, sampleCount, vk::False, 1.0f, {}, vk::False, vk::False);
 
     const vk::PipelineColorBlendAttachmentState colorBlendAttachment(
         vk::True,

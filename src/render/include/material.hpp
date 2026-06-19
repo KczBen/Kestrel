@@ -97,9 +97,6 @@ class Material {
     Vulkan::HostBufferHandle materialBufferHandle;
     Vulkan::GraphicsPipeline* graphicsPipeline = nullptr;
 
-    // Reduce the number of hash map lookups we need to do
-    vk::Format lastRenderedFormat = vk::Format::eUndefined;
-
     friend class Vulkan::PipelineManager;
     friend class Render::ResourceManager;
 };
