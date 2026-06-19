@@ -31,7 +31,8 @@ Render::Render::Render(SDL_Window* window,
       physicalDevice(&physicalDevice), device(&device), resourceManager(&resources),
       commandPool(physicalDevice, device, maxFramesInFlight),
       swapchain(physicalDevice, device, surface, getWindowSizeInPixels(window)),
-      syncObjects(device, swapchain.getImages().size()) {}
+      syncObjects(device, swapchain.getImages().size()), height(swapchain.getExtent().height),
+      width(swapchain.getExtent().width) {}
 
 Render::Render::Render(ResourceManager& resources,
                        Vulkan::Instance& instance,

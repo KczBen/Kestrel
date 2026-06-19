@@ -8,9 +8,12 @@
 namespace Render {
 
 class Pass {
-  protected:
+  private:
     Vulkan::PipelineManager* pipelineManager;
     RenderTargetHandle target;
+
+  protected:
+    [[nodiscard]] auto getPipelineManager() const -> Vulkan::PipelineManager* { return pipelineManager; }
 
   public:
     Pass(const Pass&) = default;

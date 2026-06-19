@@ -136,8 +136,8 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
 
         resources.baseColorFactor = pbr.baseColorFactor;
         resources.emissiveFactor = material.emissiveFactor;
-        resources.metallicFactor = pbr.metallicFactor;
-        resources.roughnessFactor = pbr.roughnessFactor;
+        resources.metallicFactor = static_cast<float>(pbr.metallicFactor);
+        resources.roughnessFactor = static_cast<float>(pbr.roughnessFactor);
 
         auto mat = Material(ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
                             ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
