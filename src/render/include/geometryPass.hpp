@@ -3,7 +3,6 @@
 #include "camera.hpp"
 #include "object.hpp"
 #include "pass.hpp"
-#include "resourceHandles.hpp"
 
 namespace Render {
 class GeometryPass : public Pass {
@@ -13,7 +12,8 @@ class GeometryPass : public Pass {
 
   public:
     GeometryPass(Vulkan::PipelineManager& pipelineManager,
-                 RenderTargetHandle target,
+                 const std::vector<RenderTargetHandle>& targets,
+                 const std::vector<PassInput>& inputs,
                  std::span<const Object> models,
                  Camera* camera);
 

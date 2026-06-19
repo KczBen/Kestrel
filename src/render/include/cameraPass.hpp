@@ -10,7 +10,8 @@ class CameraPass : public Pass {
 
   public:
     CameraPass(Vulkan::PipelineManager& pipelineManager,
-               RenderTargetHandle target,
+               const std::vector<RenderTargetHandle>& targets,
+               const std::vector<PassInput>& inputs,
                MaterialHandle materialHandle,
                Camera* camera);
 

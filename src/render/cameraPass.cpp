@@ -1,5 +1,6 @@
 #include "cameraPass.hpp"
 #include "material.hpp"
+#include <vector>
 
 namespace Render {
 
@@ -11,10 +12,11 @@ auto CameraPass::supportedMaterialTypes() const -> uint32_t {
 }
 
 CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager,
-                       RenderTargetHandle target,
+                       const std::vector<RenderTargetHandle>& targets,
+                       const std::vector<PassInput>& inputs,
                        MaterialHandle materialHandle,
                        Camera* camera)
-    : Pass(pipelineManager, target), materialHandle(materialHandle), camera(camera) {}
+    : Pass(pipelineManager, targets, inputs), materialHandle(materialHandle), camera(camera) {}
 
 void CameraPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);

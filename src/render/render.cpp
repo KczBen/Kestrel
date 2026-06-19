@@ -62,13 +62,17 @@ void Render::Render::init(Scene& scene) {
                                                       vk::ImageUsageFlagBits::eDepthStencilAttachment,
                                                       vk::ImageAspectFlagBits::eDepth);
 
+    const std::vector<RenderTargetHandle> targets = {colorTarget};
+    const std::vector<PassInput> inputs;
+
     passes.emplace_back(std::make_unique<CameraPass>(CameraPass(resourceManager->getPipelineManager(),
-                                                                colorTarget,
+                                                                targets,
+                                                                inputs,
                                                                 {&resourceManager->getMaterialList(), 0},
                                                                 &scene.getCamera())));
 
     passes.emplace_back(std::make_unique<GeometryPass>(
-        GeometryPass(resourceManager->getPipelineManager(), colorTarget, scene.getObjects(), &scene.getCamera())));
+        GeometryPass(resourceManager->getPipelineManager(), targets, inputs, scene.getObjects(), &scene.getCamera())));
 }
 
 void Render::Render::render(Scene& scene, float deltaTime) {

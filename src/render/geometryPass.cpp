@@ -4,6 +4,7 @@
 #include "pass.hpp"
 #include <cstdint>
 #include <unordered_map>
+#include <vector>
 
 namespace Render {
 
@@ -12,10 +13,11 @@ auto GeometryPass::supportedMaterialTypes() const -> uint32_t {
 }
 
 GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager,
-                           RenderTargetHandle target,
+                           const std::vector<RenderTargetHandle>& targets,
+                           const std::vector<PassInput>& inputs,
                            std::span<const Object> models,
                            Camera* camera)
-    : Pass(pipelineManager, target), models(models), camera(camera) {}
+    : Pass(pipelineManager, targets, inputs), models(models), camera(camera) {}
 
 void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);
