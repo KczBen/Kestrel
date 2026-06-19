@@ -39,10 +39,8 @@ class ResourceManager {
     std::vector<Vulkan::DescriptorSetLayout> descriptorSetLayouts;
     std::vector<Vulkan::DescriptorSet> descriptorSets;
 
-    using SamplerHandle = Vulkan::SamplerHandle;
-    using SamplerHandleHash = std::hash<Vulkan::SamplerConfig>;
     std::vector<Vulkan::Sampler> samplers;
-    std::unordered_map<Vulkan::SamplerConfig, size_t, SamplerHandleHash> samplerIndex;
+    std::unordered_map<Vulkan::SamplerConfig, size_t, std::hash<Vulkan::SamplerConfig>> samplerIndex;
     std::vector<Vulkan::Texture> textures;
     std::vector<Material> materials;
 

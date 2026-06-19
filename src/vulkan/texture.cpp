@@ -24,4 +24,4 @@ Vulkan::Texture::Texture(
 
 auto Vulkan::Texture::getImage() -> Vulkan::Image& { return image; }
 
-auto Vulkan::Texture::getSampler() -> const vk::raii::Sampler& { return samplerHandle.get(); }
+auto Vulkan::Texture::getSampler() -> const vk::raii::Sampler& { return samplerHandle->get(); }

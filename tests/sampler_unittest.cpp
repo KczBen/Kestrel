@@ -1,5 +1,3 @@
-#include "hostBuffer.hpp"
-#include "resourceHandles.hpp"
 #include "sampler.hpp"
 #include <gtest/gtest.h>
 #include <vulkan/vulkan.hpp>
@@ -8,7 +6,7 @@ using namespace Vulkan;
 
 TEST(SamplerTest, DefaultSamplerUsesRepeatAndLinear) {
     // The default sampler config should use linear filter and repeat address mode
-    SamplerConfig config;
+    const SamplerConfig config;
     EXPECT_EQ(config.minFilter, vk::Filter::eLinear);
     EXPECT_EQ(config.magFilter, vk::Filter::eLinear);
     EXPECT_EQ(config.mipmapMode, vk::SamplerMipmapMode::eLinear);
@@ -39,7 +37,7 @@ TEST(SamplerTest, SamplerConfigIsNotEqual) {
 }
 
 TEST(SamplerTest, SamplerHandleIsDefaultConstructed) {
-    SamplerHandle handle;
+    const SamplerHandle handle;
     EXPECT_FALSE(handle.isPresent());
 }
 

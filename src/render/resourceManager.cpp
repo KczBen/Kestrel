@@ -392,11 +392,11 @@ auto ResourceManager::createRenderTarget(vk::Extent3D extent,
 
 auto ResourceManager::getOrCreateSampler(const Vulkan::SamplerConfig& config) -> SamplerHandle {
     if (auto it = samplerIndex.find(config); it != samplerIndex.end()) {
-        return SamplerHandle{&samplers[it->second]};
+        return SamplerHandle{&samplers, it->second};
     }
     samplers.emplace_back(*device, config);
     auto index = samplers.size() - 1;
     samplerIndex[config] = index;
-    return SamplerHandle{&samplers[index]};
+    return SamplerHandle{&samplers, index};
 }
 } // namespace Render

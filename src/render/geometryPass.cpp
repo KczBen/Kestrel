@@ -53,7 +53,7 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
             continue;
         }
 
-        auto& pipeline = pipelineManager->getOrCreatePipeline(material, *camera, vk::Format::eB8G8R8A8Srgb);
+        auto& pipeline = getPipelineManager()->getOrCreatePipeline(material, *camera, vk::Format::eB8G8R8A8Srgb);
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
 
         const Vulkan::DescriptorSet& cameraWS = camera->getDescriptorSet(frameIndex);

@@ -1,12 +1,12 @@
 #pragma once
 
 #include "device.hpp"
+#include "resourceHandles.hpp"
 #include <functional>
 #include <optional>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace Vulkan {
-
 struct SamplerConfig {
     vk::Filter minFilter = vk::Filter::eLinear;
     vk::Filter magFilter = vk::Filter::eLinear;
@@ -38,26 +38,12 @@ class Sampler {
     [[nodiscard]] auto get() const -> const vk::raii::Sampler&;
 };
 
-struct SamplerHandle {
-    Sampler* sampler;
-
-    SamplerHandle() : sampler(nullptr) {}
-    SamplerHandle(Sampler* s) : sampler(s) {}
-
-    [[nodiscard]] auto operator->() const -> const vk::raii::Sampler* { return &sampler->get(); }
-    [[nodiscard]] auto operator*() const -> const vk::raii::Sampler& { return sampler->get(); }
-    [[nodiscard]] auto get() const -> const vk::raii::Sampler& { return sampler->get(); }
-    [[nodiscard]] auto operator==(const SamplerHandle& other) const -> bool { return sampler == other.sampler; }
-    [[nodiscard]] auto isPresent() const -> bool { return sampler != nullptr; }
-};
-
 } // namespace Vulkan
 
-template <>
-struct std::hash<Vulkan::SamplerConfig> {
+template <> struct std::hash<Vulkan::SamplerConfig> {
     auto operator()(const Vulkan::SamplerConfig& config) const -> size_t {
         size_t h = 0;
-        auto combine = [&](size_t& seed, size_t value) {
+        auto combine = [&](size_t& seed, size_t value) -> void {
             seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         };
 
@@ -75,3 +61,5 @@ struct std::hash<Vulkan::SamplerConfig> {
         return h;
     }
 };
+
+using SamplerHandle = Render::ResourceHandle<Vulkan::Sampler>;
