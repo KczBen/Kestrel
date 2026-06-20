@@ -1,7 +1,7 @@
 #pragma once
 
 #include "pass.hpp"
-#include "resourceHandles.hpp"
+
 namespace Render {
 class CameraPass : public Pass {
   private:

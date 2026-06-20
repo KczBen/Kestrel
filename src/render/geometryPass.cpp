@@ -51,7 +51,7 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
 
     for (const auto& [material, drawCalls] : drawCalls) {
         auto materialType = static_cast<uint32_t>(material->getBlendMode());
-        if (!(supportedMaterialTypes() & (1u << materialType))) {
+        if ((supportedMaterialTypes() & (1u << materialType)) == 0u) {
             continue;
         }
 
