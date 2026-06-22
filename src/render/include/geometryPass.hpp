@@ -13,7 +13,7 @@ class GeometryPass : public Pass {
   public:
     GeometryPass(Vulkan::PipelineManager& pipelineManager,
                  const std::vector<RenderTargetHandle>& targets,
-                 const std::vector<PassInput>& inputs,
+                 const std::vector<RenderTargetHandle>& inputs,
                  std::span<const Object> models,
                  Camera* camera);
 

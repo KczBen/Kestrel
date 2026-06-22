@@ -63,7 +63,7 @@ void Render::Render::init(Scene& scene) {
                                                       vk::ImageAspectFlagBits::eDepth);
 
     const std::vector<RenderTargetHandle> targets = {colorTarget};
-    const std::vector<PassInput> inputs;
+    const std::vector<RenderTargetHandle> inputs;
 
     passes.emplace_back(std::make_unique<CameraPass>(CameraPass(resourceManager->getPipelineManager(),
                                                                 targets,

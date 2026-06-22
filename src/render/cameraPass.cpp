@@ -13,7 +13,7 @@ auto CameraPass::supportedMaterialTypes() const -> uint32_t {
 
 CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager,
                        const std::vector<RenderTargetHandle>& targets,
-                       const std::vector<PassInput>& inputs,
+                       const std::vector<RenderTargetHandle>& inputs,
                        MaterialHandle materialHandle,
                        Camera* camera)
     : Pass(pipelineManager, targets, inputs), materialHandle(materialHandle), camera(camera) {}

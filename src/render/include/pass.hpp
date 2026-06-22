@@ -7,17 +7,11 @@
 #include <vector>
 
 namespace Render {
-
-struct PassInput {
-    RenderTargetHandle texture;
-    bool depthComparison = false;
-};
-
 class Pass {
   private:
     Vulkan::PipelineManager* pipelineManager;
     std::vector<RenderTargetHandle> targets;
-    std::vector<PassInput> inputs;
+    std::vector<RenderTargetHandle> inputs;
 
   protected:
     [[nodiscard]] auto getPipelineManager() const -> Vulkan::PipelineManager* { return pipelineManager; }
@@ -29,7 +23,7 @@ class Pass {
     auto operator=(Pass&&) -> Pass& = delete;
     Pass(Vulkan::PipelineManager& pipelineManager,
          const std::vector<RenderTargetHandle>& targetHandles,
-         const std::vector<PassInput>& inputList)
+         const std::vector<RenderTargetHandle>& inputList)
         : pipelineManager(&pipelineManager), targets(targetHandles), inputs(inputList) {}
 
     virtual void record(vk::CommandBuffer cmd, uint32_t frameIndex) = 0;
@@ -43,6 +37,6 @@ class Pass {
 
     [[nodiscard]] auto getTarget() const -> const RenderTargetHandle& { return targets.front(); }
     [[nodiscard]] auto getTargets() const -> const std::vector<RenderTargetHandle>& { return targets; }
-    [[nodiscard]] auto getInputs() const -> const std::vector<PassInput>& { return inputs; }
+    [[nodiscard]] auto getInputs() const -> const std::vector<RenderTargetHandle>& { return inputs; }
 };
 } // namespace Render
