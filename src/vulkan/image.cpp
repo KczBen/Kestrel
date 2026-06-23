@@ -7,7 +7,8 @@ Vulkan::Image::Image(const vk::raii::Device* device,
                      vk::Extent2D extent2D,
                      vk::Format format,
                      vk::ImageAspectFlags aspectFlags)
-    : device(device), image(image), imageExtent(extent2D.width, extent2D.height, 1), imageFormat(format) {
+    : device(device), image(image), imageExtent(extent2D.width, extent2D.height, 1), imageFormat(format),
+      aspectFlags(aspectFlags) {
     const vk::ImageViewCreateInfo cInfo(vk::ImageViewCreateFlags(),
                                         this->image,
                                         vk::ImageViewType::e2D,
@@ -25,8 +26,8 @@ Vulkan::Image::Image(Vulkan::Device& device,
                      vk::ImageAspectFlags aspectFlags,
                      vk::SampleCountFlagBits samplesPerPixel,
                      uint32_t mipLevelCount)
-    : imageExtent(extent), imageFormat(format), usageFlags(usageFlags), allocator(&device.getAllocator()) {
-
+    : imageExtent(extent), imageFormat(format), usageFlags(usageFlags), aspectFlags(aspectFlags),
+      allocator(&device.getAllocator()) {
     if (mipLevelCount != 1) {
         mipLevelCount = static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height))) + 1);
     }
@@ -59,3 +60,10 @@ Vulkan::Image::Image(Vulkan::Device& device,
 auto Vulkan::Image::get() -> const vk::Image& { return image; }
 auto Vulkan::Image::getImageView() -> const vk::raii::ImageView& { return imageView; }
 auto Vulkan::Image::getFormat() -> const vk::Format& { return imageFormat; }
+auto Vulkan::Image::getExtent() const -> const vk::Extent3D& { return imageExtent; }
+auto Vulkan::Image::getLayout() const -> vk::ImageLayout { return layout; }
+auto Vulkan::Image::getUsageFlags() const -> vk::ImageUsageFlags { return usageFlags; }
+auto Vulkan::Image::getStageMask() const -> vk::PipelineStageFlags2 { return stageMask; }
+auto Vulkan::Image::getAccessFlags() const -> vk::AccessFlags2 { return accessFlags; }
+auto Vulkan::Image::getMipLevelCount() const -> uint32_t { return mipLevelCount; }
+auto Vulkan::Image::getAspectFlags() const -> vk::ImageAspectFlags { return aspectFlags; }

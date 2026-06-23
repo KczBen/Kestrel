@@ -45,6 +45,7 @@ void Vulkan::CommandPool::transitionImage(Vulkan::Image& image,
     image.layout = newLayout;
     image.stageMask = dstStage;
     image.accessFlags = dstAccess;
+    image.aspectFlags = dstAspect;
 }
 
 void Vulkan::CommandPool::generateMipmaps(Vulkan::Image& image, vk::CommandBuffer cmd) {

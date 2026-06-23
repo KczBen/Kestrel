@@ -4,6 +4,10 @@
 #include "vk_mem_alloc.h"
 #include <vulkan/vulkan_raii.hpp>
 
+namespace Render {
+class FrameGraph;
+}
+
 namespace Vulkan {
 
 class UploadContext;
@@ -20,6 +24,7 @@ class Image {
     vk::ImageUsageFlags usageFlags;
     vk::PipelineStageFlags2 stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
     vk::AccessFlags2 accessFlags;
+    vk::ImageAspectFlags aspectFlags;
     uint32_t mipLevelCount = 1;
 
     const VmaAllocator* allocator{};
@@ -27,6 +32,7 @@ class Image {
 
     friend class UploadContext;
     friend class CommandPool;
+    friend class Render::FrameGraph;
 
   public:
     Image() = default;
@@ -61,7 +67,7 @@ class Image {
           imageView(std::move(other.imageView)), imageFormat(other.imageFormat), imageExtent(other.imageExtent),
           layout(other.layout), usageFlags(other.usageFlags), stageMask(other.stageMask),
           accessFlags(other.accessFlags), allocation(std::exchange(other.allocation, nullptr)),
-          mipLevelCount(other.mipLevelCount) {}
+          aspectFlags(other.aspectFlags), mipLevelCount(other.mipLevelCount) {}
 
     // Move assignment
     auto operator=(Image&& other) noexcept -> Image& {
@@ -84,6 +90,7 @@ class Image {
             stageMask = other.stageMask;
             accessFlags = other.accessFlags;
             allocation = std::exchange(other.allocation, nullptr);
+            aspectFlags = other.aspectFlags;
             mipLevelCount = other.mipLevelCount;
         }
         return *this;
@@ -92,5 +99,12 @@ class Image {
     auto get() -> const vk::Image&;
     auto getImageView() -> const vk::raii::ImageView&;
     auto getFormat() -> const vk::Format&;
+    [[nodiscard]] auto getExtent() const -> const vk::Extent3D&;
+    [[nodiscard]] auto getLayout() const -> vk::ImageLayout;
+    [[nodiscard]] auto getUsageFlags() const -> vk::ImageUsageFlags;
+    [[nodiscard]] auto getStageMask() const -> vk::PipelineStageFlags2;
+    [[nodiscard]] auto getAccessFlags() const -> vk::AccessFlags2;
+    [[nodiscard]] auto getMipLevelCount() const -> uint32_t;
+    [[nodiscard]] auto getAspectFlags() const -> vk::ImageAspectFlags;
 };
 } // namespace Vulkan
