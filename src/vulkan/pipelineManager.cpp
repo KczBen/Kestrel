@@ -4,6 +4,7 @@
 #include "descriptorSetLayout.hpp"
 #include "gpuDataObjects.hpp"
 #include "graphicsPipeline.hpp"
+#include "material.hpp"
 #include "vulkan/vulkan.hpp"
 #include <utility>
 
@@ -22,18 +23,25 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
         uint32_t bindingIndex = 0;
 
         if (material.materialBufferHandle.isPresent()) {
-            auto ubo = MaterialUBO{.baseColorFactor = {material.resources.baseColorFactor[0],
-                                                       material.resources.baseColorFactor[1],
-                                                       material.resources.baseColorFactor[2],
-                                                       material.resources.baseColorFactor[3]},
-                                   .emissiveFactor = {material.resources.emissiveFactor[0],
-                                                      material.resources.emissiveFactor[1],
-                                                      material.resources.emissiveFactor[2],
-                                                      0.0f},
-                                   .metallicFactor = material.resources.metallicFactor,
-                                   .roughnessFactor = material.resources.roughnessFactor,
-                                   .normalScale = material.resources.normalScale,
-                                   .occlusionStrength = material.resources.occlusionStrength};
+            auto ubo = MaterialUBO{
+                .baseColorFactor = {material.resources.baseColorFactor[0],
+                                    material.resources.baseColorFactor[1],
+                                    material.resources.baseColorFactor[2],
+                                    material.resources.baseColorFactor[3]},
+                .emissiveFactor = {material.resources.emissiveFactor[0],
+                                   material.resources.emissiveFactor[1],
+                                   material.resources.emissiveFactor[2],
+                                   0.0f},
+                .metallicFactor = material.resources.metallicFactor,
+                .roughnessFactor = material.resources.roughnessFactor,
+                .normalScale = material.resources.normalScale,
+                .occlusionStrength = material.resources.occlusionStrength,
+                .baseColorTransformMatrix = buildTextureTransformMatrix(material.resources.baseColorTransform),
+                .metallicRoughnessTransformMatrix =
+                    buildTextureTransformMatrix(material.resources.metallicRoughnessTransform),
+                .normalTransformMatrix = buildTextureTransformMatrix(material.resources.normalTransform),
+                .occlusionTransformMatrix = buildTextureTransformMatrix(material.resources.occlusionTransform),
+                .emissiveTransformMatrix = buildTextureTransformMatrix(material.resources.emissiveTransform)};
 
             material.materialBufferHandle->update(&ubo, sizeof(MaterialUBO));
 

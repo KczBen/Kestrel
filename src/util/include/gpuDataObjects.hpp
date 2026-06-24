@@ -17,6 +17,13 @@ struct MaterialUBO {
     alignas(4) float roughnessFactor;
     alignas(4) float normalScale;
     alignas(4) float occlusionStrength;
+
+    // KHR_texture_transform — 5 mat4 fields, GLSL mat3 reads first 48 bytes of each
+    alignas(16) glm::mat4 baseColorTransformMatrix;
+    alignas(16) glm::mat4 metallicRoughnessTransformMatrix;
+    alignas(16) glm::mat4 normalTransformMatrix;
+    alignas(16) glm::mat4 occlusionTransformMatrix;
+    alignas(16) glm::mat4 emissiveTransformMatrix;
 };
 
 struct PushConstants {

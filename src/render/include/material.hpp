@@ -2,6 +2,7 @@
 
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
+#include "gpuDataObjects.hpp"
 #include "graphicsPipeline.hpp"
 #include "hostBuffer.hpp"
 #include "resourceHandles.hpp"
@@ -9,6 +10,8 @@
 #include "texture.hpp"
 #include "vulkan/vulkan.hpp"
 #include <cstddef>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <optional>
 #include <vector>
 
@@ -25,6 +28,12 @@ class Material {
     enum class BlendMode : uint8_t { Opaque, Alpha, Premultiplied, Additive };
     enum class VertexInputMode : uint8_t { None, Mesh, Instanced };
 
+    struct TextureTransform {
+        glm::vec2 offset{0.0f, 0.0f};
+        float rotation{0.0f};
+        glm::vec2 scale{1.0f, 1.0f};
+    };
+
     // This should be compatible with the glTF 2.0 spec
     struct MaterialResources {
         // Textures
@@ -33,6 +42,13 @@ class Material {
         TextureHandle normalTexture;
         TextureHandle occlusionTexture;
         TextureHandle emissiveTexture;
+
+        // Texture Transforms (KHR_texture_transform)
+        TextureTransform baseColorTransform;
+        TextureTransform metallicRoughnessTransform;
+        TextureTransform normalTransform;
+        TextureTransform occlusionTransform;
+        TextureTransform emissiveTransform;
 
         // glTF Factors / Uniforms
         std::vector<double> baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
@@ -100,6 +116,20 @@ class Material {
     friend class Vulkan::PipelineManager;
     friend class Render::ResourceManager;
 };
+
+inline auto buildTextureTransformMatrix(const Material::TextureTransform& transform) -> glm::mat4 {
+    const float c = glm::cos(transform.rotation);
+    const float s = glm::sin(transform.rotation);
+
+    glm::mat4 m(1.0f);
+    m[0][0] = transform.scale.x * c;
+    m[0][1] = transform.scale.x * s;
+    m[1][0] = -transform.scale.y * s;
+    m[1][1] = transform.scale.y * c;
+    m[2][0] = transform.offset.x;
+    m[2][1] = transform.offset.y;
+    return m;
+}
 
 using MaterialHandle = Render::ResourceHandle<Material>;
 

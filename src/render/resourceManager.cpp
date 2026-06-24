@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <map>
 #include <print>
 #include <utility>
 
@@ -68,6 +69,56 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
     textures.emplace_back(device, &data, 1, 1, whitePixelHandle);
     context.upload(textures.back());
 }
+
+namespace {
+auto extractTextureTransform(const tinygltf::ExtensionMap& extensions) -> Material::TextureTransform {
+    Material::TextureTransform result;
+    auto it = extensions.find("KHR_texture_transform");
+    if (it == extensions.end()) {
+        return result;
+    }
+
+    const auto& ext = it->second;
+    if (!ext.IsObject()) {
+        return result;
+    }
+
+    const auto& obj = ext.Get<tinygltf::Value::Object>();
+
+    auto getVec2 =
+        [](const tinygltf::Value& val, const tinygltf::Value::Object& obj, const std::string& key) -> glm::vec2 {
+        auto kit = obj.find(key);
+        if (kit != obj.end() && kit->second.IsArray()) {
+            const auto& arr = kit->second.Get<tinygltf::Value::Array>();
+            if (arr.size() >= 2) {
+                return {static_cast<float>(arr[0].Get<double>()), static_cast<float>(arr[1].Get<double>())};
+            }
+        }
+        return {0.0f, 0.0f};
+    };
+
+    auto getFloat =
+        [](const tinygltf::Value& val, const tinygltf::Value::Object& obj, const std::string& key) -> float {
+        auto kit = obj.find(key);
+        if (kit != obj.end() && kit->second.IsNumber()) {
+            return static_cast<float>(kit->second.GetNumberAsDouble());
+        }
+        return 0.0f;
+    };
+
+    result.offset = getVec2(ext, obj, "offset");
+    result.rotation = getFloat(ext, obj, "rotation");
+    result.scale = getVec2(ext, obj, "scale");
+
+    // scale defaults to (1, 1) if missing
+    auto scaleIt = obj.find("scale");
+    if (scaleIt == obj.end() || !scaleIt->second.IsArray()) {
+        result.scale = {1.0f, 1.0f};
+    }
+
+    return result;
+}
+} // namespace
 
 auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
     tinygltf::Model gltfModel;
@@ -137,7 +188,7 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
         uniqueTextures.emplace_back(texIndex, format);
     }
 
-    // Upload unique textures and build index → handle map
+    // Upload unique textures and build index to handle map
     std::unordered_map<int, TextureHandle> textureHandleMap;
     for (auto& [texIndex, format] : uniqueTextures) {
         auto handle = uploadTexture(texIndex, format);
@@ -146,7 +197,7 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
 
     // Fill in missing texture indices (not used by any material) with default
     textureHandles.reserve(gltfModel.textures.size());
-    for (auto i = 0; i < static_cast<int>(gltfModel.textures.size()); i++) {
+    for (auto i = 0; i < gltfModel.textures.size(); i++) {
         auto it = textureHandleMap.find(i);
         if (it != textureHandleMap.end()) {
             textureHandles.emplace_back(it->second);
@@ -199,6 +250,23 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
         resources.occlusionTexture = occlusion;
         resources.emissiveTexture = emissive;
 
+        // Extract KHR_texture_transform extensions from material texture info
+        if (pbr.baseColorTexture.index >= 0) {
+            resources.baseColorTransform = extractTextureTransform(pbr.baseColorTexture.extensions);
+        }
+        if (pbr.metallicRoughnessTexture.index >= 0) {
+            resources.metallicRoughnessTransform = extractTextureTransform(pbr.metallicRoughnessTexture.extensions);
+        }
+        if (material.normalTexture.index >= 0) {
+            resources.normalTransform = extractTextureTransform(material.normalTexture.extensions);
+        }
+        if (material.occlusionTexture.index >= 0) {
+            resources.occlusionTransform = extractTextureTransform(material.occlusionTexture.extensions);
+        }
+        if (material.emissiveTexture.index >= 0) {
+            resources.emissiveTransform = extractTextureTransform(material.emissiveTexture.extensions);
+        }
+
         resources.baseColorFactor = pbr.baseColorFactor;
         resources.emissiveFactor = material.emissiveFactor;
         resources.metallicFactor = static_cast<float>(pbr.metallicFactor);
@@ -216,7 +284,7 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
                             vk::CompareOp::eLessOrEqual,
                             blendMode);
 
-        uniformBuffers.emplace_back(*device, sizeof(UniformBufferObject));
+        uniformBuffers.emplace_back(*device, sizeof(MaterialUBO));
         mat.materialBufferHandle = {&uniformBuffers, uniformBuffers.size() - 1};
 
         materials.emplace_back(std::move(mat));
@@ -413,7 +481,7 @@ void ResourceManager::loadScene(Scene& scene) {
         camera.desecriptorSetLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
 
         for (auto i = 0; i < 2; i++) {
-            uniformBuffers.emplace_back(*device, sizeof(UniformBufferObject));
+            uniformBuffers.emplace_back(*device, sizeof(MaterialUBO));
             camera.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
         }
 
