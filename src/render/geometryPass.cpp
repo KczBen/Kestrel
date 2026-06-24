@@ -48,7 +48,7 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
             }
         };
 
-        buildDraws(object.model, object.model.getModelMatrix());
+        buildDraws(object.model, glm::mat4(1.0f));
     }
 
     for (const auto& [material, drawCalls] : drawCalls) {
