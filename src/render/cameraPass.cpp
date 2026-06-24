@@ -5,18 +5,21 @@
 namespace Render {
 
 auto CameraPass::supportedMaterialTypes() const -> uint32_t {
-    return (1u << static_cast<uint32_t>(Material::BlendMode::Opaque)) |
-           (1u << static_cast<uint32_t>(Material::BlendMode::Alpha)) |
-           (1u << static_cast<uint32_t>(Material::BlendMode::Premultiplied)) |
-           (1u << static_cast<uint32_t>(Material::BlendMode::Additive));
+    return (1U << static_cast<uint32_t>(Material::BlendMode::Opaque)) |
+           (1U << static_cast<uint32_t>(Material::BlendMode::Alpha)) |
+           (1U << static_cast<uint32_t>(Material::BlendMode::Premultiplied)) |
+           (1U << static_cast<uint32_t>(Material::BlendMode::Additive));
 }
 
 CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager,
-                       const std::vector<RenderTargetHandle>& targets,
-                       const std::vector<RenderTargetHandle>& inputs,
+                       const std::vector<RenderTargetAttachment>& inputs,
+                       const std::vector<RenderTargetAttachment>& colorAttachments,
+                       const RenderTargetAttachment& depthInput,
+                       const RenderTargetAttachment& depthOutput,
                        MaterialHandle materialHandle,
                        Camera* camera)
-    : Pass(pipelineManager, targets, inputs), materialHandle(materialHandle), camera(camera) {}
+    : Pass(pipelineManager, inputs, colorAttachments, depthInput, depthOutput), materialHandle(materialHandle),
+      camera(camera) {}
 
 void CameraPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);

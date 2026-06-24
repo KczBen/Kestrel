@@ -13,11 +13,13 @@ auto GeometryPass::supportedMaterialTypes() const -> uint32_t {
 }
 
 GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager,
-                           const std::vector<RenderTargetHandle>& targets,
-                           const std::vector<RenderTargetHandle>& inputs,
+                           const std::vector<RenderTargetAttachment>& inputs,
+                           const std::vector<RenderTargetAttachment>& colorAttachments,
+                           const RenderTargetAttachment& depthInput,
+                           const RenderTargetAttachment& depthOutput,
                            std::span<const Object> models,
                            Camera* camera)
-    : Pass(pipelineManager, targets, inputs), models(models), camera(camera) {}
+    : Pass(pipelineManager, inputs, colorAttachments, depthInput, depthOutput), models(models), camera(camera) {}
 
 void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);

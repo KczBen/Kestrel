@@ -6,12 +6,14 @@ namespace Render {
 class CameraPass : public Pass {
   private:
     Camera* camera;
-    MaterialHandle materialHandle;
+    MaterialHandle materialHandle{};
 
   public:
     CameraPass(Vulkan::PipelineManager& pipelineManager,
-               const std::vector<RenderTargetHandle>& targets,
-               const std::vector<RenderTargetHandle>& inputs,
+               const std::vector<RenderTargetAttachment>& inputs,
+               const std::vector<RenderTargetAttachment>& colorAttachments,
+               const RenderTargetAttachment& depthInput,
+               const RenderTargetAttachment& depthOutput,
                MaterialHandle materialHandle,
                Camera* camera);
 
