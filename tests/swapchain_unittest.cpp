@@ -18,7 +18,7 @@ class SwapchainFixture : public ::testing::Test {
     Swapchain swapchain{physicalDevice, device, surface, 800, 600};
 };
 
-TEST_F(SwapchainFixture, GetReturnsNonNull) { ASSERT_NE(swapchain.get(), nullptr); }
+TEST_F(SwapchainFixture, GetReturnsNonNull) { ASSERT_NE(*swapchain, nullptr); }
 
 TEST_F(SwapchainFixture, FormatReturnsCorrect) {
     // Check that the format returned by the swapchain is one of the supported formats reported by the physical device
@@ -51,7 +51,7 @@ TEST_F(SwapchainFixture, GetImageReturnsValid) {
 // Cover the other constructor
 TEST_F(SwapchainFixture, PairConstructorProducesValidSwapchain) {
     Swapchain sc{physicalDevice, device, surface, std::make_pair(800u, 600u)};
-    ASSERT_NE(sc.get(), nullptr);
+    ASSERT_NE(*sc, nullptr);
     EXPECT_GT(sc.getImages().size(), 0u);
     EXPECT_NE(sc.getExtent().width, 0u);
     EXPECT_NE(sc.getExtent().height, 0u);
@@ -107,12 +107,12 @@ TEST_F(SwapchainFixture, RecreateFormatReturnsCorrect) {
 
 TEST_F(SwapchainFixture, RecreateReturnsNonNull) {
     swapchain.recreate(device, surface, 1024, 768);
-    ASSERT_NE(swapchain.get(), nullptr);
+    ASSERT_NE(*swapchain, nullptr);
 }
 
 // Recreate with the same dimensions, covers an additional branch
 TEST_F(SwapchainFixture, RecreateSameSizeStillValid) {
     swapchain.recreate(device, surface, 800, 600);
-    ASSERT_NE(swapchain.get(), nullptr);
+    ASSERT_NE(*swapchain, nullptr);
     EXPECT_GT(swapchain.getImages().size(), 0u);
 }

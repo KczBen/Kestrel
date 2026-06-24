@@ -25,11 +25,11 @@ void CameraPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);
 
     auto& pipeline = getPipelineManager()->getOrCreatePipeline(materialHandle, *camera, vk::Format::eB8G8R8A8Srgb);
-    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
+    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
     const Vulkan::DescriptorSet& cameraWS = camera->getDescriptorSet(frameIndex);
 
-    const std::array<vk::DescriptorSet, 1> rawSets = {cameraWS.get()};
+    const std::array<vk::DescriptorSet, 1> rawSets = {*cameraWS};
 
     cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, rawSets, nullptr);
 

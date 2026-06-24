@@ -4,7 +4,7 @@
 Vulkan::CommandPool::CommandPool(Vulkan::PhysicalDevice& physicalDevice,
                                  Vulkan::Device& device,
                                  uint32_t maxFramesInFlight)
-    : device(&device.get()), graphicsQueue(device.getGraphicsQueue()) {
+    : device(&*device), graphicsQueue(device.getGraphicsQueue()) {
     const auto& indices = physicalDevice.getQueueFamilyIndices();
     if (!indices.computeFamily.has_value()) {
         throw std::runtime_error("Compute queue family not found");
@@ -87,9 +87,9 @@ void Vulkan::CommandPool::generateMipmaps(Vulkan::Image& image, vk::CommandBuffe
                                   vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, i, 0, 1),
                                   dstOffsets);
 
-        const vk::BlitImageInfo2 blitInfo(image.get(),
+        const vk::BlitImageInfo2 blitInfo(*image,
                                           vk::ImageLayout::eTransferSrcOptimal,
-                                          image.get(),
+                                          *image,
                                           vk::ImageLayout::eTransferDstOptimal,
                                           1,
                                           &blit,

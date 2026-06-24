@@ -11,6 +11,8 @@ class DescriptorPool {
 
   public:
     DescriptorPool(Vulkan::Device& device);
+    [[nodiscard]] auto operator*() const -> const vk::raii::DescriptorPool& { return pool; }
+    [[nodiscard]] auto operator->() const -> const vk::raii::DescriptorPool* { return &pool; }
     auto get() -> const vk::raii::DescriptorPool&;
 };
 } // namespace Vulkan

@@ -46,6 +46,7 @@ class DeviceBuffer {
         return *this;
     }
 
+    [[nodiscard]] auto operator*() const noexcept -> vk::Buffer { return buffer; }
     [[nodiscard]] auto get() const noexcept -> vk::Buffer;
     [[nodiscard]] auto size() const noexcept -> vk::DeviceSize;
 };

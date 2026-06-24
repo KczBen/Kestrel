@@ -48,6 +48,8 @@ class PhysicalDevice {
     auto getExtensions() -> const std::vector<const char*>&;
     auto getQueueFamilyIndices() -> const QueueFamilyIndices&;
     auto getSwapChainSupportDetails() -> const SwapChainSupportDetails&;
+    [[nodiscard]] auto operator*() -> vk::raii::PhysicalDevice& { return physicalDevice; }
+    [[nodiscard]] auto operator->() -> vk::raii::PhysicalDevice* { return &physicalDevice; }
     auto get() -> vk::raii::PhysicalDevice&;
 };
 } // namespace Vulkan

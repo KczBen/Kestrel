@@ -12,6 +12,8 @@ class DescriptorSetLayout {
 
   public:
     DescriptorSetLayout(Vulkan::Device& device, std::span<const vk::DescriptorSetLayoutBinding> bindings);
+    [[nodiscard]] auto operator*() const -> const vk::raii::DescriptorSetLayout& { return layout; }
+    [[nodiscard]] auto operator->() const -> const vk::raii::DescriptorSetLayout* { return &layout; }
     [[nodiscard]] auto get() const -> const vk::raii::DescriptorSetLayout&;
 };
 

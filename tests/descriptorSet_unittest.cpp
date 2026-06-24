@@ -29,7 +29,7 @@ class DescriptorSetLayoutFixture : public DeviceFixture {
     DescriptorSetLayout layout{device, bindings};
 };
 
-TEST_F(DescriptorSetLayoutFixture, GetReturnsNonNull) { ASSERT_NE(*layout.get(), VK_NULL_HANDLE); }
+TEST_F(DescriptorSetLayoutFixture, GetReturnsNonNull) { ASSERT_NE(*layout, VK_NULL_HANDLE); }
 
 class DescriptorSetFixture : public DescriptorSetLayoutFixture {
   protected:
@@ -37,13 +37,13 @@ class DescriptorSetFixture : public DescriptorSetLayoutFixture {
     DescriptorSet descriptorSet{device, pool, layout};
 };
 
-TEST_F(DescriptorSetFixture, GetReturnsNonNull) { ASSERT_NE(*descriptorSet.get(), VK_NULL_HANDLE); }
+TEST_F(DescriptorSetFixture, GetReturnsNonNull) { ASSERT_NE(*descriptorSet, VK_NULL_HANDLE); }
 
 // Covers the eUniformBuffer branch in write()
 TEST_F(DescriptorSetFixture, WriteUniformBuffer) {
     const HostBuffer ubo{device, sizeof(float) * 16}; // defaults to eUniformBuffer
 
-    const vk::DescriptorBufferInfo bufferInfo{ubo.get(), 0, sizeof(float) * 16};
+    const vk::DescriptorBufferInfo bufferInfo{*ubo, 0, sizeof(float) * 16};
 
     DescriptorWrite write{};
     write.binding = 0;
@@ -67,7 +67,7 @@ class DescriptorSetStorageFixture : public DeviceFixture {
 TEST_F(DescriptorSetStorageFixture, WriteStorageBuffer) {
     const HostBuffer ssbo{device, sizeof(float) * 64, vk::BufferUsageFlagBits::eStorageBuffer};
 
-    const vk::DescriptorBufferInfo bufferInfo{ssbo.get(), 0, sizeof(float) * 64};
+    const vk::DescriptorBufferInfo bufferInfo{*ssbo, 0, sizeof(float) * 64};
 
     DescriptorWrite write{};
     write.binding = 0;
@@ -101,9 +101,9 @@ TEST_F(DescriptorSetSamplerFixture, WriteImageSampler) {
                                             vk::SamplerAddressMode::eRepeat,
                                             vk::SamplerAddressMode::eRepeat,
                                             vk::SamplerAddressMode::eRepeat};
-    auto sampler = device.get().createSampler(samplerInfo);
+    auto sampler = device->createSampler(samplerInfo);
 
-    const vk::DescriptorImageInfo imageInfo{*sampler, *img.getImageView(), vk::ImageLayout::eShaderReadOnlyOptimal};
+    const vk::DescriptorImageInfo imageInfo{sampler, img.getImageView(), vk::ImageLayout::eShaderReadOnlyOptimal};
 
     DescriptorWrite write{};
     write.binding = 0;

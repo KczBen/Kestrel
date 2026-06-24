@@ -18,7 +18,7 @@ class HostBufferFixture : public ::testing::Test {
     HostBuffer buffer{device, 256};
 };
 
-TEST_F(HostBufferFixture, GetReturnsNonNull) { ASSERT_NE(buffer.get(), VK_NULL_HANDLE); }
+TEST_F(HostBufferFixture, GetReturnsNonNull) { ASSERT_NE(*buffer, VK_NULL_HANDLE); }
 
 TEST_F(HostBufferFixture, UpdateBuffer) {
     float data = 42.0f;
@@ -29,24 +29,24 @@ TEST_F(HostBufferFixture, UpdateBuffer) {
 TEST_F(HostBufferFixture, MoveConstructor) {
     HostBuffer buffer1{device, 128};
     HostBuffer buffer2(std::move(buffer1));
-    ASSERT_EQ(buffer1.get(), VK_NULL_HANDLE);
-    ASSERT_NE(buffer2.get(), VK_NULL_HANDLE);
+    ASSERT_EQ(*buffer1, VK_NULL_HANDLE);
+    ASSERT_NE(*buffer2, VK_NULL_HANDLE);
 }
 
 TEST_F(HostBufferFixture, MoveAssignment) {
     HostBuffer buffer1{device, 64};
     HostBuffer buffer2{device, 32};
     buffer2 = std::move(buffer1);
-    ASSERT_EQ(buffer1.get(), VK_NULL_HANDLE);
-    ASSERT_NE(buffer2.get(), VK_NULL_HANDLE);
+    ASSERT_EQ(*buffer1, VK_NULL_HANDLE);
+    ASSERT_NE(*buffer2, VK_NULL_HANDLE);
 }
 
 TEST_F(HostBufferFixture, UniformBufferUsage) {
     HostBuffer buffer{device, 64, vk::BufferUsageFlagBits::eUniformBuffer};
-    ASSERT_NE(buffer.get(), VK_NULL_HANDLE);
+    ASSERT_NE(*buffer, VK_NULL_HANDLE);
 }
 
 TEST_F(HostBufferFixture, StorageBufferUsage) {
     HostBuffer buffer{device, 128, vk::BufferUsageFlagBits::eStorageBuffer};
-    ASSERT_NE(buffer.get(), VK_NULL_HANDLE);
+    ASSERT_NE(*buffer, VK_NULL_HANDLE);
 }

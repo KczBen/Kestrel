@@ -54,7 +54,7 @@ Vulkan::Image::Image(Vulkan::Device& device,
     const vk::ImageViewCreateInfo viewInfo(
         {}, image, vk::ImageViewType::e2D, format, {}, vk::ImageSubresourceRange(aspectFlags, 0, mipLevelCount, 0, 1));
 
-    imageView = vk::raii::ImageView(device.get(), viewInfo);
+    imageView = vk::raii::ImageView(*device, viewInfo);
 }
 
 auto Vulkan::Image::get() -> const vk::Image& { return image; }

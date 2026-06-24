@@ -17,4 +17,4 @@ class DescriptorPoolFixture : public ::testing::Test {
     DescriptorPool descriptorPool{device};
 };
 
-TEST_F(DescriptorPoolFixture, GetReturnsNonNull) { ASSERT_NE(*descriptorPool.get(), VK_NULL_HANDLE); }
+TEST_F(DescriptorPoolFixture, GetReturnsNonNull) { ASSERT_NE(*descriptorPool, VK_NULL_HANDLE); }

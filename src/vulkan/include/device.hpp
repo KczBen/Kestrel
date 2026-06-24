@@ -18,7 +18,9 @@ class Device {
 
   public:
     Device(Vulkan::PhysicalDevice& physicalDevice, Vulkan::Instance& instance);
-    auto get() -> const vk::raii::Device&;
+    [[nodiscard]] auto operator*() -> const vk::raii::Device& { return logicalDevice; }
+    [[nodiscard]] auto operator->() -> vk::raii::Device* { return &logicalDevice; }
+    [[nodiscard]] auto get() -> const vk::raii::Device&;
     auto getPhysicalDevice() -> const vk::raii::PhysicalDevice*;
     auto getGraphicsQueue() -> const vk::raii::Queue&;
     auto getPresentQueue() -> const vk::raii::Queue&;

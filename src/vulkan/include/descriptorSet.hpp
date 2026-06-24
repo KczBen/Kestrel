@@ -24,6 +24,8 @@ class DescriptorSet {
 
     void write(std::span<const DescriptorWrite> writes);
 
+    [[nodiscard]] auto operator*() const -> const vk::raii::DescriptorSet& { return descriptorSet; }
+    [[nodiscard]] auto operator->() const -> const vk::raii::DescriptorSet* { return &descriptorSet; }
     [[nodiscard]] auto get() const -> const vk::raii::DescriptorSet&;
 };
 

@@ -3,7 +3,7 @@
 
 Vulkan::DescriptorSetLayout::DescriptorSetLayout(Vulkan::Device& device,
                                                  std::span<const vk::DescriptorSetLayoutBinding> bindings)
-    : device(&device.get()) {
+    : device(&*device) {
     const vk::DescriptorSetLayoutCreateInfo layoutInfo({}, bindings.size(), bindings.data());
 
     layout = vk::raii::DescriptorSetLayout(*this->device, layoutInfo);

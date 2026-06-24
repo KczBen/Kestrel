@@ -20,12 +20,12 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
                                            vk::ColorComponentFlags colorWriteMask,
                                            vk::SampleCountFlagBits sampleCount,
                                            bool useVertexBinding)
-    : device(&device.get()), vertexModule(this->device, vertexShader), fragmentModule(this->device, fragmentShader) {
+    : device(&*device), vertexModule(this->device, vertexShader), fragmentModule(this->device, fragmentShader) {
     const vk::PipelineShaderStageCreateInfo vertexShaderStageInfo(
-        vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eVertex, vertexModule.get(), "main");
+        vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eVertex, *vertexModule, "main");
 
     const vk::PipelineShaderStageCreateInfo fragmentShaderStageInfo(
-        vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eFragment, fragmentModule.get(), "main");
+        vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eFragment, *fragmentModule, "main");
 
     const vk::PipelineShaderStageCreateInfo shaderStages[] = {vertexShaderStageInfo, fragmentShaderStageInfo};
 
@@ -88,7 +88,7 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
     rawLayouts.reserve(layouts.size());
 
     for (auto& layout : layouts) {
-        rawLayouts.push_back(layout->get());
+        rawLayouts.push_back(**layout);
     }
 
     const vk::PipelineLayoutCreateInfo pipelineLayoutInfo(

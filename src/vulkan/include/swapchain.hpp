@@ -30,6 +30,8 @@ class Swapchain {
               std::pair<uint32_t, uint32_t> extent);
 
     void recreate(Vulkan::Device& device, Vulkan::Surface& surface, uint32_t width, uint32_t height);
+    [[nodiscard]] auto operator*() const -> const vk::raii::SwapchainKHR& { return swapchain; }
+    [[nodiscard]] auto operator->() const -> const vk::raii::SwapchainKHR* { return &swapchain; }
     auto get() -> const vk::raii::SwapchainKHR&;
     auto getFormat() -> const vk::Format&;
     auto getExtent() -> const vk::Extent2D&;

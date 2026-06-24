@@ -61,7 +61,7 @@ class DebugMessengerGuard {
                                  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         createInfo.pfnUserCallback = validationMessageCallback;
 
-        vk::raii::Instance& raiiInstance = instance.get();
+        vk::raii::Instance& raiiInstance = *instance;
         auto createFunc = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
             *reinterpret_cast<VkInstance*>(&raiiInstance), "vkCreateDebugUtilsMessengerEXT");
         if (createFunc) {
@@ -69,7 +69,7 @@ class DebugMessengerGuard {
             VkResult result =
                 createFunc(*reinterpret_cast<VkInstance*>(&raiiInstance), &createInfo, nullptr, &messenger);
             if (result == VK_SUCCESS) {
-                debugMessenger_ = std::make_unique<vk::raii::DebugUtilsMessengerEXT>(instance.get(), messenger);
+                debugMessenger_ = std::make_unique<vk::raii::DebugUtilsMessengerEXT>(*instance, messenger);
             }
         }
     }

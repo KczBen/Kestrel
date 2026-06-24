@@ -18,7 +18,7 @@ class UploadBufferFixture : public ::testing::Test {
     UploadBuffer buffer{device, 4096};
 };
 
-TEST_F(UploadBufferFixture, GetReturnsNonNull) { ASSERT_NE(buffer.get(), VK_NULL_HANDLE); }
+TEST_F(UploadBufferFixture, GetReturnsNonNull) { ASSERT_NE(*buffer, VK_NULL_HANDLE); }
 
 TEST_F(UploadBufferFixture, AllocateSmallBuffer) {
     const auto alloc = buffer.allocate(64);
@@ -52,16 +52,16 @@ TEST_F(UploadBufferFixture, ResetResetsHead) {
 TEST_F(UploadBufferFixture, MoveConstructor) {
     UploadBuffer buffer1{device, 1024};
     UploadBuffer buffer2(std::move(buffer1));
-    ASSERT_EQ(buffer1.get(), VK_NULL_HANDLE);
-    ASSERT_NE(buffer2.get(), VK_NULL_HANDLE);
+    ASSERT_EQ(*buffer1, VK_NULL_HANDLE);
+    ASSERT_NE(*buffer2, VK_NULL_HANDLE);
 }
 
 TEST_F(UploadBufferFixture, MoveAssignment) {
     UploadBuffer buffer1{device, 512};
     UploadBuffer buffer2{device, 256};
     buffer2 = std::move(buffer1);
-    ASSERT_EQ(buffer1.get(), VK_NULL_HANDLE);
-    ASSERT_NE(buffer2.get(), VK_NULL_HANDLE);
+    ASSERT_EQ(*buffer1, VK_NULL_HANDLE);
+    ASSERT_NE(*buffer2, VK_NULL_HANDLE);
 }
 
 TEST_F(UploadBufferFixture, OutOfSpaceThrows) {

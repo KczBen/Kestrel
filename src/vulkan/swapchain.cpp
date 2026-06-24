@@ -8,7 +8,7 @@ Vulkan::Swapchain::Swapchain(Vulkan::PhysicalDevice& physicalDevice,
                              Vulkan::Surface& surface,
                              uint32_t width,
                              uint32_t height)
-    : device(&device.get()), physicalDevice(physicalDevice), swapchainFormat(vk::Format::eB8G8R8A8Srgb) {
+    : device(&*device), physicalDevice(physicalDevice), swapchainFormat(vk::Format::eB8G8R8A8Srgb) {
     createSwapchain(device, surface, width, height);
 }
 
@@ -16,7 +16,7 @@ Vulkan::Swapchain::Swapchain(Vulkan::PhysicalDevice& physicalDevice,
                              Vulkan::Device& device,
                              Vulkan::Surface& surface,
                              std::pair<uint32_t, uint32_t> extent)
-    : device(&device.get()), physicalDevice(physicalDevice), swapchainFormat(vk::Format::eB8G8R8A8Srgb) {
+    : device(&*device), physicalDevice(physicalDevice), swapchainFormat(vk::Format::eB8G8R8A8Srgb) {
     createSwapchain(device, surface, extent.first, extent.second);
 }
 
@@ -84,7 +84,7 @@ void Vulkan::Swapchain::createSwapchain(Vulkan::Device& device,
 
     const vk::SwapchainCreateInfoKHR cInfo(
         vk::SwapchainCreateFlagsKHR(),
-        surface.get(),
+        *surface,
         imageCount,
         surfaceFormat.format,
         surfaceFormat.colorSpace,

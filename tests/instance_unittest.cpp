@@ -9,4 +9,4 @@ class InstanceFixture : public ::testing::Test {
         "TestApp", std::array<const char* const, 2>{vk::KHRSurfaceExtensionName, vk::EXTHeadlessSurfaceExtensionName}};
 };
 
-TEST_F(InstanceFixture, GetReturnsNonNull) { ASSERT_NE(instance.get(), nullptr); }
+TEST_F(InstanceFixture, GetReturnsNonNull) { ASSERT_NE(*instance, nullptr); }

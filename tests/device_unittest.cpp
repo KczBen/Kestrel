@@ -16,7 +16,7 @@ class DeviceFixture : public ::testing::Test {
     Device device{physicalDevice, instance};
 };
 
-TEST_F(DeviceFixture, GetReturnsNonNull) { ASSERT_NE(device.get(), nullptr); }
+TEST_F(DeviceFixture, GetReturnsNonNull) { ASSERT_NE(*device, nullptr); }
 
 TEST_F(DeviceFixture, PhysicalDeviceHandleNonNull) { ASSERT_NE(device.getPhysicalDevice(), nullptr); }
 

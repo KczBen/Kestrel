@@ -2,7 +2,7 @@
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 
-Vulkan::DescriptorPool::DescriptorPool(Vulkan::Device& device) : device(&device.get()) {
+Vulkan::DescriptorPool::DescriptorPool(Vulkan::Device& device) : device(&*device) {
     std::array poolSize{vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 1000),
                         vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1000)};
 

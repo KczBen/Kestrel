@@ -2,7 +2,7 @@
 #include "commandPool.hpp"
 
 Vulkan::UploadContext::UploadContext(Vulkan::Device& device, Vulkan::CommandPool& pool, UploadBuffer& staging)
-    : device(&device.get()), queue(&device.getGraphicsQueue()), pool(&pool.get()), staging(&staging) {
+    : device(&*device), queue(&device.getGraphicsQueue()), pool(&*pool), staging(&staging) {
     const vk::CommandBufferAllocateInfo allocInfo(*this->pool, vk::CommandBufferLevel::ePrimary, 1);
 
     vk::raii::CommandBuffers buffers(*this->device, allocInfo);
@@ -21,7 +21,9 @@ void Vulkan::UploadContext::upload(DeviceBuffer& dst, const void* data, vk::Devi
     std::memcpy(alloc.cpuPtr, data, size);
 
     const vk::BufferCopy copy(alloc.offset, offset, size);
-    cmd.copyBuffer(staging->get(), dst.get(), copy);
+    const vk::Buffer stagingBuf = staging->operator*();
+    const vk::Buffer dstBuf = dst.operator*();
+    cmd.copyBuffer(stagingBuf, dstBuf, copy);
 }
 
 void Vulkan::UploadContext::upload(Texture& texture) {
@@ -46,7 +48,7 @@ void Vulkan::UploadContext::upload(Texture& texture) {
                                          vk::ImageAspectFlagBits::eColor,
                                          cmd);
 
-    cmd.copyBufferToImage(staging->get(), texture.image.image, vk::ImageLayout::eTransferDstOptimal, region);
+    cmd.copyBufferToImage(staging->operator*(), texture.image.image, vk::ImageLayout::eTransferDstOptimal, region);
 
     Vulkan::CommandPool::generateMipmaps(texture.image, cmd);
 

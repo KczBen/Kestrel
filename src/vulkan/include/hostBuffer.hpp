@@ -58,6 +58,7 @@ class HostBuffer {
 
     void update(const void* data, vk::DeviceSize dataSize);
 
+    [[nodiscard]] auto operator*() const noexcept -> vk::Buffer { return buffer; }
     [[nodiscard]] auto get() const noexcept -> vk::Buffer;
 };
 

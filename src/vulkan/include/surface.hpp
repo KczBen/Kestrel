@@ -14,6 +14,8 @@ class Surface {
 
     // Only for testing! Makes a headless surface, it's useless for other tasks
     Surface(Vulkan::Instance& instance);
+    [[nodiscard]] auto operator*() -> vk::raii::SurfaceKHR& { return surface; }
+    [[nodiscard]] auto operator->() -> vk::raii::SurfaceKHR* { return &surface; }
     auto get() -> vk::raii::SurfaceKHR&;
 };
 } // namespace Vulkan

@@ -20,7 +20,7 @@ class CommandPoolFixture : public ::testing::Test {
     CommandPool commandPool{physicalDevice, device, maxFramesInFlight};
 };
 
-TEST_F(CommandPoolFixture, GetReturnsNonNull) { ASSERT_NE(*commandPool.get(), VK_NULL_HANDLE); }
+TEST_F(CommandPoolFixture, GetReturnsNonNull) { ASSERT_NE(*commandPool, VK_NULL_HANDLE); }
 
 TEST_F(CommandPoolFixture, GetCommandBufferReturnsNonNullForAllFrames) {
     for (uint32_t frame = 0; frame < maxFramesInFlight; ++frame) {

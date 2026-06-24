@@ -96,6 +96,8 @@ class Image {
         return *this;
     }
 
+    [[nodiscard]] auto operator*() const -> const vk::Image& { return image; }
+    [[nodiscard]] auto operator->() const -> const vk::Image* { return &image; }
     auto get() -> const vk::Image&;
     auto getImageView() -> const vk::raii::ImageView&;
     auto getFormat() -> const vk::Format&;

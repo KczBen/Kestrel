@@ -87,7 +87,7 @@ void Render::Render::init(Scene& scene) {
 void Render::Render::render(Scene& scene, float deltaTime) {
     syncObjects.waitForFrame(frameIndex);
 
-    auto [result, imageIndex] = swapchain.get().acquireNextImage(UINT64_MAX, syncObjects.getImageAvailable(frameIndex));
+    auto [result, imageIndex] = (*swapchain).acquireNextImage(UINT64_MAX, syncObjects.getImageAvailable(frameIndex));
 
     if (result == vk::Result::eErrorOutOfDateKHR) {
         auto [w, h] = getCurrentExtent();
@@ -153,9 +153,9 @@ void Render::Render::render(Scene& scene, float deltaTime) {
         std::array{vk::Offset3D(0, 0, 0),
                    vk::Offset3D(static_cast<int32_t>(extent.width), static_cast<int32_t>(extent.height), 1)});
 
-    cmd.blitImage(colorImage.get(),
+    cmd.blitImage(*colorImage,
                   vk::ImageLayout::eTransferSrcOptimal,
-                  swapchain.getImage(imageIndex).get(),
+                  *swapchain.getImage(imageIndex),
                   vk::ImageLayout::eTransferDstOptimal,
                   {blitInfo},
                   vk::Filter::eLinear);
@@ -178,7 +178,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
 
     device->getGraphicsQueue().submit(submitInfo, syncObjects.getFence(frameIndex));
 
-    vk::SwapchainKHR swapchains[] = {swapchain.get()};
+    vk::SwapchainKHR swapchains[] = {*swapchain};
     const vk::PresentInfoKHR presentInfo(1, signalSemaphores, 1, swapchains, &imageIndex);
 
     result = device->getPresentQueue().presentKHR(presentInfo);

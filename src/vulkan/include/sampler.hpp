@@ -35,6 +35,8 @@ class Sampler {
   public:
     Sampler(Device& device, const SamplerConfig& config);
 
+    [[nodiscard]] auto operator*() const -> const vk::raii::Sampler& { return sampler.value(); }
+    [[nodiscard]] auto operator->() const -> const vk::raii::Sampler* { return &sampler.value(); }
     [[nodiscard]] auto get() const -> const vk::raii::Sampler&;
 };
 

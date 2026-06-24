@@ -22,7 +22,7 @@ Vulkan::Sampler::Sampler(Device& device, const SamplerConfig& config) {
                                      config.borderColor,
                                      vk::False);
 
-    sampler = vk::raii::Sampler(device.get(), info);
+    sampler = vk::raii::Sampler(*device, info);
 }
 
 auto Vulkan::Sampler::get() const -> const vk::raii::Sampler& {

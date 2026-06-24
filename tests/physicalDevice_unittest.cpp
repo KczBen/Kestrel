@@ -15,7 +15,7 @@ class PhysicalDeviceFixture : public ::testing::Test {
     PhysicalDevice physicalDevice{instance, surface};
 };
 
-TEST_F(PhysicalDeviceFixture, GetReturnsNonNull) { ASSERT_NE(physicalDevice.get(), nullptr); }
+TEST_F(PhysicalDeviceFixture, GetReturnsNonNull) { ASSERT_NE(*physicalDevice, nullptr); }
 
 TEST_F(PhysicalDeviceFixture, ExtensionsNonEmpty) { ASSERT_FALSE(physicalDevice.getExtensions().empty()); }
 

@@ -25,6 +25,8 @@ class CommandPool {
 
     static void generateMipmaps(Vulkan::Image& image, vk::CommandBuffer cmd);
     auto getCommandBuffer(uint32_t frame) -> const vk::raii::CommandBuffer&;
+    [[nodiscard]] auto operator*() const -> const vk::raii::CommandPool& { return pool; }
+    [[nodiscard]] auto operator->() const -> const vk::raii::CommandPool* { return &pool; }
     auto get() -> const vk::raii::CommandPool&;
 };
 } // namespace Vulkan

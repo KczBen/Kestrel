@@ -356,7 +356,7 @@ void ResourceManager::loadScene(Scene& scene) {
             descriptorSets.emplace_back(*device, descriptorPool, *camera.desecriptorSetLayout);
             const DescriptorWrite uboWrite{.binding = 0,
                                            .type = vk::DescriptorType::eUniformBuffer,
-                                           .bufferInfo = {uniformBuffers[i].get(), 0, sizeof(UniformBufferObject)}};
+                                           .bufferInfo = {*uniformBuffers[i], 0, sizeof(UniformBufferObject)}};
             descriptorSets[i].write(std::span(&uboWrite, 1));
             camera.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
         }

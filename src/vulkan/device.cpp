@@ -9,7 +9,7 @@
 #include "physicalDevice.hpp"
 
 Vulkan::Device::Device(Vulkan::PhysicalDevice& physicalDevice, Vulkan::Instance& instance)
-    : physicalDevice(&physicalDevice.get()), memoryAllocator(nullptr) {
+    : physicalDevice(&*physicalDevice), memoryAllocator(nullptr) {
     auto indices = physicalDevice.getQueueFamilyIndices();
     const float queuePriority = 1.0F;
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
@@ -47,7 +47,7 @@ Vulkan::Device::Device(Vulkan::PhysicalDevice& physicalDevice, Vulkan::Instance&
                                                 nullptr,
                                                 &featureChain.get<vk::PhysicalDeviceFeatures2>());
 
-    logicalDevice = vk::raii::Device(physicalDevice.get(), deviceCreateInfo);
+    logicalDevice = vk::raii::Device(*physicalDevice, deviceCreateInfo);
 
     graphicsQueue = logicalDevice.getQueue(indices.graphicsFamily.value(), 0);
     presentQueue = logicalDevice.getQueue(indices.presentFamily.value(), 0);
@@ -56,12 +56,12 @@ Vulkan::Device::Device(Vulkan::PhysicalDevice& physicalDevice, Vulkan::Instance&
     auto allocatorFlags = VMA_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT;
 
     auto allocatorCreateInfo = VmaAllocatorCreateInfo{.flags = allocatorFlags,
-                                                      .physicalDevice = *physicalDevice.get(),
-                                                      .device = *logicalDevice,
+                                                      .physicalDevice = **physicalDevice,
+                                                      .device = *get(),
                                                       .pAllocationCallbacks{},
                                                       .pDeviceMemoryCallbacks{},
                                                       .pHeapSizeLimit{},
-                                                      .instance = *instance.get(),
+                                                      .instance = **instance,
                                                       .vulkanApiVersion = vk::ApiVersion14,
                                                       .pTypeExternalMemoryHandleTypes{}};
 

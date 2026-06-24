@@ -11,6 +11,8 @@ class Semaphore {
 
   public:
     Semaphore(Vulkan::Device& device);
+    [[nodiscard]] auto operator*() const -> const vk::raii::Semaphore& { return semaphore; }
+    [[nodiscard]] auto operator->() const -> const vk::raii::Semaphore* { return &semaphore; }
     auto get() -> const vk::raii::Semaphore&;
 };
 } // namespace Vulkan

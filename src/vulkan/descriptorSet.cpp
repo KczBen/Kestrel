@@ -7,10 +7,10 @@
 Vulkan::DescriptorSet::DescriptorSet(Vulkan::Device& device,
                                      Vulkan::DescriptorPool& pool,
                                      Vulkan::DescriptorSetLayout& layout)
-    : device(&device.get()) {
-    const vk::DescriptorSetLayout rawLayout = layout.get();
+    : device(&*device) {
+    const vk::DescriptorSetLayout rawLayout = *layout;
 
-    const vk::DescriptorSetAllocateInfo allocInfo{pool.get(), 1, &rawLayout};
+    const vk::DescriptorSetAllocateInfo allocInfo{*pool, 1, &rawLayout};
 
     auto sets = this->device->allocateDescriptorSets(allocInfo);
     descriptorSet = std::move(sets.front());

@@ -15,6 +15,8 @@ class ShaderModule {
 
   public:
     ShaderModule(const vk::raii::Device* device, const ShaderDef& shader);
+    [[nodiscard]] auto operator*() const -> const vk::raii::ShaderModule& { return shaderModule; }
+    [[nodiscard]] auto operator->() const -> const vk::raii::ShaderModule* { return &shaderModule; }
     auto get() -> const vk::raii::ShaderModule&;
 };
 } // namespace Vulkan

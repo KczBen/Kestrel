@@ -5,7 +5,7 @@
 #include "surface.hpp"
 
 Vulkan::PhysicalDevice::PhysicalDevice(Vulkan::Instance& instance, Vulkan::Surface& surface) {
-    auto devices = instance.get().enumeratePhysicalDevices();
+    auto devices = (*instance).enumeratePhysicalDevices();
 
     for (auto& device : devices) {
         if (isDeviceSuitable(surface, device)) {
@@ -41,7 +41,7 @@ void Vulkan::PhysicalDevice::findQueueFamilies(Vulkan::Surface& surface, vk::rai
             queueFamilyIndices.computeFamily = i;
         }
 
-        auto presentSupport = device.getSurfaceSupportKHR(i, surface.get());
+        auto presentSupport = device.getSurfaceSupportKHR(i, *surface);
 
         if (presentSupport != 0u) {
             queueFamilyIndices.presentFamily = i;
@@ -68,9 +68,9 @@ auto Vulkan::PhysicalDevice::checkDeviceExtensionSupport(vk::raii::PhysicalDevic
 
 auto Vulkan::PhysicalDevice::querySwapChainSupport(Vulkan::Surface& surface, vk::raii::PhysicalDevice& device)
     -> Vulkan::PhysicalDevice::SwapChainSupportDetails {
-    SwapChainSupportDetails details{.capabilities = device.getSurfaceCapabilitiesKHR(surface.get()),
-                                    .formats = device.getSurfaceFormatsKHR(surface.get()),
-                                    .presentModes = device.getSurfacePresentModesKHR(surface.get())};
+    SwapChainSupportDetails details{.capabilities = device.getSurfaceCapabilitiesKHR(*surface),
+                                    .formats = device.getSurfaceFormatsKHR(*surface),
+                                    .presentModes = device.getSurfacePresentModesKHR(*surface)};
 
     return details;
 }

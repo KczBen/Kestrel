@@ -11,6 +11,8 @@ class Fence {
 
   public:
     Fence(Vulkan::Device& device, vk::FenceCreateFlags flags);
+    [[nodiscard]] auto operator*() const -> const vk::raii::Fence& { return fence; }
+    [[nodiscard]] auto operator->() const -> const vk::raii::Fence* { return &fence; }
     auto get() -> const vk::raii::Fence&;
 };
 } // namespace Vulkan

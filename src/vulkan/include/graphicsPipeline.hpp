@@ -33,6 +33,8 @@ class GraphicsPipeline {
                      vk::SampleCountFlagBits sampleCount,
                      bool useVertexBinding);
 
+    [[nodiscard]] auto operator*() const -> const vk::raii::Pipeline& { return pipeline; }
+    [[nodiscard]] auto operator->() const -> const vk::raii::Pipeline* { return &pipeline; }
     auto get() -> const vk::raii::Pipeline&;
     auto getLayout() -> const vk::raii::PipelineLayout&;
 };
