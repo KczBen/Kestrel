@@ -381,7 +381,7 @@ void FrameGraph::execute(vk::CommandBuffer cmd, uint32_t frameIndex, const std::
         }
 
         const vk::Viewport viewport(
-            0.0, 1.0, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0, 1.0);
+            0.0, 0.0, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0, 1.0);
 
         cmd.setViewport(0, 1, &viewport);
 
