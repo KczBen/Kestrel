@@ -17,15 +17,18 @@ GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager,
                            const std::vector<RenderTargetAttachment>& colorAttachments,
                            const RenderTargetAttachment& depthInput,
                            const RenderTargetAttachment& depthOutput,
+                           std::optional<MaterialHandle> optMaterial,
                            std::span<const Object> models,
                            Camera* camera)
-    : Pass(pipelineManager, inputs, colorAttachments, depthInput, depthOutput), models(models), camera(camera) {}
+    : Pass(pipelineManager, inputs, colorAttachments, depthInput, depthOutput), models(models), camera(camera),
+      optMaterial(optMaterial) {}
 
 void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);
 
     struct DrawCall {
         Primitive primitive;
+        MaterialHandle material;
         glm::mat4 transform{};
     };
 
@@ -40,7 +43,8 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
             const glm::mat4 worldTransform = parentTransform * node.getModelMatrix();
 
             for (const auto& primitive : node.primitives) {
-                drawCalls[primitive.material].push_back({primitive, worldTransform});
+                auto materialHandle = optMaterial.value_or(primitive.material);
+                drawCalls[materialHandle].push_back({primitive, materialHandle, worldTransform});
             }
 
             for (const auto& child : node.children) {

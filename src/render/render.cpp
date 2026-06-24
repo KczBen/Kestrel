@@ -18,6 +18,7 @@
 #include <glm/common.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <memory>
+#include <optional>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -78,6 +79,7 @@ void Render::Render::init(Scene& scene) {
                      {{colorTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore}},
                      {},
                      {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
+                     std::nullopt,
                      scene.getObjects(),
                      &scene.getCamera())));
 
