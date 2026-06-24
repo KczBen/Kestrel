@@ -79,7 +79,7 @@ class Material {
              vk::CullModeFlagBits cullMode = vk::CullModeFlagBits::eBack,
              bool depthTest = true,
              bool depthWrite = true,
-             vk::CompareOp depthCompare = vk::CompareOp::eLess,
+             vk::CompareOp depthCompare = vk::CompareOp::eLessOrEqual,
              BlendMode colorBlendMode = BlendMode::Opaque,
              vk::ColorComponentFlags colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
                                                       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);

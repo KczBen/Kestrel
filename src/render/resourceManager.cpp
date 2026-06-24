@@ -47,6 +47,17 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
                                     false,
                                     vk::CompareOp::eLessOrEqual));
 
+    materials.push_back(Material(ShaderDef{.filePath = "shaders/depthVert.glsl", .stage = EShLangVertex},
+                                 ShaderDef{.filePath = "shaders/depthFrag.glsl", .stage = EShLangFragment},
+                                 {},
+                                 {vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))},
+                                 Material::VertexInputMode::Mesh,
+                                 vk::CullModeFlagBits::eBack,
+                                 true,
+                                 true,
+                                 vk::CompareOp::eLessOrEqual,
+                                 Material::BlendMode::Opaque));
+
     auto defaultSamplerConfig = Vulkan::SamplerConfig{};
     auto whitePixelHandle = getOrCreateSampler(defaultSamplerConfig);
 
@@ -148,7 +159,7 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
                             cullMode,
                             true, // depthTest
                             true, // depthWrite
-                            vk::CompareOp::eLess,
+                            vk::CompareOp::eLessOrEqual,
                             blendMode);
 
         uniformBuffers.emplace_back(*device, sizeof(UniformBufferObject));

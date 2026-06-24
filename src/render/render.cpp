@@ -64,11 +64,22 @@ void Render::Render::init(Scene& scene) {
                                                       vk::ImageUsageFlagBits::eDepthStencilAttachment,
                                                       vk::ImageAspectFlagBits::eDepth);
 
+    auto& materials = resourceManager->getMaterialList();
+    frameGraph.addPass(std::make_unique<GeometryPass>(
+        GeometryPass(resourceManager->getPipelineManager(),
+                     {},
+                     {},
+                     {},
+                     {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
+                     MaterialHandle{&materials, 1},
+                     scene.getObjects(),
+                     &scene.getCamera())));
+
     frameGraph.addPass(std::make_unique<CameraPass>(
         CameraPass(resourceManager->getPipelineManager(),
                    {},
-                   {{colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
-                   {depthTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eDontCare},
+                   {{colorTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore}},
+                   {depthTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore},
                    {},
                    {&resourceManager->getMaterialList(), 0},
                    &scene.getCamera())));
@@ -76,9 +87,9 @@ void Render::Render::init(Scene& scene) {
     frameGraph.addPass(std::make_unique<GeometryPass>(
         GeometryPass(resourceManager->getPipelineManager(),
                      {},
-                     {{colorTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore}},
-                     {},
-                     {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
+                     {{colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
+                     {depthTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore},
+                     {depthTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore},
                      std::nullopt,
                      scene.getObjects(),
                      &scene.getCamera())));
