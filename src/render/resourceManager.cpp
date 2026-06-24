@@ -92,21 +92,75 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
         throw std::runtime_error("Failed to load GLTF: " + path);
     }
 
-    auto uploadTexture = [&](int texIndex) -> TextureHandle {
+    // First pass: collect all texture references from materials to determine format
+    std::unordered_map<int, vk::Format> textureFormats;
+
+    auto assignTextureFormat = [&](int texIndex, vk::Format format) -> void {
+        if (texIndex < 0) {
+            return;
+        }
+        textureFormats.try_emplace(texIndex, format);
+    };
+
+    for (const auto& material : gltfModel.materials) {
+        const auto& pbr = material.pbrMetallicRoughness;
+
+        // Color/albedo textures use sRGB format
+        assignTextureFormat(pbr.baseColorTexture.index, vk::Format::eR8G8B8A8Srgb);
+
+        // Data textures use linear (unsrgb) format
+        assignTextureFormat(pbr.metallicRoughnessTexture.index, vk::Format::eR8G8B8A8Unorm);
+        assignTextureFormat(material.normalTexture.index, vk::Format::eR8G8B8A8Unorm);
+        assignTextureFormat(material.occlusionTexture.index, vk::Format::eR8G8B8A8Unorm);
+
+        // Emissive is typically a color texture
+        assignTextureFormat(material.emissiveTexture.index, vk::Format::eR8G8B8A8Srgb);
+    }
+
+    // Upload each unique texture with its correct format
+    auto uploadTexture = [&](int texIndex, vk::Format format) -> TextureHandle {
         auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
         const auto& tex = gltfModel.textures[texIndex];
         const auto& image = gltfModel.images[tex.source];
         auto texSampler = getOrCreateSampler(Vulkan::SamplerConfig{});
-        textures.emplace_back(*device, image.image.data(), image.width, image.height, texSampler);
+        textures.emplace_back(*device, image.image.data(), image.width, image.height, texSampler, format);
         context.upload(textures.back());
         return TextureHandle{&textures, textures.size() - 1};
     };
 
     std::vector<TextureHandle> textureHandles;
 
+    // Collect unique textures to upload and build handle map
+    std::vector<std::pair<int, vk::Format>> uniqueTextures;
+    uniqueTextures.reserve(textureFormats.size());
+    for (auto& [texIndex, format] : textureFormats) {
+        uniqueTextures.emplace_back(texIndex, format);
+    }
+
+    // Upload unique textures and build index → handle map
+    std::unordered_map<int, TextureHandle> textureHandleMap;
+    for (auto& [texIndex, format] : uniqueTextures) {
+        auto handle = uploadTexture(texIndex, format);
+        textureHandleMap[texIndex] = handle;
+    }
+
+    // Fill in missing texture indices (not used by any material) with default
     textureHandles.reserve(gltfModel.textures.size());
-    for (auto i = 0; i < gltfModel.textures.size(); i++) {
-        textureHandles.emplace_back(uploadTexture(i));
+    for (auto i = 0; i < static_cast<int>(gltfModel.textures.size()); i++) {
+        auto it = textureHandleMap.find(i);
+        if (it != textureHandleMap.end()) {
+            textureHandles.emplace_back(it->second);
+        } else {
+            auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
+            const auto& tex = gltfModel.textures[i];
+            const auto& image = gltfModel.images[tex.source];
+            auto texSampler = getOrCreateSampler(Vulkan::SamplerConfig{});
+            textures.emplace_back(*device, image.image.data(), image.width, image.height, texSampler);
+            context.upload(textures.back());
+            auto defaultHandle = TextureHandle{&textures, textures.size() - 1};
+            textureHandleMap[i] = defaultHandle;
+            textureHandles.emplace_back(defaultHandle);
+        }
     }
 
     std::vector<MaterialHandle> materialHandles;
