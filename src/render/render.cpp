@@ -2,6 +2,7 @@
 
 #include "cameraPass.hpp"
 #include "commandPool.hpp"
+#include "frameGraph.hpp"
 #include "frameSync.hpp"
 #include "geometryPass.hpp"
 #include "image.hpp"
@@ -62,17 +63,25 @@ void Render::Render::init(Scene& scene) {
                                                       vk::ImageUsageFlagBits::eDepthStencilAttachment,
                                                       vk::ImageAspectFlagBits::eDepth);
 
-    const std::vector<RenderTargetHandle> targets = {colorTarget};
-    const std::vector<RenderTargetHandle> inputs;
+    frameGraph.addPass(std::make_unique<CameraPass>(
+        CameraPass(resourceManager->getPipelineManager(),
+                   {},
+                   {{colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
+                   {depthTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eDontCare},
+                   {},
+                   {&resourceManager->getMaterialList(), 0},
+                   &scene.getCamera())));
 
-    passes.emplace_back(std::make_unique<CameraPass>(CameraPass(resourceManager->getPipelineManager(),
-                                                                targets,
-                                                                inputs,
-                                                                {&resourceManager->getMaterialList(), 0},
-                                                                &scene.getCamera())));
+    frameGraph.addPass(std::make_unique<GeometryPass>(
+        GeometryPass(resourceManager->getPipelineManager(),
+                     {},
+                     {{colorTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore}},
+                     {},
+                     {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
+                     scene.getObjects(),
+                     &scene.getCamera())));
 
-    passes.emplace_back(std::make_unique<GeometryPass>(
-        GeometryPass(resourceManager->getPipelineManager(), targets, inputs, scene.getObjects(), &scene.getCamera())));
+    frameGraph.compile();
 }
 
 void Render::Render::render(Scene& scene, float deltaTime) {
@@ -116,46 +125,8 @@ void Render::Render::render(Scene& scene, float deltaTime) {
                                          vk::ImageAspectFlagBits::eDepth,
                                          cmd);
 
-    // Begin render
-    const vk::ClearValue clearColor{std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f}};
-    const vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
-
-    const vk::RenderingAttachmentInfo colorAttachmentInfo(colorImage.getImageView(),
-                                                          vk::ImageLayout::eColorAttachmentOptimal,
-                                                          vk::ResolveModeFlagBits::eNone,
-                                                          colorImage.getImageView(),
-                                                          vk::ImageLayout::eColorAttachmentOptimal,
-                                                          vk::AttachmentLoadOp::eClear,
-                                                          vk::AttachmentStoreOp::eStore,
-                                                          clearColor);
-
-    const vk::RenderingAttachmentInfo depthAttachmentInfo(depthImage.getImageView(),
-                                                          vk::ImageLayout::eDepthAttachmentOptimal,
-                                                          vk::ResolveModeFlagBits::eNone,
-                                                          {},
-                                                          vk::ImageLayout::eUndefined,
-                                                          vk::AttachmentLoadOp::eClear,
-                                                          vk::AttachmentStoreOp::eStore,
-                                                          clearDepth);
-
-    const vk::RenderingInfo renderInfo({}, {{0, 0}, extent}, 1, {}, 1, &colorAttachmentInfo, &depthAttachmentInfo);
-
-    cmd.beginRendering(renderInfo);
-
-    const vk::Viewport viewport(
-        0.0, 1.0, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0, 1.0);
-
-    cmd.setViewport(0, 1, &viewport);
-
-    const vk::Rect2D scissor(VkOffset2D(0), extent);
-    cmd.setScissor(0, 1, &scissor);
-
-    // Draw
-    for (auto& pass : passes) {
-        pass->record(cmd, frameIndex);
-    }
-
-    cmd.endRendering();
+    // Execute frame graph
+    frameGraph.execute(cmd, frameIndex);
 
     // Transition render target to transfer src
     Vulkan::CommandPool::transitionImage(colorImage,

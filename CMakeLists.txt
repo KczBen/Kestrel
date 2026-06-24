@@ -79,6 +79,7 @@ add_library(render
     src/render/resourceManager.cpp
     src/render/scene/object.cpp
     src/render/cameraPass.cpp
+    src/render/frameGraph.cpp
 )
 
 target_include_directories(render PRIVATE 
@@ -161,6 +162,7 @@ if(TESTING)
         tests/object_unittest.cpp
         tests/renderIntegration_unittest.cpp
         tests/renderTarget_unittest.cpp
+        tests/frameGraph_unittest.cpp
     )
     target_include_directories(test-bin PRIVATE
         ${CMAKE_SOURCE_DIR}/src/vulkan/include

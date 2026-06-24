@@ -2,19 +2,17 @@
 
 #include "commandPool.hpp"
 #include "device.hpp"
+#include "frameGraph.hpp"
 #include "frameSync.hpp"
 #include "image.hpp"
 #include "instance.hpp"
-#include "pass.hpp"
 #include "physicalDevice.hpp"
 #include "resourceManager.hpp"
 #include "scene.hpp"
 #include "swapchain.hpp"
 #include <SDL3/SDL_vulkan.h>
 #include <cstdint>
-#include <memory>
 #include <utility>
-#include <vector>
 
 namespace Render {
 class Render {
@@ -29,7 +27,7 @@ class Render {
     Vulkan::Swapchain swapchain;
     Vulkan::FrameSync syncObjects;
 
-    std::vector<std::unique_ptr<Pass>> passes;
+    FrameGraph frameGraph;
 
     RenderTargetHandle colorTarget;
     RenderTargetHandle depthTarget;
