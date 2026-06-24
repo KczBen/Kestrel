@@ -117,10 +117,13 @@ auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
 
     case Material::BlendMode::Opaque:
         blendMode = vk::BlendOp::eAdd;
+        break;
     case Material::BlendMode::Alpha:
         blendMode = vk::BlendOp::ePlusClampedAlphaEXT;
+        break;
     case Material::BlendMode::Premultiplied:
         blendMode = vk::BlendOp::ePlusClampedAlphaEXT;
+        break;
     case Material::BlendMode::Additive:
         blendMode = vk::BlendOp::eAdd;
         break;
