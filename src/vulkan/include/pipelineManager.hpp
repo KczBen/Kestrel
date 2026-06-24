@@ -6,21 +6,25 @@
 #include "graphicsPipeline.hpp"
 #include "material.hpp"
 #include "vulkan/vulkan.hpp"
+#include <span>
 #include <unordered_map>
+#include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
 struct PipelineKey : Material::MaterialConfiguration {
-    // just to make clang-tidy happy
-    PipelineKey(const MaterialConfiguration& config, vk::Format format, vk::SampleCountFlagBits samplesPerPixel)
-        : MaterialConfiguration(config), renderTargetFormat(format), samplesPerPixel(samplesPerPixel) {}
-    vk::Format renderTargetFormat;
+    PipelineKey(const MaterialConfiguration& config,
+                std::span<const vk::Format> formats,
+                vk::SampleCountFlagBits samplesPerPixel)
+        : MaterialConfiguration(config), formats(formats.begin(), formats.end()), samplesPerPixel(samplesPerPixel) {}
+    std::vector<vk::Format> formats;
     vk::SampleCountFlagBits samplesPerPixel;
 
     [[nodiscard]] auto hash() const -> uint64_t;
 
     auto operator==(const PipelineKey& other) const -> bool {
-        return MaterialConfiguration::operator==(other) && renderTargetFormat == other.renderTargetFormat &&
-               samplesPerPixel == other.samplesPerPixel;
+        return MaterialConfiguration::operator==(other) && formats.size() == other.formats.size() &&
+               samplesPerPixel == other.samplesPerPixel &&
+               std::equal(formats.begin(), formats.end(), other.formats.begin());
     }
 };
 
@@ -28,9 +32,14 @@ namespace std {
 template <> struct hash<PipelineKey> {
     auto operator()(const PipelineKey& key) const noexcept -> size_t {
         auto baseHash = std::hash<Material::MaterialConfiguration>{}(key);
-        auto formatHash = std::hash<uint32_t>{}(static_cast<uint32_t>(key.renderTargetFormat));
+        auto formatHash = std::hash<uint32_t>{}(static_cast<uint32_t>(key.formats.size()));
         auto sampleHash = std::hash<uint32_t>{}(static_cast<uint32_t>(key.samplesPerPixel));
-        return baseHash ^ (formatHash << 1) ^ (sampleHash << 2);
+        size_t combined = baseHash ^ (formatHash << 1) ^ (sampleHash << 2);
+        for (const auto& fmt : key.formats) {
+            combined ^=
+                std::hash<uint32_t>{}(static_cast<uint32_t>(fmt)) + 0x9e3779b9 + (combined << 6) + (combined >> 2);
+        }
+        return combined;
     }
 };
 } // namespace std
@@ -59,7 +68,7 @@ class PipelineManager {
     void registerMaterial(Material& material);
     auto getOrCreatePipeline(MaterialHandle materialHandle,
                              Render::Camera& camera,
-                             vk::Format format,
+                             std::span<const vk::Format> formats,
                              vk::SampleCountFlagBits sampleCount = vk::SampleCountFlagBits::e1)
         -> Vulkan::GraphicsPipeline&;
 };

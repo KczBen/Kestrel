@@ -5,6 +5,7 @@
 #include "shaderDef.hpp"
 #include "shaderModule.hpp"
 #include "vulkan/vulkan.hpp"
+#include <span>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace Vulkan {
@@ -19,7 +20,7 @@ class GraphicsPipeline {
   public:
     // TODO: Use vk::GraphicsPipelineLibrary to make this more modular
     GraphicsPipeline(Vulkan::Device& device,
-                     vk::Format renderTargetFormat,
+                     std::span<const vk::Format> colorAttachmentFormats,
                      std::span<const Vulkan::DescriptorSetLayout*> layouts,
                      std::span<const vk::PushConstantRange> pushConstants,
                      const ShaderDef& vertexShader,

@@ -4,6 +4,7 @@
 #include "pipelineManager.hpp"
 #include "renderTarget.hpp"
 #include "vulkan/vulkan.hpp"
+#include <span>
 #include <vector>
 
 namespace Render {
@@ -28,6 +29,7 @@ class Pass {
     std::vector<RenderTargetAttachment> inputs;
     RenderTargetAttachment depthOutput;
     RenderTargetAttachment depthInput;
+    std::vector<vk::Format> attachmentFormats;
 
   protected:
     [[nodiscard]] auto getPipelineManager() const -> Vulkan::PipelineManager* { return pipelineManager; }
@@ -36,14 +38,20 @@ class Pass {
     Pass(const Pass&) = default;
     Pass(Pass&&) = delete;
     auto operator=(const Pass&) -> Pass& = delete;
-    auto operator=(Pass&&) -> Pass& = delete;
+    auto operator=(Pass&&) = delete;
     Pass(Vulkan::PipelineManager& pipelineManager,
          const std::vector<RenderTargetAttachment>& inputs,
          const std::vector<RenderTargetAttachment>& colorAttachments,
          const RenderTargetAttachment& depthInput,
          const RenderTargetAttachment& depthOutput)
         : pipelineManager(&pipelineManager), colorAttachments(colorAttachments), inputs(inputs),
-          depthOutput(depthOutput), depthInput(depthInput) {}
+          depthOutput(depthOutput), depthInput(depthInput) {
+        for (const auto& attachment : colorAttachments) {
+            if (attachment.handle.isPresent()) {
+                attachmentFormats.push_back(attachment.handle->getFormat());
+            }
+        }
+    }
 
     virtual void record(vk::CommandBuffer cmd, uint32_t frameIndex) = 0;
     [[nodiscard]] virtual auto supportedMaterialTypes() const -> uint32_t {
@@ -61,5 +69,8 @@ class Pass {
     [[nodiscard]] auto getInputs() const -> const std::vector<RenderTargetAttachment>& { return inputs; }
     [[nodiscard]] auto getDepthOutput() const -> const RenderTargetAttachment& { return depthOutput; }
     [[nodiscard]] auto getDepthInput() const -> const RenderTargetAttachment& { return depthInput; }
+    [[nodiscard]] auto getColorAttachmentFormats() const -> std::span<const vk::Format> {
+        return {attachmentFormats.data(), attachmentFormats.size()};
+    }
 };
 } // namespace Render

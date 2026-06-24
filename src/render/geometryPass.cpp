@@ -51,13 +51,15 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
         buildDraws(object.model, glm::mat4(1.0f));
     }
 
+    const auto formats = getColorAttachmentFormats();
+
     for (const auto& [material, drawCalls] : drawCalls) {
         auto materialType = static_cast<uint32_t>(material->getBlendMode());
         if ((supportedMaterialTypes() & (1u << materialType)) == 0u) {
             continue;
         }
 
-        auto& pipeline = getPipelineManager()->getOrCreatePipeline(material, *camera, vk::Format::eB8G8R8A8Srgb);
+        auto& pipeline = getPipelineManager()->getOrCreatePipeline(material, *camera, formats);
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
         const Vulkan::DescriptorSet& cameraWS = camera->getDescriptorSet(frameIndex);

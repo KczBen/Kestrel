@@ -24,7 +24,7 @@ CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager,
 void CameraPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);
 
-    auto& pipeline = getPipelineManager()->getOrCreatePipeline(materialHandle, *camera, vk::Format::eB8G8R8A8Srgb);
+    auto& pipeline = getPipelineManager()->getOrCreatePipeline(materialHandle, *camera, getColorAttachmentFormats());
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
     const Vulkan::DescriptorSet& cameraWS = camera->getDescriptorSet(frameIndex);

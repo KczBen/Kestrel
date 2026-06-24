@@ -7,7 +7,7 @@
 #include <vulkan/vulkan_raii.hpp>
 
 Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
-                                           vk::Format renderTargetFormat,
+                                           std::span<const vk::Format> colorAttachmentFormats,
                                            std::span<const Vulkan::DescriptorSetLayout*> layouts,
                                            std::span<const vk::PushConstantRange> pushConstants,
                                            const ShaderDef& vertexShader,
@@ -70,7 +70,7 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
 
     const vk::PipelineMultisampleStateCreateInfo msaa({}, sampleCount, vk::False, 1.0f, {}, vk::False, vk::False);
 
-    const vk::PipelineColorBlendAttachmentState colorBlendAttachment(
+    const vk::PipelineColorBlendAttachmentState defaultAttachment(
         vk::True,
         vk::BlendFactor::eSrcAlpha,
         vk::BlendFactor::eOneMinusSrcAlpha,
@@ -81,8 +81,15 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
         vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
             vk::ColorComponentFlagBits::eA);
 
-    const vk::PipelineColorBlendStateCreateInfo colorBlending(
-        {}, vk::False, vk::LogicOp::eCopy, 1, &colorBlendAttachment, {{0.0f, 0.0f, 0.0f, 0.0f}});
+    std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments(colorAttachmentFormats.size(),
+                                                                             defaultAttachment);
+
+    const vk::PipelineColorBlendStateCreateInfo colorBlending({},
+                                                              vk::False,
+                                                              vk::LogicOp::eCopy,
+                                                              static_cast<uint32_t>(colorBlendAttachments.size()),
+                                                              colorBlendAttachments.data(),
+                                                              {{0.0f, 0.0f, 0.0f, 0.0f}});
 
     std::vector<vk::DescriptorSetLayout> rawLayouts;
     rawLayouts.reserve(layouts.size());
@@ -96,7 +103,10 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
 
     layout = vk::raii::PipelineLayout(*this->device, pipelineLayoutInfo);
 
-    const vk::PipelineRenderingCreateInfo pipelineRenderingInfo({}, 1, &renderTargetFormat, vk::Format::eD32Sfloat);
+    const vk::PipelineRenderingCreateInfo pipelineRenderingInfo({},
+                                                                static_cast<uint32_t>(colorAttachmentFormats.size()),
+                                                                colorAttachmentFormats.data(),
+                                                                vk::Format::eD32Sfloat);
 
     const vk::GraphicsPipelineCreateInfo pipelineInfo({},
                                                       2,

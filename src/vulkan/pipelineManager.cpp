@@ -95,10 +95,10 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
 
 auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
                                                   Render::Camera& camera,
-                                                  vk::Format format,
+                                                  std::span<const vk::Format> formats,
                                                   vk::SampleCountFlagBits sampleCount) -> Vulkan::GraphicsPipeline& {
     // Do we already know of a pipeline that may work?
-    const PipelineKey key{materialHandle->pipelineConfiguration, format, sampleCount};
+    const PipelineKey key{materialHandle->pipelineConfiguration, formats, sampleCount};
     if (pipelineCache.contains(key)) {
         materialHandle->graphicsPipeline = &pipelineCache.find(key)->second;
         return *materialHandle->graphicsPipeline;
@@ -130,7 +130,7 @@ auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
     }
 
     auto newPipeline = Vulkan::GraphicsPipeline(*device,
-                                                format,
+                                                formats,
                                                 layouts,
                                                 materialHandle->pipelineConfiguration.pushConstants,
                                                 materialHandle->pipelineConfiguration.vertexShader,
