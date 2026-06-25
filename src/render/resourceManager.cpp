@@ -141,75 +141,43 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
         throw std::runtime_error("Failed to load GLTF: " + path);
     }
 
-    // First pass: collect all texture references from materials to determine format
+    // First pass: collect texture format assignments from materials
     std::unordered_map<int, vk::Format> textureFormats;
 
-    auto assignTextureFormat = [&](int texIndex, vk::Format format) -> void {
-        if (texIndex < 0) {
-            return;
+    auto assignFormat = [&](int texIndex, vk::Format format) -> void {
+        if (texIndex >= 0) {
+            textureFormats.try_emplace(texIndex, format);
         }
-        textureFormats.try_emplace(texIndex, format);
     };
 
     for (const auto& material : gltfModel.materials) {
         const auto& pbr = material.pbrMetallicRoughness;
-
-        // Color/albedo textures use sRGB format
-        assignTextureFormat(pbr.baseColorTexture.index, vk::Format::eR8G8B8A8Srgb);
-
-        // Data textures use linear (unsrgb) format
-        assignTextureFormat(pbr.metallicRoughnessTexture.index, vk::Format::eR8G8B8A8Unorm);
-        assignTextureFormat(material.normalTexture.index, vk::Format::eR8G8B8A8Unorm);
-        assignTextureFormat(material.occlusionTexture.index, vk::Format::eR8G8B8A8Unorm);
-
-        // Emissive is typically a color texture
-        assignTextureFormat(material.emissiveTexture.index, vk::Format::eR8G8B8A8Srgb);
+        assignFormat(pbr.baseColorTexture.index, vk::Format::eR8G8B8A8Srgb);
+        assignFormat(pbr.metallicRoughnessTexture.index, vk::Format::eR8G8B8A8Unorm);
+        assignFormat(material.normalTexture.index, vk::Format::eR8G8B8A8Unorm);
+        assignFormat(material.occlusionTexture.index, vk::Format::eR8G8B8A8Unorm);
+        assignFormat(material.emissiveTexture.index, vk::Format::eR8G8B8A8Srgb);
     }
 
-    // Upload each unique texture with its correct format
-    auto uploadTexture = [&](int texIndex, vk::Format format) -> TextureHandle {
+    // Upload a texture, defaulting to Unorm if no format was assigned
+    auto uploadTexture = [&](int i, vk::Format format = vk::Format::eR8G8B8A8Unorm) -> TextureHandle {
         auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
-        const auto& tex = gltfModel.textures[texIndex];
-        const auto& image = gltfModel.images[tex.source];
-        auto texSampler = getOrCreateSampler(Vulkan::SamplerConfig{});
-        textures.emplace_back(*device, image.image.data(), image.width, image.height, texSampler, format);
+        const auto& image = gltfModel.images[gltfModel.textures[i].source];
+        auto sampler = getOrCreateSampler(Vulkan::SamplerConfig{});
+        textures.emplace_back(*device, image.image.data(), image.width, image.height, sampler, format);
         context.upload(textures.back());
         return TextureHandle{&textures, textures.size() - 1};
     };
 
-    std::vector<TextureHandle> textureHandles;
-
-    // Collect unique textures to upload and build handle map
-    std::vector<std::pair<int, vk::Format>> uniqueTextures;
-    uniqueTextures.reserve(textureFormats.size());
-    for (auto& [texIndex, format] : textureFormats) {
-        uniqueTextures.emplace_back(texIndex, format);
-    }
-
-    // Upload unique textures and build index to handle map
+    // Upload all textures with their correct format (or default if unused by materials)
     std::unordered_map<int, TextureHandle> textureHandleMap;
-    for (auto& [texIndex, format] : uniqueTextures) {
-        auto handle = uploadTexture(texIndex, format);
-        textureHandleMap[texIndex] = handle;
-    }
-
-    // Fill in missing texture indices (not used by any material) with default
+    std::vector<TextureHandle> textureHandles;
     textureHandles.reserve(gltfModel.textures.size());
+
     for (auto i = 0; i < gltfModel.textures.size(); i++) {
-        auto it = textureHandleMap.find(i);
-        if (it != textureHandleMap.end()) {
-            textureHandles.emplace_back(it->second);
-        } else {
-            auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
-            const auto& tex = gltfModel.textures[i];
-            const auto& image = gltfModel.images[tex.source];
-            auto texSampler = getOrCreateSampler(Vulkan::SamplerConfig{});
-            textures.emplace_back(*device, image.image.data(), image.width, image.height, texSampler);
-            context.upload(textures.back());
-            auto defaultHandle = TextureHandle{&textures, textures.size() - 1};
-            textureHandleMap[i] = defaultHandle;
-            textureHandles.emplace_back(defaultHandle);
-        }
+        auto it = textureFormats.find(i);
+        const vk::Format format = (it != textureFormats.end()) ? it->second : vk::Format::eR8G8B8A8Unorm;
+        textureHandleMap[i] = textureHandles.emplace_back(uploadTexture(i, format));
     }
 
     std::vector<MaterialHandle> materialHandles;
@@ -219,21 +187,20 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
 
         const auto& pbr = material.pbrMetallicRoughness;
 
-        auto loadTexture = [&](int texIndex) -> TextureHandle {
-            if (texIndex < 0) {
-                return TextureHandle{&textures, 0};
+        auto loadTexture = [&](const auto& texInfo,
+                               TextureHandle& handle,
+                               int32_t& uvIndex,
+                               Material::TextureTransform& transform) -> auto {
+            if (texInfo.index < 0) {
+                handle = TextureHandle{&textures, 0};
+                uvIndex = 0;
+                transform = {};
+                return;
             }
-
-            return textureHandles[texIndex];
+            handle = textureHandles[texInfo.index];
+            uvIndex = texInfo.texCoord;
+            transform = extractTextureTransform(texInfo.extensions);
         };
-
-        auto baseColor = loadTexture(pbr.baseColorTexture.index);
-        auto metallicRoughness = loadTexture(pbr.metallicRoughnessTexture.index);
-        auto normal = loadTexture(material.normalTexture.index);
-        auto occlusion = loadTexture(material.occlusionTexture.index);
-        auto emissive = loadTexture(material.emissiveTexture.index);
-
-        auto getUVIndex = [](const auto& texInfo) -> int32_t { return texInfo.texCoord; };
 
         Material::BlendMode blendMode = Material::BlendMode::Opaque;
         if (material.alphaMode == "BLEND" || material.alphaMode == "MASK") { // treat cutout as alpha for now
@@ -244,33 +211,21 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
             material.doubleSided ? vk::CullModeFlagBits::eNone : vk::CullModeFlagBits::eBack;
 
         Material::MaterialResources resources;
-        resources.baseColorTexture = baseColor;
-        resources.metallicRoughnessTexture = metallicRoughness;
-        resources.normalTexture = normal;
-        resources.occlusionTexture = occlusion;
-        resources.emissiveTexture = emissive;
 
-        // Extract KHR_texture_transform extensions from material texture info
-        if (pbr.baseColorTexture.index >= 0) {
-            resources.baseColorTransform = extractTextureTransform(pbr.baseColorTexture.extensions);
-            resources.baseColorUVIndex = getUVIndex(pbr.baseColorTexture);
-        }
-        if (pbr.metallicRoughnessTexture.index >= 0) {
-            resources.metallicRoughnessTransform = extractTextureTransform(pbr.metallicRoughnessTexture.extensions);
-            resources.metallicRoughnessUVIndex = getUVIndex(pbr.metallicRoughnessTexture);
-        }
-        if (material.normalTexture.index >= 0) {
-            resources.normalTransform = extractTextureTransform(material.normalTexture.extensions);
-            resources.normalUVIndex = getUVIndex(material.normalTexture);
-        }
-        if (material.occlusionTexture.index >= 0) {
-            resources.occlusionTransform = extractTextureTransform(material.occlusionTexture.extensions);
-            resources.aoUVIndex = getUVIndex(material.occlusionTexture);
-        }
-        if (material.emissiveTexture.index >= 0) {
-            resources.emissiveTransform = extractTextureTransform(material.emissiveTexture.extensions);
-            resources.emissiveUVIndex = getUVIndex(material.emissiveTexture);
-        }
+        loadTexture(
+            pbr.baseColorTexture, resources.baseColorTexture, resources.baseColorUVIndex, resources.baseColorTransform);
+        loadTexture(pbr.metallicRoughnessTexture,
+                    resources.metallicRoughnessTexture,
+                    resources.metallicRoughnessUVIndex,
+                    resources.metallicRoughnessTransform);
+        loadTexture(
+            material.normalTexture, resources.normalTexture, resources.normalUVIndex, resources.normalTransform);
+        loadTexture(
+            material.occlusionTexture, resources.occlusionTexture, resources.aoUVIndex, resources.occlusionTransform);
+        loadTexture(material.emissiveTexture,
+                    resources.emissiveTexture,
+                    resources.emissiveUVIndex,
+                    resources.emissiveTransform);
 
         resources.baseColorFactor = pbr.baseColorFactor;
         resources.emissiveFactor = material.emissiveFactor;
