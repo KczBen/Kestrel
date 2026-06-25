@@ -8,6 +8,7 @@
 #include "image.hpp"
 #include "instance.hpp"
 #include "material.hpp"
+#include "pass.hpp"
 #include "physicalDevice.hpp"
 #include "resourceManager.hpp"
 #include "surface.hpp"
@@ -79,7 +80,7 @@ void Render::Render::init(Scene& scene) {
         CameraPass(resourceManager->getPipelineManager(),
                    {},
                    {{colorTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore}},
-                   {depthTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore},
+                   {depthTarget},
                    {},
                    {&resourceManager->getMaterialList(), 0},
                    &scene.getCamera())));
@@ -88,8 +89,8 @@ void Render::Render::init(Scene& scene) {
         GeometryPass(resourceManager->getPipelineManager(),
                      {},
                      {{colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
-                     {depthTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore},
-                     {depthTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore},
+                     {depthTarget},
+                     {},
                      std::nullopt,
                      scene.getObjects(),
                      &scene.getCamera())));

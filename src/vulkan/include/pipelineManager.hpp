@@ -14,17 +14,20 @@
 struct PipelineKey : Material::MaterialConfiguration {
     PipelineKey(const MaterialConfiguration& config,
                 std::span<const vk::Format> formats,
-                vk::SampleCountFlagBits samplesPerPixel)
-        : MaterialConfiguration(config), formats(formats.begin(), formats.end()), samplesPerPixel(samplesPerPixel) {}
+                vk::SampleCountFlagBits samplesPerPixel,
+                bool depthWrite)
+        : MaterialConfiguration(config), formats(formats.begin(), formats.end()), samplesPerPixel(samplesPerPixel),
+          depthWrite(depthWrite) {}
     std::vector<vk::Format> formats;
     vk::SampleCountFlagBits samplesPerPixel;
+    bool depthWrite;
 
     [[nodiscard]] auto hash() const -> uint64_t;
 
     auto operator==(const PipelineKey& other) const -> bool {
         return MaterialConfiguration::operator==(other) && formats.size() == other.formats.size() &&
                samplesPerPixel == other.samplesPerPixel &&
-               std::equal(formats.begin(), formats.end(), other.formats.begin());
+               std::equal(formats.begin(), formats.end(), other.formats.begin()) && depthWrite == other.depthWrite;
     }
 };
 
@@ -69,7 +72,7 @@ class PipelineManager {
     auto getOrCreatePipeline(MaterialHandle materialHandle,
                              Render::Camera& camera,
                              std::span<const vk::Format> formats,
-                             vk::SampleCountFlagBits sampleCount = vk::SampleCountFlagBits::e1)
-        -> Vulkan::GraphicsPipeline&;
+                             vk::SampleCountFlagBits sampleCount = vk::SampleCountFlagBits::e1,
+                             bool depthWrite = true) -> Vulkan::GraphicsPipeline&;
 };
 } // namespace Vulkan

@@ -109,9 +109,10 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
 auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
                                                   Render::Camera& camera,
                                                   std::span<const vk::Format> formats,
-                                                  vk::SampleCountFlagBits sampleCount) -> Vulkan::GraphicsPipeline& {
+                                                  vk::SampleCountFlagBits sampleCount,
+                                                  bool depthWrite) -> Vulkan::GraphicsPipeline& {
     // Do we already know of a pipeline that may work?
-    const PipelineKey key{materialHandle->pipelineConfiguration, formats, sampleCount};
+    const PipelineKey key{materialHandle->pipelineConfiguration, formats, sampleCount, depthWrite};
     if (pipelineCache.contains(key)) {
         materialHandle->graphicsPipeline = &pipelineCache.find(key)->second;
         return *materialHandle->graphicsPipeline;
@@ -149,7 +150,7 @@ auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
                                                 materialHandle->pipelineConfiguration.vertexShader,
                                                 materialHandle->pipelineConfiguration.fragmentShader,
                                                 materialHandle->pipelineConfiguration.depthTest,
-                                                materialHandle->pipelineConfiguration.depthWrite,
+                                                depthWrite,
                                                 materialHandle->pipelineConfiguration.cullMode,
                                                 materialHandle->pipelineConfiguration.depthCompare,
                                                 blendMode,

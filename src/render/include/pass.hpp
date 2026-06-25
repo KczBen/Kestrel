@@ -11,12 +11,14 @@ namespace Render {
 
 struct RenderTargetAttachment {
     RenderTargetHandle handle;
-    vk::AttachmentLoadOp loadOp;
-    vk::AttachmentStoreOp storeOp;
+    vk::AttachmentLoadOp loadOp = vk::AttachmentLoadOp::eLoad;
+    vk::AttachmentStoreOp storeOp = vk::AttachmentStoreOp::eDontCare;
 
-    RenderTargetAttachment() : loadOp(vk::AttachmentLoadOp::eDontCare), storeOp(vk::AttachmentStoreOp::eDontCare) {}
+    RenderTargetAttachment() = default;
 
-    RenderTargetAttachment(RenderTargetHandle handle, vk::AttachmentLoadOp loadOp, vk::AttachmentStoreOp storeOp)
+    RenderTargetAttachment(RenderTargetHandle handle,
+                           vk::AttachmentLoadOp loadOp = vk::AttachmentLoadOp::eLoad,
+                           vk::AttachmentStoreOp storeOp = vk::AttachmentStoreOp::eDontCare)
         : handle(handle), loadOp(loadOp), storeOp(storeOp) {}
 
     [[nodiscard]] auto isPresent() const -> bool { return handle.isPresent(); }

@@ -24,7 +24,15 @@ CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager,
 void CameraPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);
 
-    auto& pipeline = getPipelineManager()->getOrCreatePipeline(materialHandle, *camera, getColorAttachmentFormats());
+    // Depth write is determined by whether the pass has a meaningful depth output attachment
+    bool depthWrite = false;
+    const auto& depthOut = getDepthOutput();
+    if (depthOut.isPresent() && depthOut.storeOp != vk::AttachmentStoreOp::eDontCare) {
+        depthWrite = true;
+    }
+
+    auto& pipeline = getPipelineManager()->getOrCreatePipeline(
+        materialHandle, *camera, getColorAttachmentFormats(), vk::SampleCountFlagBits::e1, depthWrite);
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
     const Vulkan::DescriptorSet& cameraWS = camera->getDescriptorSet(frameIndex);

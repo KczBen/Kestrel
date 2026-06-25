@@ -57,13 +57,21 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
 
     const auto formats = getColorAttachmentFormats();
 
+    // Depth write is determined by whether the pass has a meaningful depth output attachment
+    bool depthWrite = false;
+    const auto& depthOut = getDepthOutput();
+    if (depthOut.isPresent() && depthOut.storeOp != vk::AttachmentStoreOp::eDontCare) {
+        depthWrite = true;
+    }
+
     for (const auto& [material, drawCalls] : drawCalls) {
         auto materialType = static_cast<uint32_t>(material->getBlendMode());
         if ((supportedMaterialTypes() & (1u << materialType)) == 0u) {
             continue;
         }
 
-        auto& pipeline = getPipelineManager()->getOrCreatePipeline(material, *camera, formats);
+        auto& pipeline = getPipelineManager()->getOrCreatePipeline(
+            material, *camera, formats, vk::SampleCountFlagBits::e1, depthWrite);
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
         const Vulkan::DescriptorSet& cameraWS = camera->getDescriptorSet(frameIndex);
