@@ -51,120 +51,82 @@ layout(location = 4) in vec3 fragPos;
 
 layout(location = 0) out vec4 outColor;
 
-const vec3 lightPosWorld = vec3(10.0, 10.0, 10.0);
-const vec3 lightIntensity = vec3(1.5);
+// same shader as the sky, so we know what to reflect
+vec3 GetProceduralSky(vec3 dir) {
+    vec3 horizonColor = vec3(0.6, 0.8, 1.0);
+    vec3 zenithColor = vec3(0.1, 0.3, 0.8);
+    vec3 groundColor = vec3(0.05, 0.04, 0.03);
 
-// ============================================================
-// GGX Normal Distribution Function (Trowbridge-Reitz)
-// ============================================================
-float ggxD(float a, float NdotH) {
-    float a2 = a * a;
-    float d = (NdotH * a2 - NdotH) * NdotH + 1.0;
-    return a2 / (3.14159265358979 * d * d);
+    float skyT = clamp(dir.y, 0.0, 1.0);
+    vec3 skyGradient = mix(horizonColor, zenithColor, skyT);
+
+    float groundT = smoothstep(-0.2, 0.1, dir.y);
+    return mix(groundColor, skyGradient, groundT);
 }
 
-// Optimized closed-form Smith G2 for GGX (height-correlated, folded):
-//   G_V = NdotL * sqrt(NdotV^2*(1-a^2) + a^2)
-//   G_L = NdotV * sqrt(NdotL^2*(1-a^2) + a^2)
-//   G2 = 0.5 / (G_V + G_L)
-// This folds the 1/(4*NdotL*NdotV) denominator into G2.
-float smithG2(float NdotL, float NdotV, float a) {
-    float a2 = a * a;
-    float a2v = NdotL * sqrt(NdotV * (1.0 - a2) + a2);
-    float a2l = NdotV * sqrt(NdotL * (1.0 - a2) + a2);
-    return 0.5 / (a2v + a2l);
-}
+vec3 getNormalFromMap(vec2 uv) {
+    vec3 tangentNormal = texture(normalSampler, uv).xyz * 2.0 - 1.0;
+    tangentNormal.xy *= material.normalScale;
 
-// ============================================================
-// Schlick Fresnel (vector form)
-// ============================================================
-vec3 schlickF(vec3 F0, float HdotV) {
-    float powers5 = (1.0 - HdotV) * (1.0 - HdotV) * (1.0 - HdotV) * (1.0 - HdotV) * (1.0 - HdotV);
-    return F0 + (vec3(1.0) - F0) * powers5;
-}
+    vec3 Q1 = dFdx(fragPos);
+    vec3 Q2 = dFdy(fragPos);
+    vec2 st1 = dFdx(uv);
+    vec2 st2 = dFdy(uv);
 
-// ============================================================
-// Burley Diffuse (Disney renormalized, integrates to 1/pi)
-// ============================================================
-float16_t burleyF_D(float NdotL, float NdotV, float HdotL, float roughness) {
-    float16_t rough = float16_t(roughness);
-    float16_t NdotL16 = float16_t(NdotL);
-    float16_t NdotV16 = float16_t(NdotV);
-    float16_t HdotL16 = float16_t(HdotL);
-
-    float16_t F_D90 = float16_t(0.5) + float16_t(2.0) * rough * HdotL16 * HdotL16;
-    float16_t one_minus_ndotl = float16_t(1.0) - NdotL16;
-    float16_t one_minus_ndotv = float16_t(1.0) - NdotV16;
-
-    float16_t lightTerm = float16_t(1.0) + (F_D90 - float16_t(1.0)) * pow(one_minus_ndotl, float16_t(5.0));
-    float16_t viewTerm  = float16_t(1.0) + (F_D90 - float16_t(1.0)) * pow(one_minus_ndotv, float16_t(5.0));
-
-    return lightTerm * viewTerm;
-}
-
-// ============================================================
-// Full BSDF: Burley diffuse + GGX specular (Cook-Torrance)
-// Energy conserving: diffuse *= (1 - F)
-// ============================================================
-void main() {
-    // --- Material inputs ---
-    // Clamp texture coordinate bounds and sample
-    vec3 albedo = texture(albedoSampler, fragTexCoord).rgb * material.baseColorFactor.rgb;
-
-    // Metallic-roughness texture: R=metallic, G=roughness
-    vec2 metallicRoughness = texture(metallicRoughnessSampler, fragTexCoord).rg;
-    float metallic = metallicRoughness.r * material.metallicFactor;
-    float roughness = metallicRoughness.g * material.roughnessFactor;
-    roughness = clamp(roughness, 0.04, 1.0);
-
-    // --- Geometry (float32) ---
     vec3 N = normalize(fragNormal);
-    vec3 V = normalize(-fragPos);
-    vec3 L = normalize(lightPosWorld - fragPos);
-    vec3 H = normalize(L + V);
+    vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
+    vec3 B = -normalize(cross(N, T));
+    mat3 TBN = mat3(T, B, N);
 
-    float NdotL = max(dot(N, L), 0.0);
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotH = max(dot(N, H), 0.0);
-    float HdotV = max(dot(H, V), 0.0);
-    float LdotH = max(dot(L, H), 0.0);
+    return normalize(TBN * tangentNormal);
+}
 
-    // Skip shading if not facing the light
-    if (NdotL <= 0.0) {
-        outColor = vec4(albedo * 0.0625, 1.0); // ~dark ambient
-        return;
-    }
+// Basic Blinn-Phong stuff
+void main() {
+    vec2 uvAlbedo = (material.baseColorTransform * vec4(fragTexCoord[material.baseColorUVIndex], 0.0, 1.0)).xy;
+    vec2 uvMR =
+        (material.metallicRoughnessTransform * vec4(fragTexCoord[material.metallicRoughnessUVIndex], 0.0, 1.0)).xy;
+    vec2 uvNorm = (material.normalTransform * vec4(fragTexCoord[material.normalUVIndex], 0.0, 1.0)).xy;
+    vec2 uvAO = (material.occlusionTransform * vec4(fragTexCoord[material.aoUVIndex], 0.0, 1.0)).xy;
+    vec2 uvEmissive = (material.emissiveTransform * vec4(fragTexCoord[material.emissiveUVIndex], 0.0, 1.0)).xy;
 
-    // --- F0: Fresnel reflectance at normal incidence ---
-    // Dielectric: F0 = 0.04; Metal: F0 = baseColor
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    vec3 albedo = texture(albedoSampler, uvAlbedo).rgb * material.baseColorFactor.rgb;
+    vec4 mrSample = texture(metallicRoughnessSampler, uvMR);
+    float roughness = mrSample.g * material.roughnessFactor;
+    float metallic = mrSample.b * material.metallicFactor;
+    float ao = mix(1.0, texture(aoSampler, uvAO).r, material.occlusionStrength);
+    vec3 emission = texture(emissionSampler, uvEmissive).rgb * material.emissiveFactor.xyz;
 
-    // --- Specular: GGX Cook-Torrance ---
-    float a = roughness * roughness;  // perceptual roughness squared -> alpha
-    a = max(a, 0.0001);               // clamp to avoid singularity
+    vec3 N = getNormalFromMap(uvNorm);
+    vec3 camPos = cameraUBO.invView[3].xyz;
+    vec3 V = normalize(camPos - fragPos);
 
-    float D = ggxD(a, NdotH);
-    vec3 F = schlickF(F0, HdotV);
-    float G2 = smithG2(NdotL, NdotV, a);  // folded G2 (absorbs 1/(4*NdotL*NdotV))
+    // Hardcoded test light
+    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+    vec3 lightColor = vec3(1.0);
 
-    // f_specular = D * F * G2  (denominator already folded)
-    // Multiply by light intensity and NdotL for illumination
-    vec3 specular = D * F * G2 * NdotL * lightIntensity;
+    // 1. Blinn-Phong lighting
+    vec3 H = normalize(lightDir + V);
+    float NdotL = max(dot(N, lightDir), 0.0);
 
-    // --- Diffuse: Burley ---
-    float16_t diffuseScatter = burleyF_D(NdotL, NdotV, LdotH, roughness);
+    // Map glTF roughness to shininess
+    float shininess = exp2(8.0 * (1.0 - roughness));
+    float specFactor = pow(max(dot(N, H), 0.0), shininess);
 
-    // f_diffuse = (baseColor / pi) * F_D(l) * F_D(v) * (1 - F)
-    vec3 diffuse = float(diffuseScatter) * (vec3(1.0) - F) * (albedo * float16_t(0.31830988618)) * NdotL;
+    vec3 specColor = mix(vec3(1.0), albedo, metallic);
 
-    // Scale by light
-    diffuse = diffuse * float(lightIntensity);
+    vec3 diffuseLight = albedo * NdotL * lightColor * (1.0 - metallic);
+    vec3 specularLight = specColor * specFactor * lightColor;
 
-    // --- Composite ---
-    vec3 radiance = specular + diffuse;
+    // 2. sky ambient
+    vec3 R = reflect(-V, N);
+    vec3 blurredR = normalize(mix(R, N, roughness));
 
-    // Gamma correction (linear -> sRGB)
-    radiance = pow(radiance, vec3(1.0 / 2.2));
+    vec3 ambientDiffuse = GetProceduralSky(N) * albedo * (1.0 - metallic);
+    vec3 ambientSpecular = GetProceduralSky(blurredR) * specColor * (1.0 - roughness);
+    vec3 ambient = (ambientDiffuse + ambientSpecular) * ao * 0.5;
 
-    outColor = vec4(radiance, 1.0);
+    vec3 color = diffuseLight + specularLight + ambient + emission;
+
+    outColor = vec4(color, 1.0);
 }
