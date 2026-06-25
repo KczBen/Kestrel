@@ -22,6 +22,13 @@ layout(set = 1, binding = 0) uniform MaterialUBO {
     float normalScale;
     float occlusionStrength;
 
+    // UV indices for each texture
+    int baseColorUVIndex;
+    int metallicRoughnessUVIndex;
+    int normalUVIndex;
+    int aoUVIndex;
+    int emissiveUVIndex;
+
     // KHR_texture_transform
     mat4 baseColorTransform;
     mat4 metallicRoughnessTransform;
@@ -38,9 +45,9 @@ layout(set = 1, binding = 4) uniform sampler2D aoSampler;
 layout(set = 1, binding = 5) uniform sampler2D emissionSampler;
 
 layout(location = 0) in vec3 fragColor;
-layout(location = 1) in vec2 fragTexCoord;
-layout(location = 2) in vec3 fragNormal;
-layout(location = 3) in vec3 fragPos;
+layout(location = 1) in vec2 fragTexCoord[2];
+layout(location = 3) in vec3 fragNormal;
+layout(location = 4) in vec3 fragPos;
 
 layout(location = 0) out vec4 outColor;
 

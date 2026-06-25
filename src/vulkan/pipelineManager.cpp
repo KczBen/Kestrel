@@ -36,6 +36,11 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
                 .roughnessFactor = material.resources.roughnessFactor,
                 .normalScale = material.resources.normalScale,
                 .occlusionStrength = material.resources.occlusionStrength,
+                .baseColorUVIndex = material.resources.baseColorUVIndex,
+                .metallicRoughnessUVIndex = material.resources.metallicRoughnessUVIndex,
+                .normalUVIndex = material.resources.normalUVIndex,
+                .aoUVIndex = material.resources.aoUVIndex,
+                .emissiveUVIndex = material.resources.emissiveUVIndex,
                 .baseColorTransformMatrix = buildTextureTransformMatrix(material.resources.baseColorTransform),
                 .metallicRoughnessTransformMatrix =
                     buildTextureTransformMatrix(material.resources.metallicRoughnessTransform),

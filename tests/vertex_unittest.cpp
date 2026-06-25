@@ -12,8 +12,9 @@ auto makeVertex(glm::vec3 pos) -> Vertex {
     return Vertex{
         .pos = pos,
         .color = glm::vec3{127.0f, 127.0f, 127.0f},
-        .texCoord = glm::vec2{0.0f, 0.0f},
+        .uv0 = glm::vec2{0.0f, 0.0f},
         .normal = glm::vec3{0.5f, 0.5f, 0.5f},
+        .uv1 = glm::vec2{0.0f, 0.0f},
     };
 }
 

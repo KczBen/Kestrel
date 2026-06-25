@@ -18,6 +18,13 @@ struct MaterialUBO {
     alignas(4) float normalScale;
     alignas(4) float occlusionStrength;
 
+    // UV indices for each texture (0 = TEXCOORD_0, 1 = TEXCOORD_1)
+    alignas(4) int32_t baseColorUVIndex;
+    alignas(4) int32_t metallicRoughnessUVIndex;
+    alignas(4) int32_t normalUVIndex;
+    alignas(4) int32_t aoUVIndex;
+    alignas(4) int32_t emissiveUVIndex;
+
     // KHR_texture_transform — 5 mat4 fields, GLSL mat3 reads first 48 bytes of each
     alignas(16) glm::mat4 baseColorTransformMatrix;
     alignas(16) glm::mat4 metallicRoughnessTransformMatrix;

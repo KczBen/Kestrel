@@ -43,6 +43,13 @@ class Material {
         TextureHandle occlusionTexture;
         TextureHandle emissiveTexture;
 
+        // Texture UV indices (which vertex attribute to sample from)
+        int32_t baseColorUVIndex{0};
+        int32_t metallicRoughnessUVIndex{0};
+        int32_t normalUVIndex{0};
+        int32_t aoUVIndex{0};
+        int32_t emissiveUVIndex{0};
+
         // Texture Transforms (KHR_texture_transform)
         TextureTransform baseColorTransform;
         TextureTransform metallicRoughnessTransform;

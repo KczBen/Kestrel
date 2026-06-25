@@ -70,7 +70,6 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
     context.upload(textures.back());
 }
 
-namespace {
 auto extractTextureTransform(const tinygltf::ExtensionMap& extensions) -> Material::TextureTransform {
     Material::TextureTransform result;
     auto it = extensions.find("KHR_texture_transform");
@@ -118,7 +117,6 @@ auto extractTextureTransform(const tinygltf::ExtensionMap& extensions) -> Materi
 
     return result;
 }
-} // namespace
 
 auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
     tinygltf::Model gltfModel;
@@ -235,6 +233,8 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
         auto occlusion = loadTexture(material.occlusionTexture.index);
         auto emissive = loadTexture(material.emissiveTexture.index);
 
+        auto getUVIndex = [](const auto& texInfo) -> int32_t { return texInfo.texCoord; };
+
         Material::BlendMode blendMode = Material::BlendMode::Opaque;
         if (material.alphaMode == "BLEND" || material.alphaMode == "MASK") { // treat cutout as alpha for now
             blendMode = Material::BlendMode::Alpha;
@@ -253,18 +253,23 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
         // Extract KHR_texture_transform extensions from material texture info
         if (pbr.baseColorTexture.index >= 0) {
             resources.baseColorTransform = extractTextureTransform(pbr.baseColorTexture.extensions);
+            resources.baseColorUVIndex = getUVIndex(pbr.baseColorTexture);
         }
         if (pbr.metallicRoughnessTexture.index >= 0) {
             resources.metallicRoughnessTransform = extractTextureTransform(pbr.metallicRoughnessTexture.extensions);
+            resources.metallicRoughnessUVIndex = getUVIndex(pbr.metallicRoughnessTexture);
         }
         if (material.normalTexture.index >= 0) {
             resources.normalTransform = extractTextureTransform(material.normalTexture.extensions);
+            resources.normalUVIndex = getUVIndex(material.normalTexture);
         }
         if (material.occlusionTexture.index >= 0) {
             resources.occlusionTransform = extractTextureTransform(material.occlusionTexture.extensions);
+            resources.aoUVIndex = getUVIndex(material.occlusionTexture);
         }
         if (material.emissiveTexture.index >= 0) {
             resources.emissiveTransform = extractTextureTransform(material.emissiveTexture.extensions);
+            resources.emissiveUVIndex = getUVIndex(material.emissiveTexture);
         }
 
         resources.baseColorFactor = pbr.baseColorFactor;
@@ -343,7 +348,8 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
 
         const std::vector<float> positions = readAccessor("POSITION");
         const std::vector<float> normals = readAccessor("NORMAL");
-        const std::vector<float> texCoords = readAccessor("TEXCOORD_0");
+        const std::vector<float> texCoords0 = readAccessor("TEXCOORD_0");
+        const std::vector<float> texCoords1 = readAccessor("TEXCOORD_1");
         const std::vector<float> colors = readAccessor("COLOR_0");
 
         const size_t vertexCount = gltfModel.accessors[primitive.attributes.at("POSITION")].count;
@@ -354,8 +360,10 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
             vertices[i].normal = !normals.empty()
                                      ? glm::vec3(normals[i * 3], normals[(i * 3) + 1], normals[(i * 3) + 2])
                                      : glm::vec3(0, 1, 0);
-            vertices[i].texCoord =
-                !texCoords.empty() ? glm::vec2(texCoords[i * 2], texCoords[(i * 2) + 1]) : glm::vec2(0, 0);
+            vertices[i].uv0 =
+                !texCoords0.empty() ? glm::vec2(texCoords0[i * 2], texCoords0[(i * 2) + 1]) : glm::vec2(0, 0);
+            vertices[i].uv1 =
+                !texCoords1.empty() ? glm::vec2(texCoords1[i * 2], texCoords1[(i * 2) + 1]) : glm::vec2(0, 0);
             const bool hasColors = primitive.attributes.contains("COLOR_0");
             const bool colorIsVec4 =
                 hasColors && gltfModel.accessors[primitive.attributes.at("COLOR_0")].type == TINYGLTF_TYPE_VEC4;

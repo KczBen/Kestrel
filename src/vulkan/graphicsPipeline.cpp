@@ -35,7 +35,7 @@ Vulkan::GraphicsPipeline::GraphicsPipeline(Vulkan::Device& device,
         vk::PipelineDynamicStateCreateFlags(), dynamicStates.size(), dynamicStates.data());
 
     vk::VertexInputBindingDescription bindingDescription{};
-    std::array<vk::VertexInputAttributeDescription, 4> attributeDescriptions{};
+    std::array<vk::VertexInputAttributeDescription, 5> attributeDescriptions{};
     vk::PipelineVertexInputStateCreateInfo vInputInfo{{}, 0};
 
     if (useVertexBinding) {
