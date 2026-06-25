@@ -79,7 +79,7 @@ void Render::Render::init(Scene& scene) {
     frameGraph.addPass(std::make_unique<CameraPass>(
         CameraPass(resourceManager->getPipelineManager(),
                    {},
-                   {{colorTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore}},
+                   {{colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
                    {depthTarget},
                    {},
                    {&resourceManager->getMaterialList(), 0},
@@ -88,7 +88,7 @@ void Render::Render::init(Scene& scene) {
     frameGraph.addPass(std::make_unique<GeometryPass>(
         GeometryPass(resourceManager->getPipelineManager(),
                      {},
-                     {{colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
+                     {{colorTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore}},
                      {depthTarget},
                      {},
                      std::nullopt,

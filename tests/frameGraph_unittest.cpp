@@ -398,3 +398,74 @@ TEST_F(FrameGraphFixture, CompileDepthOutputToDepthInput) {
     // Pass 0 must come before pass 1 (depthOutput -> depthInput dependency)
     EXPECT_LT(idx0, idx1);
 }
+
+TEST_F(FrameGraphFixture, CompileDepthOutputWithLoadCreatesDependency) {
+    auto depthTarget = resourceManager_->createRenderTarget(vk::Extent3D{800, 600, 1},
+                                                            vk::Format::eD32Sfloat,
+                                                            vk::ImageUsageFlagBits::eDepthStencilAttachment |
+                                                                vk::ImageUsageFlagBits::eInputAttachment,
+                                                            vk::ImageAspectFlagBits::eDepth);
+
+    Render::FrameGraph fg;
+    // Pass 0: produces depthTarget with eClear (producer only)
+    auto depthClear =
+        Render::RenderTargetAttachment{depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore};
+    std::vector<Render::RenderTargetAttachment> emptyInputs;
+    std::vector<Render::RenderTargetAttachment> emptyColorAttachments;
+    fg.addPass(std::make_unique<TestPass>(
+        *pipelineManager_, emptyInputs, emptyColorAttachments, makeEmptyDepthAttachment(), depthClear));
+
+    // Pass 1: produces depthTarget with eLoad (consumer + producer)
+    auto depthLoad =
+        Render::RenderTargetAttachment{depthTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore};
+    fg.addPass(std::make_unique<TestPass>(
+        *pipelineManager_, emptyInputs, emptyColorAttachments, makeEmptyDepthAttachment(), depthLoad));
+
+    auto order = fg.compile();
+    EXPECT_EQ(order.size(), 2);
+    size_t idx0 = 0, idx1 = 0;
+    for (size_t i = 0; i < order.size(); ++i) {
+        if (order[i] == 0)
+            idx0 = i;
+        if (order[i] == 1)
+            idx1 = i;
+    }
+    // Pass 0 must come before pass 1 (depthOutput with eLoad depends on the previous producer)
+    EXPECT_LT(idx0, idx1);
+}
+
+TEST_F(FrameGraphFixture, CompileColorOutputWithLoadCreatesDependency) {
+    auto colorTarget = resourceManager_->createRenderTarget(vk::Extent3D{800, 600, 1},
+                                                            vk::Format::eB8G8R8A8Srgb,
+                                                            vk::ImageUsageFlagBits::eColorAttachment |
+                                                                vk::ImageUsageFlagBits::eInputAttachment,
+                                                            vk::ImageAspectFlagBits::eColor);
+
+    Render::FrameGraph fg;
+    // Pass 0: produces colorTarget with eClear (producer only)
+    Render::RenderTargetAttachment colorClear(colorTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore);
+    std::vector<Render::RenderTargetAttachment> emptyInputs;
+    std::vector<Render::RenderTargetAttachment> colorAttachments0;
+    colorAttachments0.push_back(colorClear);
+    fg.addPass(std::make_unique<TestPass>(
+        *pipelineManager_, emptyInputs, colorAttachments0, makeEmptyDepthAttachment(), makeEmptyDepthAttachment()));
+
+    // Pass 1: produces colorTarget with eLoad (consumer + producer)
+    Render::RenderTargetAttachment colorLoad(colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore);
+    std::vector<Render::RenderTargetAttachment> colorAttachments1;
+    colorAttachments1.push_back(colorLoad);
+    fg.addPass(std::make_unique<TestPass>(
+        *pipelineManager_, emptyInputs, colorAttachments1, makeEmptyDepthAttachment(), makeEmptyDepthAttachment()));
+
+    auto order = fg.compile();
+    EXPECT_EQ(order.size(), 2);
+    size_t idx0 = 0, idx1 = 0;
+    for (size_t i = 0; i < order.size(); ++i) {
+        if (order[i] == 0)
+            idx0 = i;
+        if (order[i] == 1)
+            idx1 = i;
+    }
+    // Pass 0 must come before pass 1 (color output with eLoad depends on the previous producer)
+    EXPECT_LT(idx0, idx1);
+}

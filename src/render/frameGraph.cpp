@@ -37,13 +37,16 @@ auto FrameGraph::compile() -> std::vector<size_t> {
     }
 
     // Find the producer for a given input handle
+    // returns the last match so that when a pass itself wrote the same handle (eLoad vs eClear),
+    // the actual producer pass is found instead of the current pass's own entry.
     auto findProducer = [&targets](const RenderTargetHandle& input) -> std::optional<size_t> {
+        std::optional<size_t> result;
         for (const auto& [target, producerIndex] : targets) {
             if (target == input) {
-                return producerIndex;
+                result = producerIndex;
             }
         }
-        return std::nullopt;
+        return result;
     };
 
     // Build adjacency list and in-degree count
@@ -68,6 +71,35 @@ auto FrameGraph::compile() -> std::vector<size_t> {
             auto maybeProducer = findProducer(passes[i]->getDepthInput().handle);
             if (maybeProducer.has_value() && maybeProducer.value() != i) {
                 const size_t producerIndex = maybeProducer.value();
+                if (std::find(adj[producerIndex].begin(), adj[producerIndex].end(), i) == adj[producerIndex].end()) {
+                    adj[producerIndex].push_back(i);
+                    inDegree[i]++;
+                }
+            }
+        }
+
+        // Check color attachments with eLoad — consumer of previous producer
+        for (size_t a = 0; a < passes[i]->getColorAttachmentCount(); ++a) {
+            const auto& colorAtt = passes[i]->getColorAttachment(a);
+            if (colorAtt.isPresent() && colorAtt.loadOp == vk::AttachmentLoadOp::eLoad) {
+                auto colorProducer = findProducer(colorAtt.handle);
+                if (colorProducer.has_value() && colorProducer.value() != i) {
+                    const size_t producerIndex = colorProducer.value();
+                    if (std::find(adj[producerIndex].begin(), adj[producerIndex].end(), i) ==
+                        adj[producerIndex].end()) {
+                        adj[producerIndex].push_back(i);
+                        inDegree[i]++;
+                    }
+                }
+            }
+        }
+
+        // Depth output with eLoad is a consumer of the previous producer
+        const auto& depthOut = passes[i]->getDepthOutput();
+        if (depthOut.isPresent() && depthOut.loadOp == vk::AttachmentLoadOp::eLoad) {
+            auto depthProducer = findProducer(depthOut.handle);
+            if (depthProducer.has_value() && depthProducer.value() != i) {
+                const size_t producerIndex = depthProducer.value();
                 if (std::find(adj[producerIndex].begin(), adj[producerIndex].end(), i) == adj[producerIndex].end()) {
                     adj[producerIndex].push_back(i);
                     inDegree[i]++;
