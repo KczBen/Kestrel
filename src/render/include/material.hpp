@@ -126,8 +126,8 @@ inline auto buildTextureTransformMatrix(const Material::TextureTransform& transf
     m[0][1] = transform.scale.x * s;
     m[1][0] = -transform.scale.y * s;
     m[1][1] = transform.scale.y * c;
-    m[2][0] = transform.offset.x;
-    m[2][1] = transform.offset.y;
+    m[3][0] = transform.offset.x;
+    m[3][1] = transform.offset.y;
     return m;
 }
 

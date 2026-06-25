@@ -22,12 +22,12 @@ layout(set = 1, binding = 0) uniform MaterialUBO {
     float normalScale;
     float occlusionStrength;
 
-    // KHR_texture_transform — std140 mat3 = 3 vec4 columns
-    mat3 baseColorTransform;
-    mat3 metallicRoughnessTransform;
-    mat3 normalTransform;
-    mat3 occlusionTransform;
-    mat3 emissiveTransform;
+    // KHR_texture_transform
+    mat4 baseColorTransform;
+    mat4 metallicRoughnessTransform;
+    mat4 normalTransform;
+    mat4 occlusionTransform;
+    mat4 emissiveTransform;
 }
 material;
 
