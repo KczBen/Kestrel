@@ -49,9 +49,9 @@ class Camera {
     void setAspectRatio(float aspect);
 
     void updateViewMatrix();
-    void updateUniformBuffer();
 
     friend class CameraController;
     friend class ResourceManager;
+    friend class Scene;
 };
 } // namespace Render

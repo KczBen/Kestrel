@@ -4,10 +4,12 @@
 #include "cameraController.hpp"
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
+#include "hostBuffer.hpp"
 #include "input.hpp"
 #include "light.hpp"
 #include "object.hpp"
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -27,6 +29,11 @@ class Scene {
     Vulkan::DescriptorSetLayoutHandle descriptorSetLayout;
     std::vector<Vulkan::DescriptorSetHandle> descriptorSets;
 
+    // Light UBO handles
+    // Not part of the individual lights because one UBO stores all the lights
+    std::vector<Vulkan::HostBufferHandle> lightUniformBuffers;
+    uint32_t lightUBOIndex = 0;
+
   public:
     Scene(std::vector<std::string> modelPaths);
     void update(Input inputs, float deltaTime);
@@ -40,6 +47,7 @@ class Scene {
     auto getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout&;
     auto getDescriptorSet() -> Vulkan::DescriptorSet&;
     auto flipDescriptorSet() -> void;
+    void updateUniformBuffers();
 
     friend class ResourceManager;
 };

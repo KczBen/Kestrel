@@ -103,9 +103,7 @@ void Render::Render::init(Scene& scene) {
 
 void Render::Render::render(Scene& scene, float deltaTime) {
     scene.flipDescriptorSet();
-    for (auto& camera : scene.getCameras()) {
-        camera.updateUniformBuffer();
-    }
+    scene.updateUniformBuffers();
 
     syncObjects.waitForFrame(frameIndex);
 
