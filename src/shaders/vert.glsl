@@ -4,7 +4,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
 #extension GL_EXT_shader_16bit_storage : require
 
-layout(push_constant) uniform Push { mat4 model; };
+layout(push_constant) uniform Push { mat4 model; mat4 normalMatrix; };
 
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 view;
@@ -31,5 +31,5 @@ void main() {
     fragColor = inColor;
     fragTexCoord[0] = inTexCoord0;
     fragTexCoord[1] = inTexCoord1;
-    fragNormal = mat3(transpose(inverse(cameraUBO.view * model))) * inNormal;
+    fragNormal = mat3(normalMatrix) * inNormal;
 }

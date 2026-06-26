@@ -35,4 +35,5 @@ struct MaterialUBO {
 
 struct PushConstants {
     glm::mat4 model;
+    glm::mat4 normalMatrix;
 };

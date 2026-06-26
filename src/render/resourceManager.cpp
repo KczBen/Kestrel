@@ -236,7 +236,7 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
                             ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
                             resources,
                             std::vector<vk::PushConstantRange>{
-                                vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(glm::mat4))},
+                                vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))},
                             Material::VertexInputMode::Mesh,
                             cullMode,
                             true, // depthTest
@@ -455,6 +455,32 @@ void ResourceManager::loadScene(Scene& scene) {
                                            .bufferInfo = {*uniformBuffers[i], 0, sizeof(UniformBufferObject)}};
             descriptorSets[i].write(std::span(&uboWrite, 1));
             camera.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
+        }
+    }
+
+    // Lights also have cameras
+    for (auto& light : scene.lights) {
+        descriptorSetLayouts.emplace_back(*device,
+                                          std::vector<vk::DescriptorSetLayoutBinding>{vk::DescriptorSetLayoutBinding(
+                                              0,
+                                              vk::DescriptorType::eUniformBuffer,
+                                              1,
+                                              vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)});
+
+        light.camera.desecriptorSetLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
+
+        for (auto i = 0; i < 2; i++) {
+            uniformBuffers.emplace_back(*device, sizeof(MaterialUBO));
+            light.camera.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
+        }
+
+        for (uint32_t i = 0; i < 2; i++) {
+            descriptorSets.emplace_back(*device, descriptorPool, *light.camera.desecriptorSetLayout);
+            const DescriptorWrite uboWrite{.binding = 0,
+                                           .type = vk::DescriptorType::eUniformBuffer,
+                                           .bufferInfo = {*uniformBuffers[i], 0, sizeof(UniformBufferObject)}};
+            descriptorSets[i].write(std::span(&uboWrite, 1));
+            light.camera.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
         }
     }
 

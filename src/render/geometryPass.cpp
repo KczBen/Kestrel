@@ -87,7 +87,8 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
 
             cmd.bindVertexBuffers(0, drawCall.primitive.mesh.vertexBuffer->get(), offsets);
             cmd.bindIndexBuffer(drawCall.primitive.mesh.indexBuffer->get(), 0, vk::IndexType::eUint32);
-            const PushConstants pc{drawCall.transform};
+            const glm::mat4 normalMatrix = glm::transpose(glm::inverse(drawCall.transform));
+            const PushConstants pc{.model = drawCall.transform, .normalMatrix = normalMatrix};
             cmd.pushConstants(
                 pipeline.getLayout(), vk::ShaderStageFlagBits::eVertex, 0, vk::ArrayProxy<const PushConstants>(1, &pc));
             cmd.drawIndexed(drawCall.primitive.mesh.indexCount,
