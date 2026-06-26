@@ -1,12 +1,14 @@
 #pragma once
 
 #include "pass.hpp"
+#include "scene.hpp"
 
 namespace Render {
 class CameraPass : public Pass {
   private:
     Camera* camera;
-    MaterialHandle materialHandle{};
+    Scene* scene;
+    MaterialHandle materialHandle;
 
   public:
     CameraPass(Vulkan::PipelineManager& pipelineManager,
@@ -15,6 +17,7 @@ class CameraPass : public Pass {
                const RenderTargetAttachment& depthInput,
                const RenderTargetAttachment& depthOutput,
                MaterialHandle materialHandle,
+               Scene* scene,
                Camera* camera);
 
     void record(vk::CommandBuffer cmd, uint32_t frameIndex) override;

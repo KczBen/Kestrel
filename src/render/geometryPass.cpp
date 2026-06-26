@@ -18,10 +18,11 @@ GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager,
                            const RenderTargetAttachment& depthInput,
                            const RenderTargetAttachment& depthOutput,
                            std::optional<MaterialHandle> optMaterial,
+                           Scene* scene,
                            std::span<const Object> models,
                            Camera* camera)
-    : Pass(pipelineManager, inputs, colorAttachments, depthInput, depthOutput), models(models), camera(camera),
-      optMaterial(optMaterial) {}
+    : Pass(pipelineManager, inputs, colorAttachments, depthInput, depthOutput), scene(scene), models(models),
+      camera(camera), optMaterial(optMaterial) {}
 
 void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);
@@ -71,13 +72,13 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
         }
 
         auto& pipeline = getPipelineManager()->getOrCreatePipeline(
-            material, *camera, formats, vk::SampleCountFlagBits::e1, depthWrite);
+            material, *scene, formats, vk::SampleCountFlagBits::e1, depthWrite);
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
-        const Vulkan::DescriptorSet& cameraWS = camera->getDescriptorSet(frameIndex);
+        const Vulkan::DescriptorSet& sceneWS = scene->getDescriptorSet(frameIndex);
         const Vulkan::DescriptorSet& materialWS = material->getDescriptorSet();
 
-        const std::array<vk::DescriptorSet, 2> rawSets = {*cameraWS, *materialWS};
+        const std::array<vk::DescriptorSet, 2> rawSets = {*sceneWS, *materialWS};
 
         cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, rawSets, nullptr);
 

@@ -1,8 +1,8 @@
+#include "descriptorSet.hpp"
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
-#include "resourceManager.hpp"
 #include "descriptorPool.hpp"
 #include "device.hpp"
 #include "deviceBuffer.hpp"
@@ -10,6 +10,7 @@
 #include "material.hpp"
 #include "pipelineManager.hpp"
 #include "resourceHandles.hpp"
+#include "resourceManager.hpp"
 #include "sampler.hpp"
 #include "shaderDef.hpp"
 #include "texture.hpp"
@@ -432,56 +433,36 @@ auto ResourceManager::uploadMesh(const std::vector<Vertex>& vertices, const std:
 }
 
 void ResourceManager::loadScene(Scene& scene) {
-    // get camera stuff
-    for (auto& camera : scene.cameras) {
-        descriptorSetLayouts.emplace_back(*device,
-                                          std::vector<vk::DescriptorSetLayoutBinding>{vk::DescriptorSetLayoutBinding(
-                                              0,
-                                              vk::DescriptorType::eUniformBuffer,
-                                              1,
-                                              vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)});
+    descriptorSetLayouts.emplace_back(
+        *device,
+        std::vector<vk::DescriptorSetLayoutBinding>{
+            vk::DescriptorSetLayoutBinding(0,
+                                           vk::DescriptorType::eUniformBuffer,
+                                           1,
+                                           vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment),
+            vk::DescriptorSetLayoutBinding(
+                1, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment)});
 
-        camera.desecriptorSetLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
+    scene.descriptorSetLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
 
-        for (auto i = 0; i < 2; i++) {
-            uniformBuffers.emplace_back(*device, sizeof(MaterialUBO));
+    for (uint32_t i = 0; i < 2; i++) {
+
+        descriptorSets.emplace_back(*device, descriptorPool, *scene.descriptorSetLayout);
+
+        std::vector<DescriptorWrite> uboWrites;
+
+        // get camera stuff
+        for (auto& camera : scene.cameras) {
+            uniformBuffers.emplace_back(*device, sizeof(CameraUBO));
             camera.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
+
+            uboWrites.emplace_back(DescriptorWrite{.binding = 0,
+                                                   .type = vk::DescriptorType::eUniformBuffer,
+                                                   .bufferInfo = {*uniformBuffers.back(), 0, sizeof(CameraUBO)}});
         }
 
-        for (uint32_t i = 0; i < 2; i++) {
-            descriptorSets.emplace_back(*device, descriptorPool, *camera.desecriptorSetLayout);
-            const DescriptorWrite uboWrite{.binding = 0,
-                                           .type = vk::DescriptorType::eUniformBuffer,
-                                           .bufferInfo = {*uniformBuffers[i], 0, sizeof(UniformBufferObject)}};
-            descriptorSets[i].write(std::span(&uboWrite, 1));
-            camera.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
-        }
-    }
-
-    // Lights also have cameras
-    for (auto& light : scene.lights) {
-        descriptorSetLayouts.emplace_back(*device,
-                                          std::vector<vk::DescriptorSetLayoutBinding>{vk::DescriptorSetLayoutBinding(
-                                              0,
-                                              vk::DescriptorType::eUniformBuffer,
-                                              1,
-                                              vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)});
-
-        light.camera.desecriptorSetLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
-
-        for (auto i = 0; i < 2; i++) {
-            uniformBuffers.emplace_back(*device, sizeof(MaterialUBO));
-            light.camera.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
-        }
-
-        for (uint32_t i = 0; i < 2; i++) {
-            descriptorSets.emplace_back(*device, descriptorPool, *light.camera.desecriptorSetLayout);
-            const DescriptorWrite uboWrite{.binding = 0,
-                                           .type = vk::DescriptorType::eUniformBuffer,
-                                           .bufferInfo = {*uniformBuffers[i], 0, sizeof(UniformBufferObject)}};
-            descriptorSets[i].write(std::span(&uboWrite, 1));
-            light.camera.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
-        }
+        scene.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
+        descriptorSets[i].write(uboWrites);
     }
 
     pipelineManager.emplace(Vulkan::PipelineManager(*device, descriptorPool));

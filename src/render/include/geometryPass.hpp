@@ -4,11 +4,13 @@
 #include "material.hpp"
 #include "object.hpp"
 #include "pass.hpp"
+#include "scene.hpp"
 #include <optional>
 
 namespace Render {
 class GeometryPass : public Pass {
   private:
+    Scene* scene;
     Camera* camera;
     std::span<const Object> models;
     std::optional<MaterialHandle> optMaterial;
@@ -20,6 +22,7 @@ class GeometryPass : public Pass {
                  const RenderTargetAttachment& depthInput,
                  const RenderTargetAttachment& depthOutput,
                  std::optional<MaterialHandle> optMaterial,
+                 Scene* scene,
                  std::span<const Object> models,
                  Camera* camera);
 

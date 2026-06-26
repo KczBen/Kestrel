@@ -107,7 +107,7 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
 }
 
 auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
-                                                  Render::Camera& camera,
+                                                  Render::Scene& scene,
                                                   std::span<const vk::Format> formats,
                                                   vk::SampleCountFlagBits sampleCount,
                                                   bool depthWrite) -> Vulkan::GraphicsPipeline& {
@@ -118,12 +118,12 @@ auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
         return *materialHandle->graphicsPipeline;
     }
 
-    // always have the camera layout included (for now)
+    // always have the scene layout included (for now)
     std::vector<const Vulkan::DescriptorSetLayout*> layouts =
         materialHandle->descriptorSetLayout.has_value()
-            ? std::vector<const Vulkan::DescriptorSetLayout*>{&camera.getDescriptorSetLayout(),
+            ? std::vector<const Vulkan::DescriptorSetLayout*>{&scene.getDescriptorSetLayout(),
                                                               &materialHandle->descriptorSetLayout.value()}
-            : std::vector<const Vulkan::DescriptorSetLayout*>{&camera.getDescriptorSetLayout()};
+            : std::vector<const Vulkan::DescriptorSetLayout*>{&scene.getDescriptorSetLayout()};
 
     vk::BlendOp blendMode = vk::BlendOp::eAdd;
 

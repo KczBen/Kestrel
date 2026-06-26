@@ -1,6 +1,4 @@
 #include "camera.hpp"
-#include "descriptorSet.hpp"
-#include "descriptorSetLayout.hpp"
 #include "gpuDataObjects.hpp"
 #include <cstdint>
 #include <glm/ext/matrix_transform.hpp>
@@ -9,7 +7,7 @@
 namespace Render {
 Camera::Camera(const glm::vec3& position, const glm::vec3& worldUp)
     : position(position), worldUp(worldUp), orientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f)), viewMatrix(glm::mat4(1.0f)),
-      desecriptorSetLayout(nullptr), lastUpdatedIndex(-1) {}
+      lastUpdatedIndex(-1) {}
 
 auto Camera::getViewMatrix() const -> glm::mat4 { return viewMatrix; }
 
@@ -23,8 +21,6 @@ auto Camera::getPosition() const -> glm::vec3 { return position; }
 auto Camera::getOrientation() const -> glm::quat { return orientation; }
 auto Camera::getFov() const -> float { return fov; }
 auto Camera::getAspectRatio() const -> float { return aspectRatio; }
-auto Camera::getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout& { return *desecriptorSetLayout; }
-auto Camera::getDescriptorSet(uint32_t index) -> Vulkan::DescriptorSet& { return *descriptorSets[index]; }
 
 void Camera::setPosition(const glm::vec3& pos) { position = pos; }
 void Camera::setOrientation(const glm::quat& quat) { orientation = glm::normalize(quat); }
@@ -39,12 +35,12 @@ void Camera::updateViewMatrix() {
 
 void Camera::updateUniformBuffer(uint32_t index) {
     updateViewMatrix();
-    UniformBufferObject ubo{};
+    CameraUBO ubo{};
     ubo.view = viewMatrix;
     ubo.proj = getProjectionMatrix();
     ubo.invView = glm::inverse(viewMatrix);
     ubo.invProj = glm::inverse(ubo.proj);
-    uniformBuffers[index]->update(&ubo, sizeof(UniformBufferObject));
+    uniformBuffers[index]->update(&ubo, sizeof(CameraUBO));
     lastUpdatedIndex = static_cast<int32_t>(index);
 }
 } // namespace Render

@@ -17,9 +17,10 @@ CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager,
                        const RenderTargetAttachment& depthInput,
                        const RenderTargetAttachment& depthOutput,
                        MaterialHandle materialHandle,
+                       Scene* scene,
                        Camera* camera)
     : Pass(pipelineManager, inputs, colorAttachments, depthInput, depthOutput), materialHandle(materialHandle),
-      camera(camera) {}
+      scene(scene), camera(camera) {}
 
 void CameraPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     camera->updateUniformBuffer(frameIndex);
@@ -32,12 +33,12 @@ void CameraPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
     }
 
     auto& pipeline = getPipelineManager()->getOrCreatePipeline(
-        materialHandle, *camera, getColorAttachmentFormats(), vk::SampleCountFlagBits::e1, depthWrite);
+        materialHandle, *scene, getColorAttachmentFormats(), vk::SampleCountFlagBits::e1, depthWrite);
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
-    const Vulkan::DescriptorSet& cameraWS = camera->getDescriptorSet(frameIndex);
+    const Vulkan::DescriptorSet& sceneWS = scene->getDescriptorSet(frameIndex);
 
-    const std::array<vk::DescriptorSet, 1> rawSets = {*cameraWS};
+    const std::array<vk::DescriptorSet, 1> rawSets = {*sceneWS};
 
     cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, rawSets, nullptr);
 

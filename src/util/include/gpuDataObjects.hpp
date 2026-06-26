@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #define GLM_FORCE_RADIANS
 
-struct UniformBufferObject {
+struct CameraUBO {
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
     alignas(16) glm::mat4 invView;
@@ -25,7 +25,7 @@ struct MaterialUBO {
     alignas(4) int32_t aoUVIndex;
     alignas(4) int32_t emissiveUVIndex;
 
-    // KHR_texture_transform — 5 mat4 fields, GLSL mat3 reads first 48 bytes of each
+    // KHR_texture_transform - 5 mat4 fields, GLSL mat3 reads first 48 bytes of each
     alignas(16) glm::mat4 baseColorTransformMatrix;
     alignas(16) glm::mat4 metallicRoughnessTransformMatrix;
     alignas(16) glm::mat4 normalTransformMatrix;

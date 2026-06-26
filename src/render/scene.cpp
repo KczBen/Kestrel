@@ -18,4 +18,7 @@ void Scene::update(Input inputs, float deltaTime) {
     }
 }
 auto Scene::getObjects() const -> std::span<const Object> { return objects; }
+
+auto Scene::getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout& { return *descriptorSetLayout; }
+auto Scene::getDescriptorSet(uint32_t index) -> Vulkan::DescriptorSet& { return *descriptorSets[index]; }
 } // namespace Render

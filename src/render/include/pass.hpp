@@ -14,7 +14,7 @@ struct RenderTargetAttachment {
     RenderTargetHandle handle;
     vk::AttachmentLoadOp loadOp = vk::AttachmentLoadOp::eLoad;
     vk::AttachmentStoreOp storeOp = vk::AttachmentStoreOp::eDontCare;
-    SamplerHandle sampler = SamplerHandle{};
+    SamplerHandle sampler;
 
     RenderTargetAttachment() = default;
 

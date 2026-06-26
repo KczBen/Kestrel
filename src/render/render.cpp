@@ -73,6 +73,7 @@ void Render::Render::init(Scene& scene) {
                      {},
                      {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
                      MaterialHandle{&materials, 1},
+                     &scene,
                      scene.getObjects(),
                      &scene.getCamera())));
 
@@ -83,6 +84,7 @@ void Render::Render::init(Scene& scene) {
                    {depthTarget},
                    {},
                    {&resourceManager->getMaterialList(), 0},
+                   &scene,
                    &scene.getCamera())));
 
     frameGraph.addPass(std::make_unique<GeometryPass>(
@@ -92,6 +94,7 @@ void Render::Render::init(Scene& scene) {
                      {depthTarget},
                      {},
                      std::nullopt,
+                     &scene,
                      scene.getObjects(),
                      &scene.getCamera())));
 

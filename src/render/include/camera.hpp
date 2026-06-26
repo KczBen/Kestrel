@@ -1,8 +1,5 @@
 #pragma once
 
-#include "descriptorSet.hpp"
-#include "descriptorSetLayout.hpp"
-#include "gpuDataObjects.hpp"
 #include "hostBuffer.hpp"
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/quaternion_trigonometric.hpp>
@@ -31,8 +28,6 @@ class Camera {
     float nearPlane = 0.1f;
     float farPlane = 100.0f;
 
-    Vulkan::DescriptorSetLayoutHandle desecriptorSetLayout;
-    std::vector<Vulkan::DescriptorSetHandle> descriptorSets;
     std::vector<Vulkan::HostBufferHandle> uniformBuffers;
 
     int32_t lastUpdatedIndex;
@@ -47,9 +42,6 @@ class Camera {
     [[nodiscard]] auto getOrientation() const -> glm::quat;
     [[nodiscard]] auto getFov() const -> float;
     [[nodiscard]] auto getAspectRatio() const -> float;
-
-    auto getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout&;
-    auto getDescriptorSet(uint32_t index) -> Vulkan::DescriptorSet&;
 
     void setPosition(const glm::vec3& pos);
     void setOrientation(const glm::quat& quat);
