@@ -3,6 +3,7 @@
 #include "material.hpp"
 #include "pipelineManager.hpp"
 #include "renderTarget.hpp"
+#include "sampler.hpp"
 #include "vulkan/vulkan.hpp"
 #include <span>
 #include <vector>
@@ -13,13 +14,15 @@ struct RenderTargetAttachment {
     RenderTargetHandle handle;
     vk::AttachmentLoadOp loadOp = vk::AttachmentLoadOp::eLoad;
     vk::AttachmentStoreOp storeOp = vk::AttachmentStoreOp::eDontCare;
+    SamplerHandle sampler = SamplerHandle{};
 
     RenderTargetAttachment() = default;
 
     RenderTargetAttachment(RenderTargetHandle handle,
                            vk::AttachmentLoadOp loadOp = vk::AttachmentLoadOp::eLoad,
-                           vk::AttachmentStoreOp storeOp = vk::AttachmentStoreOp::eDontCare)
-        : handle(handle), loadOp(loadOp), storeOp(storeOp) {}
+                           vk::AttachmentStoreOp storeOp = vk::AttachmentStoreOp::eDontCare,
+                           SamplerHandle sampler = SamplerHandle{})
+        : handle(handle), loadOp(loadOp), storeOp(storeOp), sampler(sampler) {}
 
     [[nodiscard]] auto isPresent() const -> bool { return handle.isPresent(); }
 };
