@@ -14,6 +14,6 @@ class Instance {
     Instance(const std::string& appName, std::span<const char* const> extensions);
     [[nodiscard]] auto operator*() -> vk::raii::Instance& { return instance; }
     [[nodiscard]] auto operator->() -> vk::raii::Instance* { return &instance; }
-    auto get() -> vk::raii::Instance&;
+    [[nodiscard]] auto get() -> vk::raii::Instance&;
 };
 } // namespace Vulkan

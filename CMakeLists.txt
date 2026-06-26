@@ -68,6 +68,25 @@ target_link_libraries(vulkan-wrapper PRIVATE
     GPUOpen::VulkanMemoryAllocator
 )
 
+add_library(imgui
+    thirdparty/imgui.cpp
+    thirdparty/imgui_demo.cpp
+    thirdparty/imgui_draw.cpp
+    thirdparty/imgui_tables.cpp
+    thirdparty/imgui_widgets.cpp
+    thirdparty/imgui_impl_sdl3.cpp
+    thirdparty/imgui_impl_vulkan.cpp
+)
+
+target_include_directories(imgui PRIVATE
+    ${CMAKE_SOURCE_DIR}/thirdparty
+)
+
+target_link_libraries(imgui PRIVATE
+    SDL3::SDL3
+    Vulkan::Vulkan
+)
+
 add_library(render
     src/render/scene.cpp
     src/render/render.cpp
@@ -103,11 +122,13 @@ target_include_directories(vulkan-sdl PRIVATE
     ${CMAKE_SOURCE_DIR}/src/util/include
     ${CMAKE_SOURCE_DIR}/src/render/include
     ${CMAKE_SOURCE_DIR}/src/render/scene/include
+    ${CMAKE_SOURCE_DIR}/thirdparty
 )
 
 target_link_libraries(vulkan-sdl PRIVATE
     render
     vulkan-wrapper
+    imgui
     Vulkan::Vulkan
     GPUOpen::VulkanMemoryAllocator
     SDL3::SDL3

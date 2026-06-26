@@ -20,6 +20,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glslang/Public/ShaderLang.h>
 
+#include "imgui.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_vulkan.h"
+
 #include <print>
 #include <string>
 #include <vulkan/vulkan_core.h>
@@ -49,6 +53,10 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
         SDL_Quit();
         return 1;
     }
+
+    // Initialize ImGui
+    ImGui::CreateContext();
+    ImGui_ImplSDL3_InitForVulkan(window);
 
     auto lastFrameTime = std::chrono::high_resolution_clock::now();
 
@@ -117,6 +125,8 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
     }
 
     // Cleanup
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
     glslang::FinalizeProcess();
     SDL_DestroyWindow(window);
     SDL_Quit();
