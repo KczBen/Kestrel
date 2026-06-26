@@ -26,7 +26,7 @@ class GeometryPass : public Pass {
                  std::span<const Object> models,
                  Camera* camera);
 
-    void record(vk::CommandBuffer cmd, uint32_t frameIndex) override;
+    void record(vk::CommandBuffer cmd) override;
     [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override;
 };
 } // namespace Render

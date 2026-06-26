@@ -58,7 +58,7 @@ class Pass {
         }
     }
 
-    virtual void record(vk::CommandBuffer cmd, uint32_t frameIndex) = 0;
+    virtual void record(vk::CommandBuffer cmd) = 0;
     [[nodiscard]] virtual auto supportedMaterialTypes() const -> uint32_t {
         return (1u << static_cast<uint32_t>(Material::BlendMode::Opaque)) |
                (1u << static_cast<uint32_t>(Material::BlendMode::Alpha)) |

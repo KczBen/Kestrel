@@ -24,8 +24,7 @@ GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager,
     : Pass(pipelineManager, inputs, colorAttachments, depthInput, depthOutput), scene(scene), models(models),
       camera(camera), optMaterial(optMaterial) {}
 
-void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
-    camera->updateUniformBuffer(frameIndex);
+void GeometryPass::record(vk::CommandBuffer cmd) {
 
     struct DrawCall {
         Primitive primitive;
@@ -75,7 +74,7 @@ void GeometryPass::record(vk::CommandBuffer cmd, uint32_t frameIndex) {
             material, *scene, formats, vk::SampleCountFlagBits::e1, depthWrite);
         cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
-        const Vulkan::DescriptorSet& sceneWS = scene->getDescriptorSet(frameIndex);
+        const Vulkan::DescriptorSet& sceneWS = scene->getDescriptorSet();
         const Vulkan::DescriptorSet& materialWS = material->getDescriptorSet();
 
         const std::array<vk::DescriptorSet, 2> rawSets = {*sceneWS, *materialWS};

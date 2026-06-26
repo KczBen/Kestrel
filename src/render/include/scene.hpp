@@ -22,6 +22,7 @@ class Scene {
     std::vector<Camera> cameras;
 
     std::vector<std::string> modelPaths;
+    uint32_t lastUpdatedIndex = 0;
 
     Vulkan::DescriptorSetLayoutHandle descriptorSetLayout;
     std::vector<Vulkan::DescriptorSetHandle> descriptorSets;
@@ -32,12 +33,13 @@ class Scene {
     void addObject(std::unique_ptr<Object> model);
     void addLight(std::unique_ptr<Light> light);
     void addControlledCamera(CameraController cameraController);
-    auto getCamera() -> Camera&;
+    auto getCameras() -> std::vector<Camera>&;
     [[nodiscard]] auto getObjects() const -> std::span<const Object>;
     [[nodiscard]] auto getLights() const -> std::span<const Light>;
 
     auto getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout&;
-    auto getDescriptorSet(uint32_t index) -> Vulkan::DescriptorSet&;
+    auto getDescriptorSet() -> Vulkan::DescriptorSet&;
+    auto flipDescriptorSet() -> void;
 
     friend class ResourceManager;
 };

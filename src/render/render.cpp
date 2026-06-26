@@ -75,7 +75,7 @@ void Render::Render::init(Scene& scene) {
                      MaterialHandle{&materials, 1},
                      &scene,
                      scene.getObjects(),
-                     &scene.getCamera())));
+                     scene.getCameras().data())));
 
     frameGraph.addPass(std::make_unique<CameraPass>(
         CameraPass(resourceManager->getPipelineManager(),
@@ -85,7 +85,7 @@ void Render::Render::init(Scene& scene) {
                    {},
                    {&resourceManager->getMaterialList(), 0},
                    &scene,
-                   &scene.getCamera())));
+                   scene.getCameras().data())));
 
     frameGraph.addPass(std::make_unique<GeometryPass>(
         GeometryPass(resourceManager->getPipelineManager(),
@@ -96,12 +96,17 @@ void Render::Render::init(Scene& scene) {
                      std::nullopt,
                      &scene,
                      scene.getObjects(),
-                     &scene.getCamera())));
+                     scene.getCameras().data())));
 
     frameGraph.compile();
 }
 
 void Render::Render::render(Scene& scene, float deltaTime) {
+    scene.flipDescriptorSet();
+    for (auto& camera : scene.getCameras()) {
+        camera.updateUniformBuffer();
+    }
+
     syncObjects.waitForFrame(frameIndex);
 
     auto [result, imageIndex] = (*swapchain).acquireNextImage(UINT64_MAX, syncObjects.getImageAvailable(frameIndex));
@@ -143,7 +148,7 @@ void Render::Render::render(Scene& scene, float deltaTime) {
                                          cmd);
 
     // Execute frame graph
-    frameGraph.execute(cmd, frameIndex);
+    frameGraph.execute(cmd);
 
     // Transition render target to transfer src
     Vulkan::CommandPool::transitionImage(colorImage,

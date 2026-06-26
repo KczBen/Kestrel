@@ -31,6 +31,6 @@ class FrameGraph {
     FrameGraph();
     void addPass(std::unique_ptr<Pass> pass);
     auto compile() -> std::vector<size_t>;
-    void execute(vk::CommandBuffer cmd, uint32_t frameIndex, const std::vector<bool>& passEnabled = {});
+    void execute(vk::CommandBuffer cmd, const std::vector<bool>& passEnabled = {});
 };
 } // namespace Render

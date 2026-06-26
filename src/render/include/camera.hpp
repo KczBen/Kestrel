@@ -49,7 +49,7 @@ class Camera {
     void setAspectRatio(float aspect);
 
     void updateViewMatrix();
-    void updateUniformBuffer(uint32_t index);
+    void updateUniformBuffer();
 
     friend class CameraController;
     friend class ResourceManager;

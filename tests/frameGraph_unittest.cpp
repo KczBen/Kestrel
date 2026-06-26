@@ -47,7 +47,7 @@ class FrameGraphFixture : public ::testing::Test {
                  const Render::RenderTargetAttachment& depthOutput)
             : Pass(pm, inputs, colorAttachments, depthInput, depthOutput) {}
 
-        void record(vk::CommandBuffer, uint32_t) override {}
+        void record(vk::CommandBuffer) override {}
     };
 
     auto makeColorAttachment(Render::RenderTargetHandle handle) -> Render::RenderTargetAttachment {

@@ -1,13 +1,12 @@
 #include "camera.hpp"
 #include "gpuDataObjects.hpp"
-#include <cstdint>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Render {
 Camera::Camera(const glm::vec3& position, const glm::vec3& worldUp)
     : position(position), worldUp(worldUp), orientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f)), viewMatrix(glm::mat4(1.0f)),
-      lastUpdatedIndex(-1) {}
+      lastUpdatedIndex(0) {}
 
 auto Camera::getViewMatrix() const -> glm::mat4 { return viewMatrix; }
 
@@ -33,14 +32,14 @@ void Camera::updateViewMatrix() {
     viewMatrix = rotation * translation;
 }
 
-void Camera::updateUniformBuffer(uint32_t index) {
+void Camera::updateUniformBuffer() {
     updateViewMatrix();
+    lastUpdatedIndex = (lastUpdatedIndex + 1) % 2;
     CameraUBO ubo{};
     ubo.view = viewMatrix;
     ubo.proj = getProjectionMatrix();
     ubo.invView = glm::inverse(viewMatrix);
     ubo.invProj = glm::inverse(ubo.proj);
-    uniformBuffers[index]->update(&ubo, sizeof(CameraUBO));
-    lastUpdatedIndex = static_cast<int32_t>(index);
+    uniformBuffers[lastUpdatedIndex]->update(&ubo, sizeof(CameraUBO));
 }
 } // namespace Render

@@ -14,7 +14,7 @@ Scene::Scene(std::vector<std::string> modelPaths) : modelPaths(std::move(modelPa
         Light{.position = glm::vec3(10.0, 10.0, 10.0), .intensity = 10.0, .colour = glm::vec3(255, 127, 127)});
 };
 
-auto Scene::getCamera() -> Camera& { return *cameras.data(); }
+auto Scene::getCameras() -> std::vector<Camera>& { return cameras; }
 void Scene::update(Input inputs, float deltaTime) {
     playerCamera->update(inputs, deltaTime);
     for (auto& object : objects) {
@@ -25,5 +25,7 @@ auto Scene::getObjects() const -> std::span<const Object> { return objects; }
 auto Scene::getLights() const -> std::span<const Light> { return lights; }
 
 auto Scene::getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout& { return *descriptorSetLayout; }
-auto Scene::getDescriptorSet(uint32_t index) -> Vulkan::DescriptorSet& { return *descriptorSets[index]; }
+auto Scene::getDescriptorSet() -> Vulkan::DescriptorSet& { return *descriptorSets[lastUpdatedIndex]; }
+
+auto Scene::flipDescriptorSet() -> void { lastUpdatedIndex = (lastUpdatedIndex + 1) % 2; }
 } // namespace Render

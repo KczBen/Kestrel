@@ -20,7 +20,7 @@ class CameraPass : public Pass {
                Scene* scene,
                Camera* camera);
 
-    void record(vk::CommandBuffer cmd, uint32_t frameIndex) override;
+    void record(vk::CommandBuffer cmd) override;
     [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override;
 };
 } // namespace Render

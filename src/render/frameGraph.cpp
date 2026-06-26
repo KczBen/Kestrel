@@ -164,7 +164,7 @@ auto FrameGraph::compile() -> std::vector<size_t> {
     return order;
 }
 
-void FrameGraph::execute(vk::CommandBuffer cmd, uint32_t frameIndex, const std::vector<bool>& passEnabled) {
+void FrameGraph::execute(vk::CommandBuffer cmd, const std::vector<bool>& passEnabled) {
     if (sortedPasses.empty()) {
         return;
     }
@@ -432,7 +432,7 @@ void FrameGraph::execute(vk::CommandBuffer cmd, uint32_t frameIndex, const std::
         cmd.beginRendering(renderInfo);
 
         // Record pass
-        passes[info.originalIndex]->record(cmd, frameIndex);
+        passes[info.originalIndex]->record(cmd);
 
         cmd.endRendering();
 
