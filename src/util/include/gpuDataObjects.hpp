@@ -37,3 +37,17 @@ struct PushConstants {
     glm::mat4 model;
     glm::mat4 normalMatrix;
 };
+
+struct LightData {
+    alignas(16) glm::vec3 position;
+    alignas(4) float intensity;
+    alignas(16) glm::vec3 colour;
+    alignas(4) float maxRange;
+};
+
+struct LightUBO {
+    LightData lights[16];
+    uint32_t lightCount;
+
+    uint32_t pad[3]; // alignment requirements are stupid
+};

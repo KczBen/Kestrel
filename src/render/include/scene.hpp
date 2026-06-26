@@ -5,6 +5,7 @@
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
 #include "input.hpp"
+#include "light.hpp"
 #include "object.hpp"
 #include <memory>
 #include <span>
@@ -17,7 +18,7 @@ class Scene {
     // Scene objects
     std::optional<CameraController> playerCamera;
     std::vector<Object> objects;
-
+    std::vector<Light> lights;
     std::vector<Camera> cameras;
 
     std::vector<std::string> modelPaths;
@@ -29,9 +30,11 @@ class Scene {
     Scene(std::vector<std::string> modelPaths);
     void update(Input inputs, float deltaTime);
     void addObject(std::unique_ptr<Object> model);
+    void addLight(std::unique_ptr<Light> light);
     void addControlledCamera(CameraController cameraController);
     auto getCamera() -> Camera&;
     [[nodiscard]] auto getObjects() const -> std::span<const Object>;
+    [[nodiscard]] auto getLights() const -> std::span<const Light>;
 
     auto getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout&;
     auto getDescriptorSet(uint32_t index) -> Vulkan::DescriptorSet&;
