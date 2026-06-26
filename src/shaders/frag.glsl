@@ -4,15 +4,31 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
 #extension GL_EXT_shader_16bit_storage : require
 
-layout(push_constant) uniform Push { mat4 model; };
+layout(push_constant) uniform Push {
+    mat4 model;
+    mat4 normal;
+};
 
-layout(set = 0, binding = 0) uniform UniformBufferObject {
+struct light {
+    vec3 position;
+    float intensity;
+    vec3 colour;
+    float maxRange;
+};
+
+layout(set = 0, binding = 0) uniform CameraUBO {
     mat4 view;
     mat4 proj;
     mat4 invView;
     mat4 invProj;
 }
-cameraUBO;
+camera;
+
+layout(set = 0, binding = 1) uniform LightUBO {
+    light lights[16];
+    int lightCount;
+}
+lights;
 
 layout(set = 1, binding = 0) uniform MaterialUBO {
     vec4 baseColorFactor;
@@ -98,27 +114,48 @@ void main() {
     vec3 emission = texture(emissionSampler, uvEmissive).rgb * material.emissiveFactor.xyz;
 
     vec3 N = getNormalFromMap(uvNorm);
-    vec3 camPos = cameraUBO.invView[3].xyz;
+    vec3 camPos = camera.invView[3].xyz;
     vec3 V = normalize(camPos - fragPos);
 
-    // Hardcoded test light
-    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
-    vec3 lightColor = vec3(1.0);
+    // Initialize accumulators for all scene lights
+    vec3 totalDiffuse = vec3(0.0);
+    vec3 totalSpecular = vec3(0.0);
 
-    // 1. Blinn-Phong lighting
-    vec3 H = normalize(lightDir + V);
-    float NdotL = max(dot(N, lightDir), 0.0);
-
-    // Map glTF roughness to shininess
+    // Calculate light-independent Blinn-Phong factors once outside the loop
     float shininess = exp2(8.0 * (1.0 - roughness));
-    float specFactor = pow(max(dot(N, H), 0.0), shininess);
-
     vec3 specColor = mix(vec3(1.0), albedo, metallic);
 
-    vec3 diffuseLight = albedo * NdotL * lightColor * (1.0 - metallic);
-    vec3 specularLight = specColor * specFactor * lightColor;
+    // 1. Accumulate analytical lighting from scene lights
+    for (int i = 0; i < lights.lightCount; ++i) {
+        light l = lights.lights[i];
 
-    // 2. sky ambient
+        // Calculate vector from fragment position to the light source
+        vec3 toLight = l.position - fragPos;
+        float dist = length(toLight);
+
+        // Early out: if the light is too far away, it contributes absolutely nothing
+        if (dist > l.maxRange) {
+            continue;
+        }
+
+        // Normalize direction vector for lighting math
+        vec3 lightDir = normalize(toLight);
+        vec3 H = normalize(lightDir + V);
+
+        // Linear attenuation formula: smoothly fades to 0.0 at maxRange, scaled by intensity
+        float attenuation = clamp(1.0 - (dist / l.maxRange), 0.0, 1.0) * l.intensity;
+        vec3 dynamicLightColor = l.colour * attenuation;
+
+        // Diffuse
+        float NdotL = max(dot(N, lightDir), 0.0);
+        totalDiffuse += albedo * NdotL * dynamicLightColor * (1.0 - metallic);
+
+        // Specular
+        float specFactor = pow(max(dot(N, H), 0.0), shininess);
+        totalSpecular += specColor * specFactor * dynamicLightColor;
+    }
+
+    // 2. Sky Ambient / Fake GI (Calculated once globally, NOT per-light)
     vec3 R = reflect(-V, N);
     vec3 blurredR = normalize(mix(R, N, roughness));
 
@@ -126,7 +163,8 @@ void main() {
     vec3 ambientSpecular = GetProceduralSky(blurredR) * specColor * (1.0 - roughness);
     vec3 ambient = (ambientDiffuse + ambientSpecular) * ao * 0.5;
 
-    vec3 color = diffuseLight + specularLight + ambient + emission;
+    // 3. Final Combine
+    vec3 color = totalDiffuse + totalSpecular + ambient + emission;
 
     outColor = vec4(color, 1.0);
 }

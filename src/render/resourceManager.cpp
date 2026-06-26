@@ -456,10 +456,29 @@ void ResourceManager::loadScene(Scene& scene) {
             uniformBuffers.emplace_back(*device, sizeof(CameraUBO));
             camera.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
 
+            // This will very likely break with other cameras
             uboWrites.emplace_back(DescriptorWrite{.binding = 0,
                                                    .type = vk::DescriptorType::eUniformBuffer,
                                                    .bufferInfo = {*uniformBuffers.back(), 0, sizeof(CameraUBO)}});
         }
+
+        // set up light camera UBOs
+        for (auto& light : scene.lights) {
+            uniformBuffers.emplace_back(*device, sizeof(CameraUBO));
+            light.camera.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
+
+            // TODO: FIX THIS - commented out because it overwrites the descriptor set for the other cameras
+            // uboWrites.emplace_back(DescriptorWrite{.binding = 0,
+            //                                        .type = vk::DescriptorType::eUniformBuffer,
+            //                                        .bufferInfo = {*uniformBuffers.back(), 0, sizeof(CameraUBO)}});
+        }
+
+        uniformBuffers.emplace_back(*device, sizeof(LightUBO));
+        scene.lightUniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
+
+        uboWrites.emplace_back(DescriptorWrite{.binding = 1,
+                                               .type = vk::DescriptorType::eUniformBuffer,
+                                               .bufferInfo = {*uniformBuffers.back(), 0, sizeof(LightUBO)}});
 
         scene.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
         descriptorSets[i].write(uboWrites);
