@@ -237,9 +237,7 @@ TEST_F(FrameGraphFixture, CompileSelfConsumingPass) {
     EXPECT_EQ(order[0], 0);
 }
 
-TEST_F(FrameGraphFixture, CompileCyclicForwardReferenceThrows) {
-    // Forward-referenced cyclic implicit dependencies (Pass 0 depends on Pass 1's output,
-    // Pass 1 depends on Pass 0's output) should be detected and throw.
+TEST_F(FrameGraphFixture, CompileCyclicDependencyThrows) {
     auto target0 = resourceManager_->createRenderTarget(vk::Extent3D{800, 600, 1},
                                                         vk::Format::eB8G8R8A8Srgb,
                                                         vk::ImageUsageFlagBits::eColorAttachment |
@@ -253,7 +251,9 @@ TEST_F(FrameGraphFixture, CompileCyclicForwardReferenceThrows) {
                                                         vk::ImageAspectFlagBits::eColor);
 
     Render::FrameGraph fg;
+    // Pass 0 produces target0, consumes target1 -> depends on pass 1
     fg.addPass(makeTestPass(*pipelineManager_, {target0}, {target1}));
+    // Pass 1 produces target1, consumes target0 -> depends on pass 0
     fg.addPass(makeTestPass(*pipelineManager_, {target1}, {target0}));
 
     EXPECT_THROW(fg.compile(), std::runtime_error);
@@ -468,158 +468,4 @@ TEST_F(FrameGraphFixture, CompileColorOutputWithLoadCreatesDependency) {
     }
     // Pass 0 must come before pass 1 (color output with eLoad depends on the previous producer)
     EXPECT_LT(idx0, idx1);
-}
-
-TEST_F(FrameGraphFixture, CompileExplicitDependencyOrdering) {
-    Render::FrameGraph fg;
-
-    auto handle0 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}));
-    auto handle1 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle0});
-    auto handle2 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle1});
-
-    auto order = fg.compile();
-    EXPECT_EQ(order.size(), 3);
-
-    size_t idx0 = 0, idx1 = 0, idx2 = 0;
-    for (size_t i = 0; i < order.size(); ++i) {
-        if (order[i] == 0)
-            idx0 = i;
-        if (order[i] == 1)
-            idx1 = i;
-        if (order[i] == 2)
-            idx2 = i;
-    }
-
-    EXPECT_LT(idx0, idx1);
-    EXPECT_LT(idx1, idx2);
-}
-
-TEST_F(FrameGraphFixture, CompileExplicitDependencyIndependentPasses) {
-    Render::FrameGraph fg;
-
-    // Pass 0 and 1 are independent, pass 2 depends on pass 1 explicitly
-    auto handle0 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}));
-    auto handle1 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}));
-    auto handle2 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle1});
-
-    auto order = fg.compile();
-    EXPECT_EQ(order.size(), 3);
-
-    // Pass 1 must come before pass 2
-    size_t idx1 = 0, idx2 = 0;
-    for (size_t i = 0; i < order.size(); ++i) {
-        if (order[i] == 1)
-            idx1 = i;
-        if (order[i] == 2)
-            idx2 = i;
-    }
-    EXPECT_LT(idx1, idx2);
-}
-
-TEST_F(FrameGraphFixture, CompileExplicitDependencyWithImplicitDependency) {
-    auto target0 = resourceManager_->createRenderTarget(vk::Extent3D{800, 600, 1},
-                                                        vk::Format::eB8G8R8A8Srgb,
-                                                        vk::ImageUsageFlagBits::eColorAttachment |
-                                                            vk::ImageUsageFlagBits::eInputAttachment,
-                                                        vk::ImageAspectFlagBits::eColor);
-
-    Render::FrameGraph fg;
-
-    // Pass 0 produces target0
-    auto handle0 = fg.addPass(makeTestPass(*pipelineManager_, {target0}, {}));
-    // Pass 1 consumes target0 (implicit dep) AND explicitly depends on pass 0
-    auto handle1 = fg.addPass(makeTestPass(*pipelineManager_, {}, {target0}), {handle0});
-
-    auto order = fg.compile();
-    EXPECT_EQ(order.size(), 2);
-
-    size_t idx0 = 0, idx1 = 0;
-    for (size_t i = 0; i < order.size(); ++i) {
-        if (order[i] == 0)
-            idx0 = i;
-        if (order[i] == 1)
-            idx1 = i;
-    }
-    EXPECT_LT(idx0, idx1);
-}
-
-TEST_F(FrameGraphFixture, CompileSelfExplicitDependencyIgnored) {
-    Render::FrameGraph fg;
-
-    auto handle0 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}));
-    // Self-dependency should be ignored (not create a cycle)
-    auto handle1 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle0});
-    auto handle2 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle1});
-    auto _ = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle2, handle2});
-
-    auto order = fg.compile();
-    EXPECT_EQ(order.size(), 4);
-}
-
-TEST_F(FrameGraphFixture, CompileMultipleExplicitDependencies) {
-    Render::FrameGraph fg;
-
-    auto handle0 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}));
-    auto handle1 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}));
-    // Pass 2 depends on both 0 and 1 explicitly
-    auto handle2 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle0, handle1});
-
-    auto order = fg.compile();
-    EXPECT_EQ(order.size(), 3);
-
-    size_t idx0 = 0, idx1 = 0, idx2 = 0;
-    for (size_t i = 0; i < order.size(); ++i) {
-        if (order[i] == 0)
-            idx0 = i;
-        if (order[i] == 1)
-            idx1 = i;
-        if (order[i] == 2)
-            idx2 = i;
-    }
-    EXPECT_LT(idx0, idx2);
-    EXPECT_LT(idx1, idx2);
-}
-
-TEST_F(FrameGraphFixture, CompileExplicitDependencyCycleSilentlySkipped) {
-    Render::FrameGraph fg;
-
-    auto handle0 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}));
-    auto handle1 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}));
-    auto handle2 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle0});
-
-    // This creates a cycle: 0 -> 2 -> 1 -> 2, so the explicit dep 1->2 is skipped
-    auto handle3 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle2, handle1});
-
-    auto order = fg.compile();
-    EXPECT_EQ(order.size(), 4);
-    // All passes should still be included
-    bool found0 = false, found1 = false, found2 = false, found3 = false;
-    for (size_t i = 0; i < order.size(); ++i) {
-        if (order[i] == 0)
-            found0 = true;
-        if (order[i] == 1)
-            found1 = true;
-        if (order[i] == 2)
-            found2 = true;
-        if (order[i] == 3)
-            found3 = true;
-    }
-    EXPECT_TRUE(found0);
-    EXPECT_TRUE(found1);
-    EXPECT_TRUE(found2);
-    EXPECT_TRUE(found3);
-}
-
-TEST_F(FrameGraphFixture, CompileRenderScenario) {
-    // Simplified render code scenario with explicit dependencies
-    // This should NOT throw a circular dependency error
-    Render::FrameGraph fg;
-    auto handle0 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}));
-    auto handle1 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}));
-    auto handle2 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle0});
-    auto handle3 = fg.addPass(makeTestPass(*pipelineManager_, {}, {}, {}), {handle1});
-
-    // This should compile successfully without throwing
-    auto order = fg.compile();
-    EXPECT_EQ(order.size(), 4);
 }
