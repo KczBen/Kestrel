@@ -11,7 +11,12 @@
 namespace Render {
 FrameGraph::FrameGraph() = default;
 
-void FrameGraph::addPass(std::unique_ptr<Pass> pass) { passes.push_back(std::move(pass)); }
+auto FrameGraph::addPass(std::unique_ptr<Pass> pass, const std::vector<PassHandle>& explicitDeps) -> PassHandle {
+    const size_t index = passes.size();
+    passes.push_back(std::move(pass));
+    explicitDepsPerPass.push_back(explicitDeps);
+    return PassHandle{index};
+}
 
 auto FrameGraph::compile() -> std::vector<size_t> {
     const size_t n = passes.size();
@@ -36,14 +41,24 @@ auto FrameGraph::compile() -> std::vector<size_t> {
         }
     }
 
-    // Find the producer for a given input handle
-    // returns the last match so that when a pass itself wrote the same handle (eLoad vs eClear),
-    // the actual producer pass is found instead of the current pass's own entry.
-    auto findProducer = [&targets](const RenderTargetHandle& input) -> std::optional<size_t> {
+    // Find the producer for a given input handle.
+    // Returns the closest match (past or future), skipping the current pass itself.
+    // This correctly handles forward references by finding the closest future producer
+    // (e.g., pass 1's eLoad on colorTarget finds pass 2, not pass 3) and past references
+    // by finding the closest past producer.
+    auto findProducer = [&targets](const RenderTargetHandle& input, size_t i) -> std::optional<size_t> {
+        size_t bestIdx = 0;
+        int bestDist = INT_MAX;
         std::optional<size_t> result;
-        for (const auto& [target, producerIndex] : targets) {
-            if (target == input) {
-                result = producerIndex;
+
+        for (size_t j = 0; j < targets.size(); ++j) {
+            if (targets[j].first == input && targets[j].second != i) {
+                int dist = static_cast<int>(targets[j].second) - static_cast<int>(i);
+                if (std::abs(dist) < bestDist) {
+                    bestDist = std::abs(dist);
+                    result = targets[j].second;
+                    bestIdx = j;
+                }
             }
         }
         return result;
@@ -53,12 +68,34 @@ auto FrameGraph::compile() -> std::vector<size_t> {
     std::vector<std::vector<size_t>> adj(n);
     std::vector<int> inDegree(n, 0);
 
+    // Check if there's a path from src to dst using BFS
+    auto canReach = [&](size_t src, size_t dst) -> bool {
+        std::vector<bool> visited(n, false);
+        std::queue<size_t> q;
+        q.push(src);
+        visited[src] = true;
+        while (!q.empty()) {
+            auto u = q.front();
+            q.pop();
+            for (auto v : adj[u]) {
+                if (v == dst) {
+                    return true;
+                }
+                if (!visited[v]) {
+                    visited[v] = true;
+                    q.push(v);
+                }
+            }
+        }
+        return false;
+    };
+
     for (size_t i = 0; i < n; ++i) {
         for (const auto& input : passes[i]->getInputs()) {
             if (!input.isPresent()) {
                 continue;
             }
-            auto maybeProducer = findProducer(input.handle);
+            auto maybeProducer = findProducer(input.handle, i);
             if (maybeProducer.has_value() && maybeProducer.value() != i) {
                 const size_t producerIndex = maybeProducer.value();
                 if (std::find(adj[producerIndex].begin(), adj[producerIndex].end(), i) == adj[producerIndex].end()) {
@@ -68,7 +105,7 @@ auto FrameGraph::compile() -> std::vector<size_t> {
             }
         }
         if (passes[i]->getDepthInput().isPresent()) {
-            auto maybeProducer = findProducer(passes[i]->getDepthInput().handle);
+            auto maybeProducer = findProducer(passes[i]->getDepthInput().handle, i);
             if (maybeProducer.has_value() && maybeProducer.value() != i) {
                 const size_t producerIndex = maybeProducer.value();
                 if (std::find(adj[producerIndex].begin(), adj[producerIndex].end(), i) == adj[producerIndex].end()) {
@@ -78,11 +115,11 @@ auto FrameGraph::compile() -> std::vector<size_t> {
             }
         }
 
-        // Check color attachments with eLoad — consumer of previous producer
+        // Check color attachments with eLoad - consumer of previous producer
         for (size_t a = 0; a < passes[i]->getColorAttachmentCount(); ++a) {
             const auto& colorAtt = passes[i]->getColorAttachment(a);
             if (colorAtt.isPresent() && colorAtt.loadOp == vk::AttachmentLoadOp::eLoad) {
-                auto colorProducer = findProducer(colorAtt.handle);
+                auto colorProducer = findProducer(colorAtt.handle, i);
                 if (colorProducer.has_value() && colorProducer.value() != i) {
                     const size_t producerIndex = colorProducer.value();
                     if (std::find(adj[producerIndex].begin(), adj[producerIndex].end(), i) ==
@@ -97,7 +134,7 @@ auto FrameGraph::compile() -> std::vector<size_t> {
         // Depth output with eLoad is a consumer of the previous producer
         const auto& depthOut = passes[i]->getDepthOutput();
         if (depthOut.isPresent() && depthOut.loadOp == vk::AttachmentLoadOp::eLoad) {
-            auto depthProducer = findProducer(depthOut.handle);
+            auto depthProducer = findProducer(depthOut.handle, i);
             if (depthProducer.has_value() && depthProducer.value() != i) {
                 const size_t producerIndex = depthProducer.value();
                 if (std::find(adj[producerIndex].begin(), adj[producerIndex].end(), i) == adj[producerIndex].end()) {
@@ -105,6 +142,23 @@ auto FrameGraph::compile() -> std::vector<size_t> {
                     inDegree[i]++;
                 }
             }
+        }
+
+        // Explicit dependencies - only add if it doesn't already exist and doesn't create a cycle
+        for (const auto& dep : explicitDepsPerPass[i]) {
+            const size_t depIndex = dep.index;
+            if (depIndex == i) {
+                continue;
+            }
+            if (std::find(adj[depIndex].begin(), adj[depIndex].end(), i) != adj[depIndex].end()) {
+                continue;
+            }
+            // Check if dep can already reach i - if so, adding explicit edge creates a cycle
+            if (canReach(depIndex, i)) {
+                continue;
+            }
+            adj[depIndex].push_back(i);
+            inDegree[i]++;
         }
     }
 
@@ -169,7 +223,7 @@ void FrameGraph::execute(vk::CommandBuffer cmd, const std::vector<bool>& passEna
         return;
     }
 
-    // Local image state map — fresh every frame, destroyed at end of execute()
+    // Local image state map - fresh every frame, destroyed at end of execute()
     std::unordered_map<RenderTargetHandle, ImageState> imageStates;
 
     // Initialize imageStates for images used by enabled passes
@@ -275,10 +329,10 @@ void FrameGraph::execute(vk::CommandBuffer cmd, const std::vector<bool>& passEna
             }
         }
 
-        // Depth barriers — three mutually exclusive cases:
-        // 1. depthOutput && depthInput on same handle → read+write access, single attachment
-        // 2. only depthOutput → write access only
-        // 3. only depthInput → read-only access, not bound as attachment
+        // Depth barriers - three mutually exclusive cases:
+        // 1. depthOutput && depthInput on same handle -> read+write access, single attachment
+        // 2. only depthOutput -> write access only
+        // 3. only depthInput -> read-only access, not bound as attachment
         {
             using depthTransition = struct {
                 vk::ImageLayout layout;
