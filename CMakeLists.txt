@@ -105,6 +105,7 @@ target_include_directories(render PRIVATE
     ${CMAKE_SOURCE_DIR}/src/util/include
     ${CMAKE_SOURCE_DIR}/src/render/scene/include
     ${CMAKE_SOURCE_DIR}/src/render/include
+    ${CMAKE_SOURCE_DIR}/thirdparty
 )
 
 target_link_libraries(render PRIVATE

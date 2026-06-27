@@ -1,6 +1,7 @@
 #pragma once
 
 #include "commandPool.hpp"
+#include "descriptorPool.hpp"
 #include "device.hpp"
 #include "frameGraph.hpp"
 #include "frameSync.hpp"

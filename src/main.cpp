@@ -1,3 +1,4 @@
+#include "descriptorPool.hpp"
 #include "device.hpp"
 #include "input.hpp"
 #include "instance.hpp"
@@ -23,6 +24,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_vulkan.h"
+#include "vulkan/vulkan.hpp"
 
 #include <print>
 #include <string>
@@ -75,6 +77,27 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
 
         renderer.init(scene);
 
+        const Vulkan::DescriptorPool imguiDescriptorPool(device);
+
+        const VkFormat colorFormat = VK_FORMAT_B8G8R8A8_SRGB;
+
+        ImGui_ImplVulkan_InitInfo initInfo = {};
+        initInfo.Instance = **instance;
+        initInfo.PhysicalDevice = **physicalDevice;
+        initInfo.Device = **device;
+        initInfo.QueueFamily = *physicalDevice.getQueueFamilyIndices().graphicsFamily;
+        initInfo.Queue = *device.getGraphicsQueue();
+        initInfo.DescriptorPool = **imguiDescriptorPool;
+        initInfo.MinImageCount = 2;
+        initInfo.ImageCount = 2;
+        initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+        initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = {.sType =
+                                                                     VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+                                                                 .colorAttachmentCount = 1,
+                                                                 .pColorAttachmentFormats = &colorFormat};
+        initInfo.UseDynamicRendering = true;
+        ImGui_ImplVulkan_Init(&initInfo);
+
         // Main loop
         bool running = true;
         SDL_Event event;
@@ -84,6 +107,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
             // Handle events
             Input input;
             while (SDL_PollEvent(&event)) {
+                ImGui_ImplSDL3_ProcessEvent(&event);
                 if (event.type == SDL_EVENT_QUIT) {
                     running = false;
                 }
@@ -114,6 +138,11 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
 
             input.updateKeys(SDL_GetKeyboardState(nullptr));
 
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplSDL3_NewFrame();
+            ImGui::NewFrame();
+            ImGui::ShowDemoWindow();
+
             auto currentTime = std::chrono::high_resolution_clock::now();
             const float time =
                 std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastFrameTime).count();
@@ -122,6 +151,10 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
             renderer.render(scene, time);
             lastFrameTime = currentTime;
         }
+
+        // kind of hacky, shouldn't be here ideally
+        device->waitIdle();
+        ImGui_ImplVulkan_Shutdown();
     }
 
     // Cleanup

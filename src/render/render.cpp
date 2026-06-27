@@ -6,6 +6,8 @@
 #include "frameSync.hpp"
 #include "geometryPass.hpp"
 #include "image.hpp"
+#include "imguiPass.hpp"
+#include "imgui_impl_vulkan.h"
 #include "instance.hpp"
 #include "material.hpp"
 #include "pass.hpp"
@@ -97,6 +99,9 @@ void Render::Render::init(Scene& scene) {
                      &scene,
                      scene.getObjects(),
                      scene.getCameras().data())));
+
+    frameGraph.addPass(std::make_unique<ImGuiPass>(
+        ImGuiPass(resourceManager->getPipelineManager(), RenderTargetAttachment{colorTarget})));
 
     frameGraph.compile();
 }
