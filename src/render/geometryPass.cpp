@@ -12,8 +12,7 @@ auto GeometryPass::supportedMaterialTypes() const -> uint32_t {
     return 1u << static_cast<uint32_t>(Material::BlendMode::Opaque);
 }
 
-GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager,
-                           const std::vector<RenderTargetAttachment>& inputs,
+GeometryPass::GeometryPass(const std::vector<RenderTargetAttachment>& inputs,
                            const std::vector<RenderTargetAttachment>& colorAttachments,
                            const RenderTargetAttachment& depthInput,
                            const RenderTargetAttachment& depthOutput,
@@ -21,10 +20,10 @@ GeometryPass::GeometryPass(Vulkan::PipelineManager& pipelineManager,
                            Scene* scene,
                            std::span<const Object> models,
                            Camera* camera)
-    : Pass(pipelineManager, inputs, colorAttachments, depthInput, depthOutput), scene(scene), models(models),
-      camera(camera), optMaterial(optMaterial) {}
+    : Pass(inputs, colorAttachments, depthInput, depthOutput), scene(scene), models(models), camera(camera),
+      optMaterial(optMaterial) {}
 
-void GeometryPass::record(vk::CommandBuffer cmd) {
+void GeometryPass::record(PassContext ctx) {
 
     struct DrawCall {
         Primitive primitive;
@@ -70,32 +69,32 @@ void GeometryPass::record(vk::CommandBuffer cmd) {
             continue;
         }
 
-        auto& pipeline = getPipelineManager()->getOrCreatePipeline(
+        auto& pipeline = ctx.pipelineManager->getOrCreatePipeline(
             material, *scene, formats, vk::SampleCountFlagBits::e1, depthWrite);
-        cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+        ctx.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
         const Vulkan::DescriptorSet& sceneWS = scene->getDescriptorSet();
         const Vulkan::DescriptorSet& materialWS = material->getDescriptorSet();
 
         const std::array<vk::DescriptorSet, 2> rawSets = {*sceneWS, *materialWS};
 
-        cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, rawSets, nullptr);
+        ctx.cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, rawSets, nullptr);
 
         const vk::DeviceSize offsets[] = {0};
 
         for (const auto& drawCall : drawCalls) {
 
-            cmd.bindVertexBuffers(0, drawCall.primitive.mesh.vertexBuffer->get(), offsets);
-            cmd.bindIndexBuffer(drawCall.primitive.mesh.indexBuffer->get(), 0, vk::IndexType::eUint32);
+            ctx.cmd.bindVertexBuffers(0, drawCall.primitive.mesh.vertexBuffer->get(), offsets);
+            ctx.cmd.bindIndexBuffer(drawCall.primitive.mesh.indexBuffer->get(), 0, vk::IndexType::eUint32);
             const glm::mat4 normalMatrix = glm::transpose(glm::inverse(drawCall.transform));
             const PushConstants pc{.model = drawCall.transform, .normalMatrix = normalMatrix};
-            cmd.pushConstants(
+            ctx.cmd.pushConstants(
                 pipeline.getLayout(), vk::ShaderStageFlagBits::eVertex, 0, vk::ArrayProxy<const PushConstants>(1, &pc));
-            cmd.drawIndexed(drawCall.primitive.mesh.indexCount,
-                            1,
-                            drawCall.primitive.mesh.indexOffset,
-                            static_cast<int32_t>(drawCall.primitive.mesh.vertexOffset),
-                            0);
+            ctx.cmd.drawIndexed(drawCall.primitive.mesh.indexCount,
+                                1,
+                                drawCall.primitive.mesh.indexOffset,
+                                static_cast<int32_t>(drawCall.primitive.mesh.vertexOffset),
+                                0);
         }
     }
 }

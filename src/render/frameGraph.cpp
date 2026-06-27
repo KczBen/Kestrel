@@ -1,4 +1,5 @@
 #include "frameGraph.hpp"
+#include "pipelineManager.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -9,7 +10,7 @@
 #include <vulkan/vulkan.hpp>
 
 namespace Render {
-FrameGraph::FrameGraph() = default;
+FrameGraph::FrameGraph(Vulkan::PipelineManager& pipelineManager) : pipelineManager(&pipelineManager) {};
 
 void FrameGraph::addPass(std::unique_ptr<Pass> pass) { passes.push_back(std::move(pass)); }
 
@@ -432,7 +433,7 @@ void FrameGraph::execute(vk::CommandBuffer cmd, const std::vector<bool>& passEna
         cmd.beginRendering(renderInfo);
 
         // Record pass
-        passes[info.originalIndex]->record(cmd);
+        passes[info.originalIndex]->record({.pipelineManager = pipelineManager, .cmd = cmd});
 
         cmd.endRendering();
 

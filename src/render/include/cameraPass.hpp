@@ -11,8 +11,7 @@ class CameraPass : public Pass {
     MaterialHandle materialHandle;
 
   public:
-    CameraPass(Vulkan::PipelineManager& pipelineManager,
-               const std::vector<RenderTargetAttachment>& inputs,
+    CameraPass(const std::vector<RenderTargetAttachment>& inputs,
                const std::vector<RenderTargetAttachment>& colorAttachments,
                const RenderTargetAttachment& depthInput,
                const RenderTargetAttachment& depthOutput,
@@ -20,7 +19,7 @@ class CameraPass : public Pass {
                Scene* scene,
                Camera* camera);
 
-    void record(vk::CommandBuffer cmd) override;
+    void record(PassContext ctx) override;
     [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override;
 };
 } // namespace Render

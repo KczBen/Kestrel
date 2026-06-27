@@ -37,7 +37,7 @@ Render::Render::Render(SDL_Window* window,
       commandPool(physicalDevice, device, maxFramesInFlight),
       swapchain(physicalDevice, device, surface, getWindowSizeInPixels(window)),
       syncObjects(device, swapchain.getImages().size()), height(swapchain.getExtent().height),
-      width(swapchain.getExtent().width) {}
+      width(swapchain.getExtent().width), frameGraph(resources.getPipelineManager()) {}
 
 Render::Render::Render(ResourceManager& resources,
                        Vulkan::Instance& instance,
@@ -51,7 +51,7 @@ Render::Render::Render(ResourceManager& resources,
       physicalDevice(&physicalDevice), device(&device), resourceManager(&resources),
       commandPool(physicalDevice, device, maxFramesInFlight),
       swapchain(physicalDevice, device, surface, {width, height}), syncObjects(device, swapchain.getImages().size()),
-      width(width), height(height) {}
+      width(width), height(height), frameGraph(resources.getPipelineManager()) {}
 
 void Render::Render::init(Scene& scene) {
     const auto& swapchainExtent = swapchain.getExtent();
@@ -69,8 +69,7 @@ void Render::Render::init(Scene& scene) {
 
     auto& materials = resourceManager->getMaterialList();
     frameGraph.addPass(std::make_unique<GeometryPass>(
-        GeometryPass(resourceManager->getPipelineManager(),
-                     {},
+        GeometryPass({},
                      {},
                      {},
                      {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
@@ -80,8 +79,7 @@ void Render::Render::init(Scene& scene) {
                      scene.getCameras().data())));
 
     frameGraph.addPass(std::make_unique<CameraPass>(
-        CameraPass(resourceManager->getPipelineManager(),
-                   {},
+        CameraPass({},
                    {{colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
                    {depthTarget},
                    {},
@@ -90,8 +88,7 @@ void Render::Render::init(Scene& scene) {
                    scene.getCameras().data())));
 
     frameGraph.addPass(std::make_unique<GeometryPass>(
-        GeometryPass(resourceManager->getPipelineManager(),
-                     {},
+        GeometryPass({},
                      {{colorTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore}},
                      {depthTarget},
                      {},
@@ -100,8 +97,7 @@ void Render::Render::init(Scene& scene) {
                      scene.getObjects(),
                      scene.getCameras().data())));
 
-    frameGraph.addPass(std::make_unique<ImGuiPass>(
-        ImGuiPass(resourceManager->getPipelineManager(), RenderTargetAttachment{colorTarget})));
+    frameGraph.addPass(std::make_unique<ImGuiPass>(ImGuiPass(RenderTargetAttachment{colorTarget})));
 
     frameGraph.compile();
 }

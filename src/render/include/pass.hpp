@@ -27,30 +27,29 @@ struct RenderTargetAttachment {
     [[nodiscard]] auto isPresent() const -> bool { return handle.isPresent(); }
 };
 
+struct PassContext {
+    Vulkan::PipelineManager* pipelineManager;
+    vk::CommandBuffer cmd;
+};
+
 class Pass {
   private:
-    Vulkan::PipelineManager* pipelineManager;
     std::vector<RenderTargetAttachment> colorAttachments;
     std::vector<RenderTargetAttachment> inputs;
     RenderTargetAttachment depthOutput;
     RenderTargetAttachment depthInput;
     std::vector<vk::Format> attachmentFormats;
 
-  protected:
-    [[nodiscard]] auto getPipelineManager() const -> Vulkan::PipelineManager* { return pipelineManager; }
-
   public:
     Pass(const Pass&) = default;
     Pass(Pass&&) = delete;
     auto operator=(const Pass&) -> Pass& = delete;
     auto operator=(Pass&&) = delete;
-    Pass(Vulkan::PipelineManager& pipelineManager,
-         const std::vector<RenderTargetAttachment>& inputs,
+    Pass(const std::vector<RenderTargetAttachment>& inputs,
          const std::vector<RenderTargetAttachment>& colorAttachments,
          const RenderTargetAttachment& depthInput,
          const RenderTargetAttachment& depthOutput)
-        : pipelineManager(&pipelineManager), colorAttachments(colorAttachments), inputs(inputs),
-          depthOutput(depthOutput), depthInput(depthInput) {
+        : colorAttachments(colorAttachments), inputs(inputs), depthOutput(depthOutput), depthInput(depthInput) {
         for (const auto& attachment : colorAttachments) {
             if (attachment.handle.isPresent()) {
                 attachmentFormats.push_back(attachment.handle->getFormat());
@@ -58,7 +57,7 @@ class Pass {
         }
     }
 
-    virtual void record(vk::CommandBuffer cmd) = 0;
+    virtual void record(PassContext ctx) = 0;
     [[nodiscard]] virtual auto supportedMaterialTypes() const -> uint32_t {
         return (1u << static_cast<uint32_t>(Material::BlendMode::Opaque)) |
                (1u << static_cast<uint32_t>(Material::BlendMode::Alpha)) |

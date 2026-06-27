@@ -8,10 +8,9 @@
 namespace Render {
 class ImGuiPass : public Pass {
   public:
-    ImGuiPass(Vulkan::PipelineManager& pipelineManager, const RenderTargetAttachment& colorOutput)
-        : Pass(pipelineManager, {}, {colorOutput}, {}, {}) {}
+    ImGuiPass(const RenderTargetAttachment& colorOutput) : Pass({}, {colorOutput}, {}, {}) {}
 
-    void record(vk::CommandBuffer cmd) override {
+    void record(PassContext ctx) override {
         ImGui::Render();
 
         ImDrawData* drawData = ImGui::GetDrawData();
@@ -19,7 +18,7 @@ class ImGuiPass : public Pass {
             return;
         }
 
-        ImGui_ImplVulkan_RenderDrawData(drawData, static_cast<VkCommandBuffer>(cmd));
+        ImGui_ImplVulkan_RenderDrawData(drawData, static_cast<VkCommandBuffer>(ctx.cmd));
     }
 
     [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override { return 0u; }

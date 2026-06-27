@@ -1,5 +1,6 @@
 #include "cameraPass.hpp"
 #include "material.hpp"
+#include "pass.hpp"
 #include <vector>
 
 namespace Render {
@@ -11,18 +12,17 @@ auto CameraPass::supportedMaterialTypes() const -> uint32_t {
            (1U << static_cast<uint32_t>(Material::BlendMode::Additive));
 }
 
-CameraPass::CameraPass(Vulkan::PipelineManager& pipelineManager,
-                       const std::vector<RenderTargetAttachment>& inputs,
+CameraPass::CameraPass(const std::vector<RenderTargetAttachment>& inputs,
                        const std::vector<RenderTargetAttachment>& colorAttachments,
                        const RenderTargetAttachment& depthInput,
                        const RenderTargetAttachment& depthOutput,
                        MaterialHandle materialHandle,
                        Scene* scene,
                        Camera* camera)
-    : Pass(pipelineManager, inputs, colorAttachments, depthInput, depthOutput), materialHandle(materialHandle),
-      scene(scene), camera(camera) {}
+    : Pass(inputs, colorAttachments, depthInput, depthOutput), materialHandle(materialHandle), scene(scene),
+      camera(camera) {}
 
-void CameraPass::record(vk::CommandBuffer cmd) {
+void CameraPass::record(PassContext ctx) {
 
     // Depth write is determined by whether the pass has a meaningful depth output attachment
     bool depthWrite = false;
@@ -31,16 +31,16 @@ void CameraPass::record(vk::CommandBuffer cmd) {
         depthWrite = true;
     }
 
-    auto& pipeline = getPipelineManager()->getOrCreatePipeline(
+    auto& pipeline = ctx.pipelineManager->getOrCreatePipeline(
         materialHandle, *scene, getColorAttachmentFormats(), vk::SampleCountFlagBits::e1, depthWrite);
-    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+    ctx.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
     const Vulkan::DescriptorSet& sceneWS = scene->getDescriptorSet();
 
     const std::array<vk::DescriptorSet, 1> rawSets = {*sceneWS};
 
-    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, rawSets, nullptr);
+    ctx.cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, rawSets, nullptr);
 
-    cmd.draw(3, 1, 0, 0);
+    ctx.cmd.draw(3, 1, 0, 0);
 }
 } // namespace Render
