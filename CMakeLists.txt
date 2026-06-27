@@ -194,6 +194,7 @@ if(TESTING)
     target_link_libraries(test-bin
         render
         vulkan-wrapper
+        imgui
         Vulkan::Vulkan
         GPUOpen::VulkanMemoryAllocator
         SDL3::SDL3
