@@ -26,7 +26,7 @@ class FrameGraph {
   public:
     FrameGraph(Vulkan::PipelineManager& pipelineManager);
     auto addPass(std::unique_ptr<Pass> pass) -> PassHandle;
-    void compile();
+    auto compile() -> const std::vector<Pass*>&;
     void execute(vk::CommandBuffer cmd);
 };
 } // namespace Render

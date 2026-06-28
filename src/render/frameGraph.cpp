@@ -55,7 +55,7 @@ auto FrameGraph::addPass(std::unique_ptr<Pass> pass) -> PassHandle {
     return nameMap.at(pass->name);
 }
 
-void FrameGraph::compile() {
+auto FrameGraph::compile() -> const std::vector<Pass*>& {
     // Building edges
     std::unordered_map<Pass*, std::vector<Pass*>> edges;
 
@@ -131,6 +131,8 @@ void FrameGraph::compile() {
     if (sortedPasses.size() != passes.size()) {
         std::print("Frame graph: Error: Cycle detected in pass dependencies\n");
     }
+
+    return sortedPasses;
 }
 
 void FrameGraph::execute(vk::CommandBuffer cmd) {
