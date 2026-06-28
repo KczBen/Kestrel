@@ -1,4 +1,5 @@
 #include "frameGraph.hpp"
+#include "commandPool.hpp"
 #include "pass.hpp"
 #include "pipelineManager.hpp"
 #include "vulkan/vulkan.hpp"
@@ -132,5 +133,137 @@ void FrameGraph::compile() {
     }
 }
 
-void FrameGraph::execute(vk::CommandBuffer cmd) {}
+void FrameGraph::execute(vk::CommandBuffer cmd) {
+    for (auto* pass : sortedPasses) {
+        std::vector<Vulkan::ImageTransitionInfo> transitions;
+
+        transitions.reserve(pass->inputs.size() + pass->colorAttachments.size());
+        for (auto colorAttachment : pass->colorAttachments) {
+            transitions.emplace_back(
+                Vulkan::ImageTransitionInfo{.image = &**colorAttachment,
+                                            .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                                            .dstStage = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                                            .dstAccess = vk::AccessFlagBits2::eColorAttachmentWrite,
+                                            .dstAspect = vk::ImageAspectFlagBits::eColor});
+        }
+
+        for (auto colorInput : pass->inputs) {
+            transitions.emplace_back(
+                Vulkan::ImageTransitionInfo{.image = &**colorInput,
+                                            .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                                            .dstStage = vk::PipelineStageFlagBits2::eFragmentShader,
+                                            .dstAccess = vk::AccessFlagBits2::eShaderRead,
+                                            .dstAspect = vk::ImageAspectFlagBits::eColor});
+        }
+
+        // Depth transitions, three mutually exclusive cases:
+        // 1. depthOutput && depthInput on same handle: read+write access
+        // 2. only depthOutput: write access only
+        // 3. only depthInput: read-only access
+        const auto& depthOut = pass->depthOutput;
+        const auto& depthIn = pass->depthInput;
+        const bool sameHandle = depthOut.isPresent() && depthIn.isPresent() && depthOut.handle == depthIn.handle;
+
+        if (sameHandle) {
+            transitions.emplace_back(
+                Vulkan::ImageTransitionInfo{.image = &**depthOut,
+                                            .newLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+                                            .dstStage = vk::PipelineStageFlagBits2::eEarlyFragmentTests |
+                                                        vk::PipelineStageFlagBits2::eLateFragmentTests,
+                                            .dstAccess = vk::AccessFlagBits2::eDepthStencilAttachmentRead |
+                                                         vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+                                            .dstAspect = vk::ImageAspectFlagBits::eDepth});
+        } else if (depthOut.isPresent()) {
+            transitions.emplace_back(
+                Vulkan::ImageTransitionInfo{.image = &**depthOut,
+                                            .newLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+                                            .dstStage = vk::PipelineStageFlagBits2::eEarlyFragmentTests |
+                                                        vk::PipelineStageFlagBits2::eLateFragmentTests,
+                                            .dstAccess = vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+                                            .dstAspect = vk::ImageAspectFlagBits::eDepth});
+        } else if (depthIn.isPresent()) {
+            transitions.emplace_back(
+                Vulkan::ImageTransitionInfo{.image = &**depthIn,
+                                            .newLayout = vk::ImageLayout::eDepthStencilReadOnlyOptimal,
+                                            .dstStage = vk::PipelineStageFlagBits2::eEarlyFragmentTests,
+                                            .dstAccess = vk::AccessFlagBits2::eDepthStencilAttachmentRead,
+                                            .dstAspect = vk::ImageAspectFlagBits::eDepth});
+        }
+
+        Vulkan::CommandPool::transitionImages(transitions, cmd);
+
+        std::vector<vk::RenderingAttachmentInfo> colorAttachmentInfos;
+
+        for (const auto& attachment : pass->colorAttachments) {
+            const auto& handle = attachment.handle;
+            if (!handle.isPresent()) {
+                continue;
+            }
+
+            const vk::ClearValue clearValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f}};
+            const vk::RenderingAttachmentInfo attachmentInfo(handle->getImageView(),
+                                                             vk::ImageLayout::eColorAttachmentOptimal,
+                                                             vk::ResolveModeFlagBits::eNone,
+                                                             handle->getImageView(),
+                                                             vk::ImageLayout::eColorAttachmentOptimal,
+                                                             attachment.loadOp,
+                                                             attachment.storeOp,
+                                                             clearValue);
+
+            colorAttachmentInfos.push_back(attachmentInfo);
+        }
+
+        std::optional<vk::RenderingAttachmentInfo> depthAttachmentInfo;
+        const auto& depthHandle = pass->depthOutput.isPresent() ? pass->depthOutput : pass->depthInput;
+        if (depthHandle.isPresent()) {
+            const bool isReadOnly = !pass->depthOutput.isPresent();
+            const auto layout = isReadOnly ? vk::ImageLayout::eDepthStencilReadOnlyOptimal
+                                           : vk::ImageLayout::eDepthStencilAttachmentOptimal;
+            const vk::ClearValue clearValue = vk::ClearDepthStencilValue(1.0f, 0);
+            depthAttachmentInfo = vk::RenderingAttachmentInfo(depthHandle.handle->getImageView(),
+                                                              layout,
+                                                              vk::ResolveModeFlagBits::eNone,
+                                                              {},
+                                                              vk::ImageLayout::eUndefined,
+                                                              depthHandle.loadOp,
+                                                              depthHandle.storeOp,
+                                                              clearValue);
+        }
+
+        vk::Extent3D extent;
+        for (const auto& attachment : pass->colorAttachments) {
+            if (attachment.handle.isPresent()) {
+                extent = attachment.handle->getExtent();
+                break;
+            }
+        }
+        if (extent.width == 0 && pass->depthOutput.isPresent()) {
+            extent = pass->depthOutput.handle->getExtent();
+        }
+
+        const vk::Viewport viewport(
+            0.0, 1.0, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0, 1.0);
+
+        cmd.setViewport(0, 1, &viewport);
+
+        const vk::Rect2D scissor(vk::Offset2D(0), vk::Extent2D(extent.width, extent.height));
+        cmd.setScissor(0, 1, &scissor);
+
+        const vk::RenderingInfo renderInfo({},
+                                           vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(extent.width, extent.height)),
+                                           static_cast<uint32_t>(1),
+                                           static_cast<uint32_t>(0),
+                                           static_cast<uint32_t>(colorAttachmentInfos.size()),
+                                           colorAttachmentInfos.data(),
+                                           depthAttachmentInfo.has_value() ? &*depthAttachmentInfo : nullptr,
+                                           nullptr);
+
+        cmd.beginRendering(renderInfo);
+
+        // Record pass
+        pass->record({.pipelineManager = pipelineManager, .cmd = cmd});
+
+        cmd.endRendering();
+    }
+}
 } // namespace Render
