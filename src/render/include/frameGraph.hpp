@@ -2,7 +2,10 @@
 
 #include "pass.hpp"
 #include "pipelineManager.hpp"
+#include "renderTarget.hpp"
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
@@ -12,28 +15,18 @@ class FrameGraph {
   private:
     Vulkan::PipelineManager* pipelineManager;
 
-    struct PassInfo {
-        size_t originalIndex;
-        std::vector<RenderTargetAttachment> colorAttachments;
-        std::vector<RenderTargetAttachment> inputs;
-        RenderTargetAttachment depthOutput;
-        RenderTargetAttachment depthInput;
-    };
-
-    struct ImageState {
-        vk::ImageLayout layout;
-        vk::PipelineStageFlags2 stageMask;
-        vk::AccessFlags2 accessFlags;
-    };
-
     std::vector<std::unique_ptr<Pass>> passes;
-    std::vector<PassInfo> sortedPasses;
-    std::vector<size_t> sortedOrder;
+    std::unordered_map<std::string, PassHandle> nameMap;
+
+    std::unordered_map<RenderTargetHandle, std::vector<Pass*>> producers;
+    std::unordered_map<RenderTargetHandle, std::vector<Pass*>> consumers;
+
+    std::vector<Pass*> sortedPasses;
 
   public:
     FrameGraph(Vulkan::PipelineManager& pipelineManager);
-    void addPass(std::unique_ptr<Pass> pass);
-    auto compile() -> std::vector<size_t>;
-    void execute(vk::CommandBuffer cmd, const std::vector<bool>& passEnabled = {});
+    auto addPass(std::unique_ptr<Pass> pass) -> PassHandle;
+    void compile();
+    void execute(vk::CommandBuffer cmd);
 };
 } // namespace Render
