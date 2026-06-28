@@ -102,7 +102,8 @@ void Render::Render::init(Scene& scene) {
                      scene.getObjects(),
                      scene.getCameras().data())));
 
-    frameGraph.addPass(std::make_unique<ImGuiPass>(ImGuiPass("gui", {colorTarget}, {})));
+    frameGraph.addPass(std::make_unique<ImGuiPass>(
+        ImGuiPass("gui", {colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}, {"sky"})));
 
     frameGraph.compile();
 }
