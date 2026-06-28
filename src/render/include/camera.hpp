@@ -15,6 +15,7 @@ namespace Render {
 
 class CameraController;
 class FirstPersonCamera;
+class OrbitCamera;
 class ResourceManager;
 
 class Camera {
@@ -53,6 +54,7 @@ class Camera {
 
     friend class CameraController;
     friend class FirstPersonCamera;
+    friend class OrbitCamera;
     friend class ResourceManager;
     friend class Scene;
 };

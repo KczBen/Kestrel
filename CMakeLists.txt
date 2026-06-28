@@ -94,6 +94,7 @@ add_library(render
     src/render/geometryPass.cpp
     src/render/camera.cpp
     src/render/firstPersonCamera.cpp
+    src/render/orbitCamera.cpp
     src/render/resourceManager.cpp
     src/render/scene/object.cpp
     src/render/cameraPass.cpp

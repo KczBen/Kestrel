@@ -1,7 +1,10 @@
 #include "scene.hpp"
+#include "cameraController.hpp"
 #include "gpuDataObjects.hpp"
+#include "orbitCamera.hpp"
 #include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <memory>
 #include <utility>
 
 namespace Render {
@@ -9,7 +12,7 @@ Scene::Scene(std::vector<std::string> modelPaths) : modelPaths(std::move(modelPa
     // just make *a* camera for now
     cameras.emplace_back();
 
-    playerCamera.emplace(std::ref(*cameras.data()));
+    playerCamera = std::make_unique<OrbitCamera>(cameras.back());
 
     // guess also just put a light here for now
     lights.emplace_back(glm::vec3(10.0, 10.0, 10.0), 10.0, glm::vec3(255, 127, 127));

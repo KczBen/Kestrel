@@ -48,7 +48,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
     SDL_Window* window = SDL_CreateWindow(
         "Vulkan prototype", 1280, 720, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
 
-    SDL_SetWindowRelativeMouseMode(window, true);
+    // SDL_SetWindowRelativeMouseMode(window, true);
 
     if (window == nullptr) {
         std::println(stderr, "Failed to create window: {}", SDL_GetError());
@@ -137,6 +137,9 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
             }
 
             input.updateKeys(SDL_GetKeyboardState(nullptr));
+
+            const auto mouseButtons = SDL_GetMouseState(nullptr, nullptr);
+            input.rightMouseButton = (mouseButtons & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT)) != 0;
 
             ImGui_ImplVulkan_NewFrame();
             ImGui_ImplSDL3_NewFrame();
