@@ -1,9 +1,8 @@
 #include "commandPool.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
-Vulkan::CommandPool::CommandPool(Vulkan::PhysicalDevice& physicalDevice,
-                                 Vulkan::Device& device,
-                                 uint32_t maxFramesInFlight)
+namespace Vulkan {
+CommandPool::CommandPool(PhysicalDevice& physicalDevice, Device& device, uint32_t maxFramesInFlight)
     : device(&*device), graphicsQueue(device.getGraphicsQueue()) {
     const auto& indices = physicalDevice.getQueueFamilyIndices();
     if (!indices.computeFamily.has_value()) {
@@ -19,12 +18,17 @@ Vulkan::CommandPool::CommandPool(Vulkan::PhysicalDevice& physicalDevice,
     buffers = vk::raii::CommandBuffers(*this->device, commandBufferInfo);
 }
 
-void Vulkan::CommandPool::transitionImage(Vulkan::Image& image,
-                                          vk::ImageLayout newLayout,
-                                          vk::PipelineStageFlags2 dstStage,
-                                          vk::AccessFlags2 dstAccess,
-                                          vk::ImageAspectFlags dstAspect,
-                                          vk::CommandBuffer cmd) {
+void CommandPool::transitionImage(Image& image,
+                                  vk::ImageLayout newLayout,
+                                  vk::PipelineStageFlags2 dstStage,
+                                  vk::AccessFlags2 dstAccess,
+                                  vk::ImageAspectFlags dstAspect,
+                                  vk::CommandBuffer cmd) {
+
+    if (image.layout == newLayout && image.stageMask == dstStage && image.accessFlags == dstAccess) {
+        return;
+    }
+
     const vk::ImageMemoryBarrier2 barrier{image.stageMask,
                                           image.accessFlags,
                                           dstStage,
@@ -48,7 +52,42 @@ void Vulkan::CommandPool::transitionImage(Vulkan::Image& image,
     image.aspectFlags = dstAspect;
 }
 
-void Vulkan::CommandPool::generateMipmaps(Vulkan::Image& image, vk::CommandBuffer cmd) {
+void CommandPool::transitionImages(std::span<ImageTransitionInfo> transitions, vk::CommandBuffer cmd) {
+    std::vector<vk::ImageMemoryBarrier2> barriers;
+
+    barriers.reserve(transitions.size());
+    for (auto transition : transitions) {
+        if (transition.image->layout == transition.newLayout && transition.image->stageMask == transition.dstStage &&
+            transition.image->accessFlags == transition.dstAccess) {
+            continue;
+        }
+
+        barriers.emplace_back(
+            transition.image->stageMask,
+            transition.image->accessFlags,
+            transition.dstStage,
+            transition.dstAccess,
+            transition.image->layout,
+            transition.newLayout,
+            vk::QueueFamilyIgnored,
+            vk::QueueFamilyIgnored,
+            transition.image->image,
+            vk::ImageSubresourceRange(transition.dstAspect, 0, transition.image->mipLevelCount, 0, 1));
+
+        transition.image->layout = transition.newLayout;
+        transition.image->stageMask = transition.dstStage;
+        transition.image->accessFlags = transition.dstAccess;
+        transition.image->aspectFlags = transition.dstAspect;
+    }
+
+    vk::DependencyInfo depInfo{};
+    depInfo.imageMemoryBarrierCount = barriers.size();
+    depInfo.pImageMemoryBarriers = barriers.data();
+
+    cmd.pipelineBarrier2(depInfo);
+}
+
+void CommandPool::generateMipmaps(Image& image, vk::CommandBuffer cmd) {
     vk::ImageMemoryBarrier2 barrier(vk::PipelineStageFlagBits2::eTransfer,
                                     vk::AccessFlagBits2::eTransferWrite,
                                     vk::PipelineStageFlagBits2::eBlit,
@@ -123,5 +162,6 @@ void Vulkan::CommandPool::generateMipmaps(Vulkan::Image& image, vk::CommandBuffe
     cmd.pipelineBarrier2(depInfo);
 }
 
-auto Vulkan::CommandPool::getCommandBuffer(uint32_t frame) -> const vk::raii::CommandBuffer& { return buffers[frame]; }
-auto Vulkan::CommandPool::get() -> const vk::raii::CommandPool& { return pool; }
+auto CommandPool::getCommandBuffer(uint32_t frame) -> const vk::raii::CommandBuffer& { return buffers[frame]; }
+auto CommandPool::get() -> const vk::raii::CommandPool& { return pool; }
+} // namespace Vulkan

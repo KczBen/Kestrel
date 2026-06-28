@@ -3,10 +3,19 @@
 #include "device.hpp"
 #include "image.hpp"
 #include "physicalDevice.hpp"
+#include "vulkan/vulkan.hpp"
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace Vulkan {
+struct ImageTransitionInfo {
+    Image* image;
+    vk::ImageLayout newLayout;
+    vk::PipelineStageFlags2 dstStage;
+    vk::AccessFlags2 dstAccess;
+    vk::ImageAspectFlags dstAspect;
+};
+
 class CommandPool {
   private:
     const vk::raii::Device* device;
@@ -22,6 +31,8 @@ class CommandPool {
                                 vk::AccessFlags2 dstAccess,
                                 vk::ImageAspectFlags dstAspect,
                                 vk::CommandBuffer cmd);
+
+    static void transitionImages(std::span<ImageTransitionInfo> transitions, vk::CommandBuffer cmd);
 
     static void generateMipmaps(Vulkan::Image& image, vk::CommandBuffer cmd);
     auto getCommandBuffer(uint32_t frame) -> const vk::raii::CommandBuffer&;
