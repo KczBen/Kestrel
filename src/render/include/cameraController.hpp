@@ -5,12 +5,8 @@
 
 namespace Render {
 class CameraController {
-  private:
+  protected:
     Camera* camera;
-
-    glm::vec3 front{};
-    glm::vec3 up{};
-    glm::vec3 right{};
 
     float movementSpeed = 5.0f;
     float mouseSensitivity = 0.1f;
@@ -19,13 +15,9 @@ class CameraController {
     float minFov = 15.0f;
     float maxFov = 90.0f;
 
-    void processRotation(float mouseDeltaX, float mouseDeltaY, float deltaTime);
-    void processMovement(MovementDirection movement, float deltaTime);
-    void updateVectors();
-
   public:
-    CameraController(Camera& camera);
-
-    void update(const Input& input, float deltaTime);
+    explicit CameraController(Camera& camera) : camera(&camera) {}
+    virtual ~CameraController() = default;
+    virtual void update(const Input& input, float deltaTime) = 0;
 };
 } // namespace Render

@@ -93,7 +93,7 @@ add_library(render
     src/render/material.cpp
     src/render/geometryPass.cpp
     src/render/camera.cpp
-    src/render/cameraController.cpp
+    src/render/firstPersonCamera.cpp
     src/render/resourceManager.cpp
     src/render/scene/object.cpp
     src/render/cameraPass.cpp
@@ -180,6 +180,7 @@ if(TESTING)
         tests/material_unittest.cpp
         tests/sampler_unittest.cpp
         tests/camera_unittest.cpp
+        tests/firstPersonCamera_unittest.cpp
         tests/object_unittest.cpp
         tests/renderIntegration_unittest.cpp
         tests/renderTarget_unittest.cpp

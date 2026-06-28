@@ -9,7 +9,7 @@ Scene::Scene(std::vector<std::string> modelPaths) : modelPaths(std::move(modelPa
     // just make *a* camera for now
     cameras.emplace_back();
 
-    playerCamera.emplace(*cameras.data());
+    playerCamera.emplace(std::ref(*cameras.data()));
 
     // guess also just put a light here for now
     lights.emplace_back(glm::vec3(10.0, 10.0, 10.0), 10.0, glm::vec3(255, 127, 127));

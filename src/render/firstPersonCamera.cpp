@@ -1,8 +1,8 @@
-#include "cameraController.hpp"
+#include "firstPersonCamera.hpp"
 
-Render::CameraController::CameraController(Camera& camera) : camera(&camera) { updateVectors(); }
+Render::FirstPersonCamera::FirstPersonCamera(Camera& camera) : CameraController(camera) { updateVectors(); }
 
-void Render::CameraController::processRotation(float mouseDeltaX, float mouseDeltaY, float deltaTime) {
+void Render::FirstPersonCamera::processRotation(float mouseDeltaX, float mouseDeltaY, float deltaTime) {
     const float yawDelta = -mouseDeltaX * mouseSensitivity;
     const float pitchDelta = -mouseDeltaY * mouseSensitivity;
 
@@ -30,7 +30,7 @@ void Render::CameraController::processRotation(float mouseDeltaX, float mouseDel
     updateVectors();
 }
 
-void Render::CameraController::processMovement(MovementDirection movement, float deltaTime) {
+void Render::FirstPersonCamera::processMovement(MovementDirection movement, float deltaTime) {
     const float velocity = movementSpeed * deltaTime;
 
     if ((movement & MovementDirection::forward) != MovementDirection::none) {
@@ -47,7 +47,7 @@ void Render::CameraController::processMovement(MovementDirection movement, float
     }
 }
 
-void Render::CameraController::update(const Input& input, float deltaTime) {
+void Render::FirstPersonCamera::update(const Input& input, float deltaTime) {
     processRotation(input.mouseX, input.mouseY, deltaTime);
     processMovement(input.movement, deltaTime);
 
@@ -58,7 +58,7 @@ void Render::CameraController::update(const Input& input, float deltaTime) {
     }
 }
 
-void Render::CameraController::updateVectors() {
+void Render::FirstPersonCamera::updateVectors() {
     front = glm::normalize(camera->orientation * glm::vec3(0.0f, 0.0f, -1.0f));
     right = glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
     up = glm::vec3(0.0f, 1.0f, 0.0f);

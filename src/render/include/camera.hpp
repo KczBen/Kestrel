@@ -14,6 +14,7 @@
 namespace Render {
 
 class CameraController;
+class FirstPersonCamera;
 class ResourceManager;
 
 class Camera {
@@ -51,6 +52,7 @@ class Camera {
     void updateViewMatrix();
 
     friend class CameraController;
+    friend class FirstPersonCamera;
     friend class ResourceManager;
     friend class Scene;
 };
