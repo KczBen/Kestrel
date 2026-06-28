@@ -9,6 +9,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Render {
@@ -55,14 +56,14 @@ class Pass {
     Pass(Pass&&) = delete;
     auto operator=(const Pass&) -> Pass& = delete;
     auto operator=(Pass&&) = delete;
-    Pass(const std::string& name,
+    Pass(std::string name,
          const std::vector<RenderTargetAttachment>& inputs,
          const std::vector<RenderTargetAttachment>& colorAttachments,
          const RenderTargetAttachment& depthInput,
          const RenderTargetAttachment& depthOutput,
          const std::vector<std::string>& dependencies)
-        : colorAttachments(colorAttachments), inputs(inputs), depthOutput(depthOutput), depthInput(depthInput),
-          dependencies(dependencies) {
+        : name(std::move(name)), colorAttachments(colorAttachments), inputs(inputs), depthOutput(depthOutput),
+          depthInput(depthInput), dependencies(dependencies) {
         for (const auto& attachment : colorAttachments) {
             if (attachment.handle.isPresent()) {
                 attachmentFormats.push_back(attachment.handle->getFormat());

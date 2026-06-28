@@ -49,7 +49,7 @@ auto FrameGraph::addPass(std::unique_ptr<Pass> pass) -> PassHandle {
         return handle;
     }
 
-    std::print("Frame graph: Warning: Pass with name {} already exists", pass->name);
+    std::print("Frame graph: Warning: Pass with name {} already exists\n", pass->name);
 
     return nameMap.at(pass->name);
 }
