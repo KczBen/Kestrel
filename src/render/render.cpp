@@ -7,7 +7,6 @@
 #include "geometryPass.hpp"
 #include "image.hpp"
 #include "imguiPass.hpp"
-#include "imgui_impl_vulkan.h"
 #include "instance.hpp"
 #include "material.hpp"
 #include "pass.hpp"
@@ -69,35 +68,41 @@ void Render::Render::init(Scene& scene) {
 
     auto& materials = resourceManager->getMaterialList();
     frameGraph.addPass(std::make_unique<GeometryPass>(
-        GeometryPass({},
+        GeometryPass("depth_pre",
+                     {},
                      {},
                      {},
                      {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
+                     {},
                      MaterialHandle{&materials, 1},
                      &scene,
                      scene.getObjects(),
                      scene.getCameras().data())));
 
     frameGraph.addPass(std::make_unique<CameraPass>(
-        CameraPass({},
+        CameraPass("sky",
+                   {},
                    {{colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
                    {depthTarget},
+                   {},
                    {},
                    {&resourceManager->getMaterialList(), 0},
                    &scene,
                    scene.getCameras().data())));
 
     frameGraph.addPass(std::make_unique<GeometryPass>(
-        GeometryPass({},
+        GeometryPass("geometry",
+                     {},
                      {{colorTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore}},
                      {depthTarget},
+                     {},
                      {},
                      std::nullopt,
                      &scene,
                      scene.getObjects(),
                      scene.getCameras().data())));
 
-    frameGraph.addPass(std::make_unique<ImGuiPass>(ImGuiPass(RenderTargetAttachment{colorTarget})));
+    frameGraph.addPass(std::make_unique<ImGuiPass>(ImGuiPass("gui", {colorTarget}, {})));
 
     frameGraph.compile();
 }

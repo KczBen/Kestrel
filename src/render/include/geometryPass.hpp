@@ -16,10 +16,12 @@ class GeometryPass : public Pass {
     std::optional<MaterialHandle> optMaterial;
 
   public:
-    GeometryPass(const std::vector<RenderTargetAttachment>& inputs,
+    GeometryPass(const std::string& name,
+                 const std::vector<RenderTargetAttachment>& inputs,
                  const std::vector<RenderTargetAttachment>& colorAttachments,
                  const RenderTargetAttachment& depthInput,
                  const RenderTargetAttachment& depthOutput,
+                 const std::vector<std::string>& dependencies,
                  std::optional<MaterialHandle> optMaterial,
                  Scene* scene,
                  std::span<const Object> models,

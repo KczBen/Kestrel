@@ -8,7 +8,10 @@
 namespace Render {
 class ImGuiPass : public Pass {
   public:
-    ImGuiPass(const RenderTargetAttachment& colorOutput) : Pass({}, {colorOutput}, {}, {}) {}
+    ImGuiPass(const std::string& name,
+              const RenderTargetAttachment& colorOutput,
+              const std::vector<std::string>& dependencies)
+        : Pass(name, {}, {colorOutput}, {}, {}, dependencies) {}
 
     void record(PassContext ctx) override {
         ImGui::Render();

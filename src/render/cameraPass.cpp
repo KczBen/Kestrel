@@ -12,15 +12,17 @@ auto CameraPass::supportedMaterialTypes() const -> uint32_t {
            (1U << static_cast<uint32_t>(Material::BlendMode::Additive));
 }
 
-CameraPass::CameraPass(const std::vector<RenderTargetAttachment>& inputs,
+CameraPass::CameraPass(const std::string& name,
+                       const std::vector<RenderTargetAttachment>& inputs,
                        const std::vector<RenderTargetAttachment>& colorAttachments,
                        const RenderTargetAttachment& depthInput,
                        const RenderTargetAttachment& depthOutput,
+                       const std::vector<std::string>& dependencies,
                        MaterialHandle materialHandle,
                        Scene* scene,
                        Camera* camera)
-    : Pass(inputs, colorAttachments, depthInput, depthOutput), materialHandle(materialHandle), scene(scene),
-      camera(camera) {}
+    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), materialHandle(materialHandle),
+      scene(scene), camera(camera) {}
 
 void CameraPass::record(PassContext ctx) {
 

@@ -3,12 +3,17 @@
 #include "material.hpp"
 #include "pipelineManager.hpp"
 #include "renderTarget.hpp"
+#include "resourceHandles.hpp"
 #include "sampler.hpp"
 #include "vulkan/vulkan.hpp"
+#include <memory>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace Render {
+
+class FrameGraph;
 
 struct RenderTargetAttachment {
     RenderTargetHandle handle;
@@ -25,6 +30,8 @@ struct RenderTargetAttachment {
         : handle(handle), loadOp(loadOp), storeOp(storeOp), sampler(sampler) {}
 
     [[nodiscard]] auto isPresent() const -> bool { return handle.isPresent(); }
+
+    auto operator*() const -> RenderTargetHandle { return handle; };
 };
 
 struct PassContext {
@@ -34,22 +41,28 @@ struct PassContext {
 
 class Pass {
   private:
+    std::string name;
     std::vector<RenderTargetAttachment> colorAttachments;
     std::vector<RenderTargetAttachment> inputs;
     RenderTargetAttachment depthOutput;
     RenderTargetAttachment depthInput;
     std::vector<vk::Format> attachmentFormats;
 
+    std::vector<std::string> dependencies;
+
   public:
     Pass(const Pass&) = default;
     Pass(Pass&&) = delete;
     auto operator=(const Pass&) -> Pass& = delete;
     auto operator=(Pass&&) = delete;
-    Pass(const std::vector<RenderTargetAttachment>& inputs,
+    Pass(const std::string& name,
+         const std::vector<RenderTargetAttachment>& inputs,
          const std::vector<RenderTargetAttachment>& colorAttachments,
          const RenderTargetAttachment& depthInput,
-         const RenderTargetAttachment& depthOutput)
-        : colorAttachments(colorAttachments), inputs(inputs), depthOutput(depthOutput), depthInput(depthInput) {
+         const RenderTargetAttachment& depthOutput,
+         const std::vector<std::string>& dependencies)
+        : colorAttachments(colorAttachments), inputs(inputs), depthOutput(depthOutput), depthInput(depthInput),
+          dependencies(dependencies) {
         for (const auto& attachment : colorAttachments) {
             if (attachment.handle.isPresent()) {
                 attachmentFormats.push_back(attachment.handle->getFormat());
@@ -76,5 +89,10 @@ class Pass {
     [[nodiscard]] auto getColorAttachmentFormats() const -> std::span<const vk::Format> {
         return {attachmentFormats.data(), attachmentFormats.size()};
     }
+    [[nodiscard]] auto getName() const -> std::string { return name; };
+
+    friend class FrameGraph;
 };
+
+using PassHandle = ResourceHandle<std::unique_ptr<Pass>>;
 } // namespace Render
