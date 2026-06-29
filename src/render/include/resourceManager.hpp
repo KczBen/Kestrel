@@ -15,6 +15,7 @@
 #include "uploadBuffer.hpp"
 #include "vertex.hpp"
 #include <functional>
+#include <string>
 #include <tiny_gltf.h>
 #include <unordered_map>
 #include <vector>
@@ -23,7 +24,6 @@ namespace Render {
 class ResourceManager {
   private:
     Vulkan::Device* device;
-    std::vector<RenderTarget> renderTargets;
 
     Vulkan::DescriptorPool descriptorPool;
 
@@ -42,7 +42,12 @@ class ResourceManager {
     std::vector<Vulkan::Sampler> samplers;
     std::unordered_map<Vulkan::SamplerConfig, size_t, std::hash<Vulkan::SamplerConfig>> samplerIndex;
     std::vector<Vulkan::Texture> textures;
+
     std::vector<Material> materials;
+    std::unordered_map<std::string, MaterialHandle> materialNameMap;
+
+    std::vector<RenderTarget> renderTargets;
+    std::unordered_map<std::string, RenderTargetHandle> renderTargetNameMap;
 
     std::optional<Vulkan::PipelineManager> pipelineManager;
 
@@ -61,7 +66,7 @@ class ResourceManager {
   public:
     ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::Device& device);
     auto getPipelineManager() -> Vulkan::PipelineManager&;
-    auto getMaterialList() -> std::vector<Material>&;
+    auto getMaterial(const std::string& name) -> MaterialHandle;
     void loadScene(Scene& scene);
     auto createRenderTarget(vk::Extent3D extent,
                             vk::Format format,

@@ -39,7 +39,8 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
     stagingBuffer = Vulkan::UploadBuffer(device, static_cast<long>(512 * 1024 * 1024));
 
     // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
-    materials.emplace_back(Material(ShaderDef{.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
+    materials.emplace_back(Material("sky",
+                                    ShaderDef{.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
                                     ShaderDef{.filePath = "shaders/skyFrag.glsl", .stage = EShLangFragment},
                                     {},
                                     {},
@@ -49,16 +50,21 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
                                     false,
                                     vk::CompareOp::eLessOrEqual));
 
-    materials.push_back(Material(ShaderDef{.filePath = "shaders/depthVert.glsl", .stage = EShLangVertex},
-                                 ShaderDef{.filePath = "shaders/depthFrag.glsl", .stage = EShLangFragment},
-                                 {},
-                                 {vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))},
-                                 Material::VertexInputMode::Mesh,
-                                 vk::CullModeFlagBits::eBack,
-                                 true,
-                                 true,
-                                 vk::CompareOp::eLessOrEqual,
-                                 Material::BlendMode::Opaque));
+    materialNameMap[materials.back().name] = {&materials, materials.size() - 1};
+
+    materials.emplace_back(Material("depth_only",
+                                    ShaderDef{.filePath = "shaders/depthVert.glsl", .stage = EShLangVertex},
+                                    ShaderDef{.filePath = "shaders/depthFrag.glsl", .stage = EShLangFragment},
+                                    {},
+                                    {vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))},
+                                    Material::VertexInputMode::Mesh,
+                                    vk::CullModeFlagBits::eBack,
+                                    true,
+                                    true,
+                                    vk::CompareOp::eLessOrEqual,
+                                    Material::BlendMode::Opaque));
+
+    materialNameMap[materials.back().name] = {&materials, materials.size() - 1};
 
     auto defaultSamplerConfig = Vulkan::SamplerConfig{};
     auto whitePixelHandle = getOrCreateSampler(defaultSamplerConfig);
@@ -233,7 +239,8 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
         resources.metallicFactor = static_cast<float>(pbr.metallicFactor);
         resources.roughnessFactor = static_cast<float>(pbr.roughnessFactor);
 
-        auto mat = Material(ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
+        auto mat = Material(material.name,
+                            ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
                             ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
                             resources,
                             std::vector<vk::PushConstantRange>{
@@ -250,7 +257,10 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
 
         materials.emplace_back(std::move(mat));
 
-        materialHandles.emplace_back(&materials, materials.size() - 1);
+        auto handle = MaterialHandle{&materials, materials.size() - 1};
+
+        materialNameMap[handle->name] = handle;
+        materialHandles.emplace_back(handle);
     }
 
     auto loadMesh = [&](tinygltf::Primitive& primitive) -> std::pair<std::vector<Vertex>, std::vector<uint32_t>> {
@@ -501,7 +511,7 @@ void ResourceManager::loadScene(Scene& scene) {
 }
 
 auto ResourceManager::getPipelineManager() -> Vulkan::PipelineManager& { return *pipelineManager; }
-auto ResourceManager::getMaterialList() -> std::vector<Material>& { return materials; }
+auto ResourceManager::getMaterial(const std::string& name) -> MaterialHandle { return materialNameMap[name]; }
 
 auto ResourceManager::createRenderTarget(vk::Extent3D extent,
                                          vk::Format format,

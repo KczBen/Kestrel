@@ -6,9 +6,10 @@
 #include <utility>
 #include <vector>
 
-Material::Material(ShaderDef vertexShader,
+Material::Material(std::string name,
+                   ShaderDef vertexShader,
                    ShaderDef fragmentShader,
-                   const MaterialResources& materialResources,
+                   MaterialResources materialResources,
                    std::vector<vk::PushConstantRange> pushConstants,
                    VertexInputMode vertexInputMode,
                    vk::CullModeFlagBits cullMode,
@@ -17,7 +18,7 @@ Material::Material(ShaderDef vertexShader,
                    vk::CompareOp depthCompare,
                    BlendMode colorBlendMode,
                    vk::ColorComponentFlags colorWriteMask)
-    : resources(materialResources) {
+    : name(std::move(name)), resources(std::move(materialResources)) {
 
     // Retain full, explicit control over pipeline state for flexibility
     pipelineConfiguration = MaterialConfiguration{.vertexShader = std::move(vertexShader),

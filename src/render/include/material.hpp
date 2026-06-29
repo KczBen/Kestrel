@@ -94,9 +94,10 @@ class Material {
         auto operator==(const MaterialConfiguration&) const -> bool;
     };
 
-    Material(ShaderDef vertexShader,
+    Material(std::string name,
+             ShaderDef vertexShader,
              ShaderDef fragmentShader,
-             const MaterialResources& materialResources,
+             MaterialResources materialResources,
              std::vector<vk::PushConstantRange> pushConstants = {},
              VertexInputMode vertexInputMode = VertexInputMode::Mesh,
              vk::CullModeFlagBits cullMode = vk::CullModeFlagBits::eBack,
@@ -112,6 +113,7 @@ class Material {
     [[nodiscard]] auto getBlendMode() const -> BlendMode { return pipelineConfiguration.blendMode; }
 
   private:
+    std::string name;
     MaterialResources resources;
     MaterialConfiguration pipelineConfiguration;
 

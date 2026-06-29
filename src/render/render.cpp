@@ -66,7 +66,6 @@ void Render::Render::init(Scene& scene) {
                                                       vk::ImageUsageFlagBits::eDepthStencilAttachment,
                                                       vk::ImageAspectFlagBits::eDepth);
 
-    auto& materials = resourceManager->getMaterialList();
     frameGraph.addPass(std::make_unique<GeometryPass>(
         GeometryPass("depth_pre",
                      {},
@@ -74,7 +73,7 @@ void Render::Render::init(Scene& scene) {
                      {},
                      {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
                      {},
-                     MaterialHandle{&materials, 1},
+                     resourceManager->getMaterial("depth_only"),
                      &scene,
                      scene.getObjects(),
                      scene.getCameras().data())));
@@ -86,7 +85,7 @@ void Render::Render::init(Scene& scene) {
                    {depthTarget},
                    {},
                    {},
-                   {&resourceManager->getMaterialList(), 0},
+                   resourceManager->getMaterial("sky"),
                    &scene,
                    scene.getCameras().data())));
 
