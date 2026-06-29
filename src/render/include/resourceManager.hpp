@@ -68,10 +68,12 @@ class ResourceManager {
     auto getPipelineManager() -> Vulkan::PipelineManager&;
     auto getMaterial(const std::string& name) -> MaterialHandle;
     void loadScene(Scene& scene);
-    auto createRenderTarget(vk::Extent3D extent,
+    auto createRenderTarget(const std::string& name,
+                            vk::Extent3D extent,
                             vk::Format format,
                             vk::ImageUsageFlags usageFlags,
                             vk::ImageAspectFlags aspectFlags,
                             vk::SampleCountFlagBits sampleCount = vk::SampleCountFlagBits::e1) -> RenderTargetHandle;
+    auto getRenderTarget(const std::string& name) -> RenderTargetHandle;
 };
 } // namespace Render

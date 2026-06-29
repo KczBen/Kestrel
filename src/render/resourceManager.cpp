@@ -1,4 +1,6 @@
 #include "descriptorSet.hpp"
+#include "renderTarget.hpp"
+#include <string>
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -513,14 +515,23 @@ void ResourceManager::loadScene(Scene& scene) {
 auto ResourceManager::getPipelineManager() -> Vulkan::PipelineManager& { return *pipelineManager; }
 auto ResourceManager::getMaterial(const std::string& name) -> MaterialHandle { return materialNameMap[name]; }
 
-auto ResourceManager::createRenderTarget(vk::Extent3D extent,
+auto ResourceManager::createRenderTarget(const std::string& name,
+                                         vk::Extent3D extent,
                                          vk::Format format,
                                          vk::ImageUsageFlags usageFlags,
                                          vk::ImageAspectFlags aspectFlags,
                                          vk::SampleCountFlagBits sampleCount) -> RenderTargetHandle {
     renderTargets.emplace_back(*device, extent, format, usageFlags, aspectFlags, sampleCount);
 
-    return RenderTargetHandle{&renderTargets, renderTargets.size() - 1};
+    auto handle = RenderTargetHandle{&renderTargets, renderTargets.size() - 1};
+
+    renderTargetNameMap[name] = handle;
+
+    return handle;
+}
+
+auto ResourceManager::getRenderTarget(const std::string& name) -> RenderTargetHandle {
+    return renderTargetNameMap[name];
 }
 
 auto ResourceManager::getOrCreateSampler(const Vulkan::SamplerConfig& config) -> SamplerHandle {

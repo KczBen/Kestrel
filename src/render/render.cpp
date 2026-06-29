@@ -32,7 +32,7 @@ Render::Render::Render(SDL_Window* window,
                        Vulkan::Device& device,
                        const uint32_t maxFramesInFlight)
     : maxFramesInFlight(maxFramesInFlight), window(window), instance(&instance), surface(&surface),
-      physicalDevice(&physicalDevice), device(&device), resourceManager(&resources),
+      physicalDevice(&physicalDevice), device(&device), resources(&resources),
       commandPool(physicalDevice, device, maxFramesInFlight),
       swapchain(physicalDevice, device, surface, getWindowSizeInPixels(window)),
       syncObjects(device, swapchain.getImages().size()), height(swapchain.getExtent().height),
@@ -47,7 +47,7 @@ Render::Render::Render(ResourceManager& resources,
                        const uint32_t width,
                        const uint32_t height)
     : maxFramesInFlight(maxFramesInFlight), window(nullptr), instance(&instance), surface(&surface),
-      physicalDevice(&physicalDevice), device(&device), resourceManager(&resources),
+      physicalDevice(&physicalDevice), device(&device), resources(&resources),
       commandPool(physicalDevice, device, maxFramesInFlight),
       swapchain(physicalDevice, device, surface, {width, height}), syncObjects(device, swapchain.getImages().size()),
       width(width), height(height), frameGraph(resources.getPipelineManager()) {}
@@ -55,16 +55,18 @@ Render::Render::Render(ResourceManager& resources,
 void Render::Render::init(Scene& scene) {
     const auto& swapchainExtent = swapchain.getExtent();
 
-    colorTarget = resourceManager->createRenderTarget(vk::Extent3D{swapchainExtent.width, swapchainExtent.height, 1},
-                                                      vk::Format::eB8G8R8A8Srgb,
-                                                      vk::ImageUsageFlagBits::eColorAttachment |
-                                                          vk::ImageUsageFlagBits::eTransferSrc,
-                                                      vk::ImageAspectFlagBits::eColor);
+    colorTarget =
+        resources->createRenderTarget("FRAMEBUFFER",
+                                      vk::Extent3D{swapchainExtent.width, swapchainExtent.height, 1},
+                                      vk::Format::eB8G8R8A8Srgb,
+                                      vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc,
+                                      vk::ImageAspectFlagBits::eColor);
 
-    depthTarget = resourceManager->createRenderTarget(vk::Extent3D{swapchainExtent.width, swapchainExtent.height, 1},
-                                                      vk::Format::eD32Sfloat,
-                                                      vk::ImageUsageFlagBits::eDepthStencilAttachment,
-                                                      vk::ImageAspectFlagBits::eDepth);
+    depthTarget = resources->createRenderTarget("DEPTH",
+                                                vk::Extent3D{swapchainExtent.width, swapchainExtent.height, 1},
+                                                vk::Format::eD32Sfloat,
+                                                vk::ImageUsageFlagBits::eDepthStencilAttachment,
+                                                vk::ImageAspectFlagBits::eDepth);
 
     frameGraph.addPass(std::make_unique<GeometryPass>(
         GeometryPass("depth_pre",
@@ -73,7 +75,7 @@ void Render::Render::init(Scene& scene) {
                      {},
                      {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
                      {},
-                     resourceManager->getMaterial("depth_only"),
+                     resources->getMaterial("depth_only"),
                      &scene,
                      scene.getObjects(),
                      scene.getCameras().data())));
@@ -85,7 +87,7 @@ void Render::Render::init(Scene& scene) {
                    {depthTarget},
                    {},
                    {},
-                   resourceManager->getMaterial("sky"),
+                   resources->getMaterial("sky"),
                    &scene,
                    scene.getCameras().data())));
 

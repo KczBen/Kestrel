@@ -22,7 +22,7 @@ class Render {
     Vulkan::Surface* surface;
     Vulkan::PhysicalDevice* physicalDevice;
     Vulkan::Device* device;
-    ResourceManager* resourceManager;
+    ResourceManager* resources;
     Vulkan::CommandPool commandPool;
 
     Vulkan::Swapchain swapchain;
