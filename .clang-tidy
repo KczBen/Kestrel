@@ -4,7 +4,7 @@
 #   cppcoreguidelines-avoid-const-or-ref-data-members,
 #   misc-const-correctness'
 
-Checks: '-*,
+Checks: "-*,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-exception-escape,
@@ -21,7 +21,8 @@ Checks: '-*,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-avoid-c-arrays,
-  misc-const-correctness'
+  -cppcoreguidelines-pro-type-union-access,
+  misc-const-correctness"
 
 CheckOptions:
   - key: readability-identifier-naming.VariableCase
