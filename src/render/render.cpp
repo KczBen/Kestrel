@@ -103,6 +103,17 @@ void Render::Render::init(Scene& scene) {
                      scene.getObjects(),
                      scene.getCameras().data())));
 
+    frameGraph.addPass(std::make_unique<CameraPass>(
+        CameraPass("grid_overlay",
+                   {},
+                   {{colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}},
+                   {depthTarget},
+                   {},
+                   {},
+                   resources->getMaterial("grid_overlay"),
+                   &scene,
+                   scene.getCameras().data())));
+
     frameGraph.addPass(std::make_unique<ImGuiPass>(
         ImGuiPass("gui", {colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}, {"sky"})));
 

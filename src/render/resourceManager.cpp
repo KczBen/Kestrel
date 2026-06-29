@@ -1,5 +1,6 @@
 #include "descriptorSet.hpp"
 #include "renderTarget.hpp"
+#include <glslang/Public/ShaderLang.h>
 #include <string>
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -65,6 +66,19 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
                                     true,
                                     vk::CompareOp::eLessOrEqual,
                                     Material::BlendMode::Opaque));
+
+    materialNameMap[materials.back().name] = {&materials, materials.size() - 1};
+
+    materials.emplace_back(Material("grid_overlay",
+                                    ShaderDef{.filePath = "shaders/gridVert.glsl", .stage = EShLangVertex},
+                                    ShaderDef{.filePath = "shaders/gridFrag.glsl", .stage = EShLangFragment},
+                                    {},
+                                    {},
+                                    Material::VertexInputMode::None,
+                                    vk::CullModeFlagBits::eNone,
+                                    true,
+                                    false,
+                                    vk::CompareOp::eLessOrEqual));
 
     materialNameMap[materials.back().name] = {&materials, materials.size() - 1};
 

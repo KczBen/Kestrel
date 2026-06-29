@@ -36,6 +36,7 @@ Vulkan::Device::Device(Vulkan::PhysicalDevice& physicalDevice, Vulkan::Instance&
     auto& vulkan13 = featureChain.get<vk::PhysicalDeviceVulkan13Features>();
     vulkan13.dynamicRendering = vk::True;
     vulkan13.synchronization2 = vk::True;
+    vulkan13.shaderDemoteToHelperInvocation = vk::True;
 
     auto& extDynamic = featureChain.get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
     extDynamic.extendedDynamicState = vk::True;

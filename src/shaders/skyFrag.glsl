@@ -4,13 +4,13 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
 #extension GL_EXT_shader_16bit_storage : require
 
-layout(set = 0, binding = 0) uniform UniformBufferObject {
+layout(set = 0, binding = 0) uniform CameraUBO {
     mat4 view;
     mat4 proj;
     mat4 invView;
     mat4 invProj;
 }
-cameraUBO;
+camera;
 
 layout(location = 0) in vec2 fragUV;
 
@@ -21,10 +21,10 @@ void main() {
 
     vec4 clipSpace = vec4(ndc, 1.0, 1.0);
 
-    vec4 viewSpace = cameraUBO.invProj * clipSpace;
+    vec4 viewSpace = camera.invProj * clipSpace;
     viewSpace /= viewSpace.w;
 
-    vec3 worldDir = normalize((cameraUBO.invView * vec4(viewSpace.xyz, 0.0)).xyz);
+    vec3 worldDir = normalize((camera.invView * vec4(viewSpace.xyz, 0.0)).xyz);
 
     float t = worldDir.y * 0.5 + 0.5;
 
