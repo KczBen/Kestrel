@@ -75,5 +75,6 @@ class ResourceManager {
                             vk::ImageAspectFlags aspectFlags,
                             vk::SampleCountFlagBits sampleCount = vk::SampleCountFlagBits::e1) -> RenderTargetHandle;
     auto getRenderTarget(const std::string& name) -> RenderTargetHandle;
+    [[nodiscard]] auto getMaterials() const -> const std::vector<Material>& { return materials; }
 };
 } // namespace Render

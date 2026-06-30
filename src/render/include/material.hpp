@@ -13,6 +13,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <optional>
+#include <span>
+#include <string>
 #include <vector>
 
 namespace Vulkan {
@@ -109,7 +111,9 @@ class Material {
                                                       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 
     auto getDescriptorSet() -> Vulkan::DescriptorSet&;
+    [[nodiscard]] auto getName() const -> const std::string& { return name; }
     [[nodiscard]] auto getResources() const -> const MaterialResources& { return resources; }
+    [[nodiscard]] auto getConfiguration() const -> const MaterialConfiguration& { return pipelineConfiguration; }
     [[nodiscard]] auto getBlendMode() const -> BlendMode { return pipelineConfiguration.blendMode; }
 
   private:
@@ -143,7 +147,8 @@ inline auto buildTextureTransformMatrix(const Material::TextureTransform& transf
 using MaterialHandle = Render::ResourceHandle<Material>;
 
 namespace std {
-template <> struct hash<Material::MaterialConfiguration> {
+template <>
+struct hash<Material::MaterialConfiguration> {
     auto operator()(const Material::MaterialConfiguration& config) const noexcept -> size_t {
         size_t seed = 0;
         hashCombine(seed, config.vertexShader);
@@ -162,7 +167,8 @@ template <> struct hash<Material::MaterialConfiguration> {
     }
 
   private:
-    template <typename T> static void hashCombine(size_t& seed, const T& value) noexcept {
+    template <typename T>
+    static void hashCombine(size_t& seed, const T& value) noexcept {
         seed ^= std::hash<T>{}(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 };

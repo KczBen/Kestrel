@@ -109,6 +109,19 @@ target_include_directories(render PRIVATE
     ${CMAKE_SOURCE_DIR}/thirdparty
 )
 
+add_library(gui
+    src/gui/materialBrowser.cpp
+)
+
+target_include_directories(gui PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/vulkan/include
+    ${CMAKE_SOURCE_DIR}/src/util/include
+    ${CMAKE_SOURCE_DIR}/src/render/scene/include
+    ${CMAKE_SOURCE_DIR}/src/render/include
+    ${CMAKE_SOURCE_DIR}/src/gui/include
+    ${CMAKE_SOURCE_DIR}/thirdparty
+)
+
 target_link_libraries(render PRIVATE
     glm::glm-header-only
     Vulkan::Vulkan
@@ -124,6 +137,7 @@ target_include_directories(vulkan-sdl PRIVATE
     ${CMAKE_SOURCE_DIR}/src/util/include
     ${CMAKE_SOURCE_DIR}/src/render/include
     ${CMAKE_SOURCE_DIR}/src/render/scene/include
+    ${CMAKE_SOURCE_DIR}/src/gui/include
     ${CMAKE_SOURCE_DIR}/thirdparty
 )
 
@@ -131,6 +145,7 @@ target_link_libraries(vulkan-sdl PRIVATE
     render
     vulkan-wrapper
     imgui
+    gui
     Vulkan::Vulkan
     GPUOpen::VulkanMemoryAllocator
     SDL3::SDL3

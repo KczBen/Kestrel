@@ -2,6 +2,7 @@
 #include "device.hpp"
 #include "input.hpp"
 #include "instance.hpp"
+#include "materialBrowser.hpp"
 #include "physicalDevice.hpp"
 #include "render.hpp"
 #include "resourceManager.hpp"
@@ -122,7 +123,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
                     input.updateMouse(event.motion);
                 }
 
-                if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+                if (event.type == SDL_EVENT_MOUSE_WHEEL && !ImGui::GetIO().WantCaptureMouse) {
                     input.updateScroll(event.wheel);
                 }
 
@@ -144,7 +145,8 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
             ImGui_ImplVulkan_NewFrame();
             ImGui_ImplSDL3_NewFrame();
             ImGui::NewFrame();
-            ImGui::ShowDemoWindow();
+            Render::MaterialBrowser materialBrowser(resourceManager);
+            materialBrowser.update();
 
             auto currentTime = std::chrono::high_resolution_clock::now();
             const float time =
