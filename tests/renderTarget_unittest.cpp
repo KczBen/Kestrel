@@ -23,7 +23,8 @@ class RenderTargetFixture : public ::testing::Test {
 };
 
 TEST_F(RenderTargetFixture, CreateRenderTargetCreatesValidImage) {
-    auto handle = resources.createRenderTarget(vk::Extent3D{800, 600, 1},
+    auto handle = resources.createRenderTarget("color_target",
+                                               vk::Extent3D{800, 600, 1},
                                                vk::Format::eB8G8R8A8Srgb,
                                                vk::ImageUsageFlagBits::eColorAttachment |
                                                    vk::ImageUsageFlagBits::eTransientAttachment,
@@ -34,7 +35,8 @@ TEST_F(RenderTargetFixture, CreateRenderTargetCreatesValidImage) {
 }
 
 TEST_F(RenderTargetFixture, CreateDepthRenderTarget) {
-    auto handle = resources.createRenderTarget(vk::Extent3D{800, 600, 1},
+    auto handle = resources.createRenderTarget("depth_target",
+                                               vk::Extent3D{800, 600, 1},
                                                vk::Format::eD32Sfloat,
                                                vk::ImageUsageFlagBits::eDepthStencilAttachment,
                                                vk::ImageAspectFlagBits::eDepth);
@@ -44,13 +46,15 @@ TEST_F(RenderTargetFixture, CreateDepthRenderTarget) {
 }
 
 TEST_F(RenderTargetFixture, MultipleTargetsAreDistinct) {
-    auto handle0 = resources.createRenderTarget(vk::Extent3D{800, 600, 1},
+    auto handle0 = resources.createRenderTarget("color_target_0",
+                                                vk::Extent3D{800, 600, 1},
                                                 vk::Format::eB8G8R8A8Srgb,
                                                 vk::ImageUsageFlagBits::eColorAttachment |
                                                     vk::ImageUsageFlagBits::eTransientAttachment,
                                                 vk::ImageAspectFlagBits::eColor);
 
-    auto handle1 = resources.createRenderTarget(vk::Extent3D{800, 600, 1},
+    auto handle1 = resources.createRenderTarget("color_target_1",
+                                                vk::Extent3D{800, 600, 1},
                                                 vk::Format::eB8G8R8A8Srgb,
                                                 vk::ImageUsageFlagBits::eColorAttachment |
                                                     vk::ImageUsageFlagBits::eTransientAttachment,

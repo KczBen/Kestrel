@@ -18,7 +18,7 @@ TEST(MaterialTest, CreateMaterialWithDefaults) {
     ShaderDef vertexDef{"shaders/shader.vert", EShLanguage::EShLangVertex};
     ShaderDef fragmentDef{"shaders/shader.frag", EShLanguage::EShLangFragment};
     Material::MaterialResources resources;
-    Material mat{vertexDef, fragmentDef, resources};
+    Material mat{"test_material", vertexDef, fragmentDef, resources};
     EXPECT_EQ(mat.getBlendMode(), Material::BlendMode::Opaque);
 }
 
@@ -26,7 +26,8 @@ TEST(MaterialTest, CreateMaterialWithAlphaBlend) {
     ShaderDef vertexDef{"shaders/shader.vert", EShLanguage::EShLangVertex};
     ShaderDef fragmentDef{"shaders/shader.frag", EShLanguage::EShLangFragment};
     Material::MaterialResources resources;
-    Material mat{vertexDef,
+    Material mat{"test_material",
+                 vertexDef,
                  fragmentDef,
                  resources,
                  {},

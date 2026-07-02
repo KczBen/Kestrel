@@ -121,6 +121,7 @@ target_include_directories(gui PRIVATE
     ${CMAKE_SOURCE_DIR}/src/render/include
     ${CMAKE_SOURCE_DIR}/src/gui/include
     ${CMAKE_SOURCE_DIR}/thirdparty
+    ${_VCPKG_INSTALLED_DIR}/x64-linux/include
 )
 
 target_link_libraries(render PRIVATE

@@ -55,7 +55,8 @@ class FrameGraphFixture : public ::testing::Test {
     void TearDown() override { Test::TearDown(); }
 
     auto makeColorTarget() -> RenderTargetHandle {
-        return resourceManager_->createRenderTarget(vk::Extent3D{256, 256, 1},
+        return resourceManager_->createRenderTarget("color_target",
+                                                    vk::Extent3D{256, 256, 1},
                                                     vk::Format::eB8G8R8A8Unorm,
                                                     vk::ImageUsageFlagBits::eColorAttachment |
                                                         vk::ImageUsageFlagBits::eTransferSrc,
@@ -63,7 +64,8 @@ class FrameGraphFixture : public ::testing::Test {
     }
 
     auto makeDepthTarget() -> RenderTargetHandle {
-        return resourceManager_->createRenderTarget(vk::Extent3D{256, 256, 1},
+        return resourceManager_->createRenderTarget("depth_target",
+                                                    vk::Extent3D{256, 256, 1},
                                                     vk::Format::eD32Sfloat,
                                                     vk::ImageUsageFlagBits::eDepthStencilAttachment,
                                                     vk::ImageAspectFlagBits::eDepth);
