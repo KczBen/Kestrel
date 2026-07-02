@@ -58,7 +58,7 @@ add_library(vulkan-wrapper
 target_include_directories(vulkan-wrapper PRIVATE 
     ${CMAKE_SOURCE_DIR}/src/vulkan/include
     ${CMAKE_SOURCE_DIR}/src/util/include
-    ${CMAKE_SOURCE_DIR}/src/render/scene/include
+    ${CMAKE_SOURCE_DIR}/src/scene/include
     ${CMAKE_SOURCE_DIR}/src/render/include
     ${Stb_INCLUDE_DIR}
 
@@ -88,6 +88,21 @@ target_link_libraries(imgui PRIVATE
     Vulkan::Vulkan
 )
 
+add_library(scene
+    src/scene/object.cpp
+)
+
+target_include_directories(scene PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/vulkan/include
+    ${CMAKE_SOURCE_DIR}/src/util/include
+    ${CMAKE_SOURCE_DIR}/src/scene/include
+    ${CMAKE_SOURCE_DIR}/src/render/include
+)
+
+target_link_libraries(scene PRIVATE
+    glm::glm-header-only
+)
+
 add_library(render
     src/render/scene.cpp
     src/render/render.cpp
@@ -97,7 +112,6 @@ add_library(render
     src/render/firstPersonCamera.cpp
     src/render/orbitCamera.cpp
     src/render/resourceManager.cpp
-    src/render/scene/object.cpp
     src/render/cameraPass.cpp
     src/render/frameGraph.cpp
 )
@@ -105,7 +119,7 @@ add_library(render
 target_include_directories(render PRIVATE 
     ${CMAKE_SOURCE_DIR}/src/vulkan/include
     ${CMAKE_SOURCE_DIR}/src/util/include
-    ${CMAKE_SOURCE_DIR}/src/render/scene/include
+    ${CMAKE_SOURCE_DIR}/src/scene/include
     ${CMAKE_SOURCE_DIR}/src/render/include
     ${CMAKE_SOURCE_DIR}/thirdparty
 )
@@ -117,7 +131,7 @@ add_library(gui
 target_include_directories(gui PRIVATE
     ${CMAKE_SOURCE_DIR}/src/vulkan/include
     ${CMAKE_SOURCE_DIR}/src/util/include
-    ${CMAKE_SOURCE_DIR}/src/render/scene/include
+    ${CMAKE_SOURCE_DIR}/src/scene/include
     ${CMAKE_SOURCE_DIR}/src/render/include
     ${CMAKE_SOURCE_DIR}/src/gui/include
     ${CMAKE_SOURCE_DIR}/thirdparty
@@ -125,6 +139,7 @@ target_include_directories(gui PRIVATE
 )
 
 target_link_libraries(render PRIVATE
+    scene
     glm::glm-header-only
     Vulkan::Vulkan
     GPUOpen::VulkanMemoryAllocator
@@ -137,8 +152,8 @@ add_executable(vulkan-sdl
 target_include_directories(vulkan-sdl PRIVATE 
     ${CMAKE_SOURCE_DIR}/src/vulkan/include
     ${CMAKE_SOURCE_DIR}/src/util/include
+    ${CMAKE_SOURCE_DIR}/src/scene/include
     ${CMAKE_SOURCE_DIR}/src/render/include
-    ${CMAKE_SOURCE_DIR}/src/render/scene/include
     ${CMAKE_SOURCE_DIR}/src/gui/include
     ${CMAKE_SOURCE_DIR}/thirdparty
 )
@@ -207,10 +222,11 @@ if(TESTING)
     target_include_directories(test-bin PRIVATE
         ${CMAKE_SOURCE_DIR}/src/vulkan/include
         ${CMAKE_SOURCE_DIR}/src/util/include
+        ${CMAKE_SOURCE_DIR}/src/scene/include
         ${CMAKE_SOURCE_DIR}/src/render/include
-        ${CMAKE_SOURCE_DIR}/src/render/scene/include
     )
     target_link_libraries(test-bin
+        scene
         render
         vulkan-wrapper
         imgui
