@@ -27,6 +27,7 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(glslang REQUIRED)
 find_package(Stb REQUIRED)
+find_package(EnTT CONFIG REQUIRED)
 
 add_library(vulkan-wrapper
     src/vulkan/instance.cpp
