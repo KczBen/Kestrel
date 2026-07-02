@@ -52,7 +52,13 @@ add_library(vulkan-wrapper
     src/vulkan/descriptorSet.cpp
     src/vulkan/hostBuffer.cpp
     src/vulkan/pipelineManager.cpp
-    
+)
+
+set_target_properties(vulkan-wrapper PROPERTIES
+    UNITY_BUILD ON
+)
+set_source_files_properties(src/vulkan/device.cpp PROPERTIES
+    SKIP_UNITY_BUILD_INCLUSION ON
 )
 
 target_include_directories(vulkan-wrapper PRIVATE 
@@ -114,6 +120,13 @@ add_library(render
     src/render/resourceManager.cpp
     src/render/cameraPass.cpp
     src/render/frameGraph.cpp
+)
+
+set_target_properties(render PROPERTIES
+    UNITY_BUILD ON
+)
+set_source_files_properties(src/render/resourceManager.cpp PROPERTIES
+    SKIP_UNITY_BUILD_INCLUSION ON
 )
 
 target_include_directories(render PRIVATE 
