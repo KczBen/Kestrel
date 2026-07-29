@@ -3,6 +3,7 @@
 #include "input.hpp"
 #include "instance.hpp"
 #include "materialBrowser.hpp"
+#include "objectBrowser.hpp"
 #include "physicalDevice.hpp"
 #include "render.hpp"
 #include "resourceManager.hpp"
@@ -146,6 +147,9 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
             ImGui::NewFrame();
             Render::MaterialBrowser materialBrowser(resourceManager);
             materialBrowser.update();
+
+            Render::ObjectBrowser objectBrowser(scene, resourceManager.getMaterials());
+            objectBrowser.update();
 
             auto currentTime = std::chrono::high_resolution_clock::now();
             const float time =

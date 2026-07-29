@@ -139,6 +139,7 @@ target_include_directories(render PRIVATE
 
 add_library(gui
     src/gui/materialBrowser.cpp
+    src/gui/objectBrowser.cpp
 )
 
 target_include_directories(gui PRIVATE
