@@ -3,6 +3,7 @@
 #include "material.hpp"
 #include "resourceHandles.hpp"
 
+#include <cstdint>
 #include <entt/entity/entity.hpp>
 #include <entt/entity/fwd.hpp>
 #include <glm/detail/type_quat.hpp>
@@ -32,6 +33,7 @@ struct Object {
 struct Light {
     glm::vec3 colour;
     float intensity;
+    float maxRange;
 };
 
 struct Children {

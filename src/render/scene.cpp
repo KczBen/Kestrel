@@ -1,5 +1,6 @@
 #include "scene.hpp"
 #include "cameraController.hpp"
+#include "components.hpp"
 #include "gpuDataObjects.hpp"
 #include "orbitCamera.hpp"
 #include <entt/entity/fwd.hpp>
@@ -13,21 +14,19 @@ Scene::Scene() {
     cameras.emplace_back();
 
     playerCamera = std::make_unique<OrbitCamera>(cameras.back());
-
-    // guess also just put a light here for now
-    lights.emplace_back(glm::vec3(10.0, 10.0, 10.0), 10.0, glm::vec3(255, 127, 127));
 };
 
 auto Scene::getRegistry() -> entt::registry& { return entityRegistry; }
 auto Scene::getCameras() -> std::vector<Camera>& { return cameras; }
-void Scene::update(Input inputs, float deltaTime) {
-    playerCamera->update(inputs, deltaTime);
-    for (auto& object : objects) {
-        object.tick(deltaTime);
-    }
+void Scene::update(Input inputs, float deltaTime) { playerCamera->update(inputs, deltaTime); }
+
+void Scene::addLight(glm::vec3 position, glm::quat rotation, glm::vec3 colour, float intensity, float maxRange) {
+    entt::entity entity = entityRegistry.create();
+
+    entityRegistry.emplace<::Scene::LocalTransform>(entity, rotation, position, glm::vec3(1.0f));
+    entityRegistry.emplace<::Scene::Light>(
+        entity, ::Scene::Light{.colour = colour, .intensity = intensity, .maxRange = maxRange});
 }
-auto Scene::getObjects() const -> std::span<const Object> { return objects; }
-auto Scene::getLights() const -> std::span<const Light> { return lights; }
 
 auto Scene::getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout& { return *descriptorSetLayout; }
 auto Scene::getDescriptorSet() -> Vulkan::DescriptorSet& { return *descriptorSets[lastUpdatedIndex]; }
@@ -48,36 +47,34 @@ void Scene::updateUniformBuffers() {
         camera.uniformBuffers[camera.lastUpdatedIndex]->update(&ubo, sizeof(CameraUBO));
     }
 
-    // Collect and pack all lights into a single UBO, also update light camera UBOs
-    if (!lights.empty() && !lightUniformBuffers.empty()) {
+    // Collect and pack all lights into a single UBO
+    auto& registry = getRegistry();
+    auto view = registry.view<::Scene::Light, ::Scene::LocalTransform>();
+
+    if (!lightUniformBuffers.empty()) {
         LightUBO lightUBO{};
-        lightUBO.lightCount = static_cast<uint32_t>(lights.size());
+        uint32_t lightCount = 0;
 
-        for (uint32_t i = 0; i < lights.size(); ++i) {
-            lightUBO.lights[i].position = lights[i].position;
-            lightUBO.lights[i].intensity = lights[i].intensity;
-            lightUBO.lights[i].colour = lights[i].colour;
-            lightUBO.lights[i].maxRange = lights[i].maxRange;
+        for (auto entity : view) {
+            auto& light = registry.get<::Scene::Light>(entity);
+            auto& localTransform = registry.get<::Scene::LocalTransform>(entity);
 
-            // Update embedded camera UBO for each light
-            lights[i].camera.updateViewMatrix();
-            lights[i].camera.lastUpdatedIndex = (lights[i].camera.lastUpdatedIndex + 1) % 2;
-            {
-                CameraUBO ubo{};
-                ubo.view = lights[i].camera.viewMatrix;
-                ubo.proj = lights[i].camera.getProjectionMatrix();
-                ubo.invView = glm::inverse(lights[i].camera.viewMatrix);
-                ubo.invProj = glm::inverse(ubo.proj);
-                lights[i].camera.uniformBuffers[lights[i].camera.lastUpdatedIndex]->update(&ubo, sizeof(CameraUBO));
-            }
+            lightUBO.lights[lightCount].position = localTransform.position;
+            lightUBO.lights[lightCount].intensity = light.intensity;
+            lightUBO.lights[lightCount].colour = light.colour;
+            lightUBO.lights[lightCount].maxRange = light.maxRange;
+
+            ++lightCount;
         }
 
+        lightUBO.lightCount = lightCount;
+
         // Clear remaining lights
-        for (uint32_t i = lights.size(); i < 16; ++i) {
-            lightUBO.lights[i].position = glm::vec3(0.0f);
-            lightUBO.lights[i].intensity = 0.0f;
-            lightUBO.lights[i].colour = glm::vec3(0.0f);
-            lightUBO.lights[i].maxRange = 0.0f;
+        for (uint32_t j = lightCount; j < 16; ++j) {
+            lightUBO.lights[j].position = glm::vec3(0.0f);
+            lightUBO.lights[j].intensity = 0.0f;
+            lightUBO.lights[j].colour = glm::vec3(0.0f);
+            lightUBO.lights[j].maxRange = 0.0f;
         }
 
         lightUBOIndex = (lightUBOIndex + 1) % 2;

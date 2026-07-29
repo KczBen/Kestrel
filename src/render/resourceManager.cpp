@@ -143,7 +143,7 @@ auto extractTextureTransform(const tinygltf::ExtensionMap& extensions) -> Materi
     return result;
 }
 
-auto ResourceManager::loadGLTF(const std::string& path, entt::registry& registry) -> std::vector<Object> {
+void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry) {
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF loader;
     std::string err;
@@ -456,17 +456,11 @@ auto ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
     };
 
     // Root nodes correspond to our "Objects"
-    std::vector<Object> objects;
-
     for (const auto& nodeIdx : gltfModel.scenes[gltfModel.defaultScene].nodes) {
         auto& rootNode = gltfModel.nodes[nodeIdx];
 
-        auto object = buildNode(rootNode, std::nullopt);
-
-        objects.emplace_back(object.first);
+        buildNode(rootNode, std::nullopt);
     }
-
-    return objects;
 }
 
 auto ResourceManager::uploadMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
@@ -524,17 +518,7 @@ auto ResourceManager::loadScene(const std::string& modelPath) -> Scene {
                                                    .bufferInfo = {*uniformBuffers.back(), 0, sizeof(CameraUBO)}});
         }
 
-        // set up light camera UBOs
-        for (auto& light : scene.lights) {
-            uniformBuffers.emplace_back(*device, sizeof(CameraUBO));
-            light.camera.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
-
-            // TODO: FIX THIS - commented out because it overwrites the descriptor set for the other cameras
-            // uboWrites.emplace_back(DescriptorWrite{.binding = 0,
-            //                                        .type = vk::DescriptorType::eUniformBuffer,
-            //                                        .bufferInfo = {*uniformBuffers.back(), 0, sizeof(CameraUBO)}});
-        }
-
+        // set up light UBO
         uniformBuffers.emplace_back(*device, sizeof(LightUBO));
         scene.lightUniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
 
@@ -550,10 +534,7 @@ auto ResourceManager::loadScene(const std::string& modelPath) -> Scene {
 
     // load models
     if (!modelPath.empty()) {
-        auto objects = loadGLTF(modelPath, scene.entityRegistry);
-        for (auto& object : objects) {
-            scene.objects.emplace_back(std::move(object));
-        }
+        loadGLTF(modelPath, scene.entityRegistry);
     }
 
     for (auto& material : materials) {
