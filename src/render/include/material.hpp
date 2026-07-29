@@ -2,7 +2,6 @@
 
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
-#include "gpuDataObjects.hpp"
 #include "graphicsPipeline.hpp"
 #include "hostBuffer.hpp"
 #include "resourceHandles.hpp"
@@ -13,7 +12,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <optional>
-#include <span>
 #include <string>
 #include <vector>
 
@@ -147,8 +145,7 @@ inline auto buildTextureTransformMatrix(const Material::TextureTransform& transf
 using MaterialHandle = Render::ResourceHandle<Material>;
 
 namespace std {
-template <>
-struct hash<Material::MaterialConfiguration> {
+template <> struct hash<Material::MaterialConfiguration> {
     auto operator()(const Material::MaterialConfiguration& config) const noexcept -> size_t {
         size_t seed = 0;
         hashCombine(seed, config.vertexShader);
@@ -167,8 +164,7 @@ struct hash<Material::MaterialConfiguration> {
     }
 
   private:
-    template <typename T>
-    static void hashCombine(size_t& seed, const T& value) noexcept {
+    template <typename T> static void hashCombine(size_t& seed, const T& value) noexcept {
         seed ^= std::hash<T>{}(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 };

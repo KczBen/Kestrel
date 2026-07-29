@@ -1,7 +1,6 @@
 #pragma once
 
 #include "commandPool.hpp"
-#include "descriptorPool.hpp"
 #include "device.hpp"
 #include "frameGraph.hpp"
 #include "frameSync.hpp"
@@ -62,8 +61,8 @@ class Render {
     auto operator=(const Render&) -> Render& = delete;
     auto operator=(Render&&) -> Render& = delete;
     ~Render() { device->get().waitIdle(); }
-    void init(Scene& scene);
-    void render(Scene& scene, float deltaTime);
+    void init(Scene::Scene& scene);
+    void render(Scene::Scene& scene, float deltaTime);
 
   private:
     static auto getWindowSizeInPixels(SDL_Window* window) -> std::pair<uint32_t, uint32_t> {

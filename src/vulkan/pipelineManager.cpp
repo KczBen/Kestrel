@@ -107,7 +107,7 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
 }
 
 auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
-                                                  Render::Scene& scene,
+                                                  Scene::Scene& scene,
                                                   std::span<const vk::Format> formats,
                                                   vk::SampleCountFlagBits sampleCount,
                                                   bool depthWrite) -> Vulkan::GraphicsPipeline& {

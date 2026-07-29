@@ -4,7 +4,7 @@
 
 namespace Render {
 
-ObjectBrowser::ObjectBrowser(Scene& scene, const std::vector<Material>& materials)
+ObjectBrowser::ObjectBrowser(Scene::Scene& scene, const std::vector<Material>& materials)
     : scene(&scene), materials(&materials), registry(scene.getRegistry()) {}
 
 void ObjectBrowser::update() {

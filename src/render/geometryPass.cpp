@@ -1,5 +1,6 @@
 #include "geometryPass.hpp"
 #include "../scene/include/components.hpp"
+#include "gpuDataObjects.hpp"
 #include "material.hpp"
 #include "pass.hpp"
 #include <cstdint>
@@ -19,7 +20,7 @@ GeometryPass::GeometryPass(const std::string& name,
                            const RenderTargetAttachment& depthOutput,
                            const std::vector<std::string>& dependencies,
                            std::optional<MaterialHandle> optMaterial,
-                           Scene* scene,
+                           Scene::Scene* scene,
                            Camera* camera)
     : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), scene(scene), camera(camera),
       optMaterial(optMaterial) {}

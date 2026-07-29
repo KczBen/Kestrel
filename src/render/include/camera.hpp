@@ -11,6 +11,9 @@
 #include <glm/trigonometric.hpp>
 #include <vector>
 
+namespace Scene {
+class Scene;
+}
 namespace Render {
 
 class CameraController;
@@ -56,6 +59,6 @@ class Camera {
     friend class FirstPersonCamera;
     friend class OrbitCamera;
     friend class ResourceManager;
-    friend class Scene;
+    friend class Scene::Scene;
 };
 } // namespace Render

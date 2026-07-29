@@ -95,7 +95,7 @@ target_link_libraries(imgui PRIVATE
 )
 
 add_library(scene
-    src/scene/object.cpp
+    src/scene/scene.cpp
 )
 
 target_include_directories(scene PRIVATE
@@ -110,7 +110,6 @@ target_link_libraries(scene PRIVATE
 )
 
 add_library(render
-    src/render/scene.cpp
     src/render/render.cpp
     src/render/material.cpp
     src/render/geometryPass.cpp
@@ -173,6 +172,7 @@ target_include_directories(vulkan-sdl PRIVATE
 )
 
 target_link_libraries(vulkan-sdl PRIVATE
+    scene
     render
     vulkan-wrapper
     imgui

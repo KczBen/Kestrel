@@ -8,20 +8,20 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 
-namespace Render {
+namespace Scene {
 Scene::Scene() {
     // just make *a* camera for now
     cameras.emplace_back();
 
-    playerCamera = std::make_unique<OrbitCamera>(cameras.back());
+    playerCamera = std::make_unique<Render::OrbitCamera>(cameras.back());
 };
 
 auto Scene::getRegistry() -> entt::registry& { return entityRegistry; }
-auto Scene::getCameras() -> std::vector<Camera>& { return cameras; }
+auto Scene::getCameras() -> std::vector<Render::Camera>& { return cameras; }
 void Scene::update(Input inputs, float deltaTime) { playerCamera->update(inputs, deltaTime); }
 
 void Scene::addLight(glm::vec3 position, glm::quat rotation, glm::vec3 colour, float intensity, float maxRange) {
-    entt::entity entity = entityRegistry.create();
+    const entt::entity entity = entityRegistry.create();
 
     entityRegistry.emplace<::Scene::LocalTransform>(entity, rotation, position, glm::vec3(1.0f));
     entityRegistry.emplace<::Scene::Light>(
@@ -81,4 +81,4 @@ void Scene::updateUniformBuffers() {
         lightUniformBuffers[lightUBOIndex]->update(&lightUBO, sizeof(LightUBO));
     }
 }
-} // namespace Render
+} // namespace Scene

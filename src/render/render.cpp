@@ -52,7 +52,7 @@ Render::Render::Render(ResourceManager& resources,
       swapchain(physicalDevice, device, surface, {width, height}), syncObjects(device, swapchain.getImages().size()),
       width(width), height(height), frameGraph(resources.getPipelineManager()) {}
 
-void Render::Render::init(Scene& scene) {
+void Render::Render::init(Scene::Scene& scene) {
     const auto& swapchainExtent = swapchain.getExtent();
 
     colorTarget =
@@ -118,7 +118,7 @@ void Render::Render::init(Scene& scene) {
     frameGraph.compile();
 }
 
-void Render::Render::render(Scene& scene, float deltaTime) {
+void Render::Render::render(Scene::Scene& scene, float deltaTime) {
     scene.flipDescriptorSet();
     scene.updateUniformBuffers();
 

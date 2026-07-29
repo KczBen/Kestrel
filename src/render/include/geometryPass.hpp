@@ -9,7 +9,7 @@
 namespace Render {
 class GeometryPass : public Pass {
   private:
-    Scene* scene;
+    Scene::Scene* scene;
     Camera* camera;
     std::optional<MaterialHandle> optMaterial;
 
@@ -21,7 +21,7 @@ class GeometryPass : public Pass {
                  const RenderTargetAttachment& depthOutput,
                  const std::vector<std::string>& dependencies,
                  std::optional<MaterialHandle> optMaterial,
-                 Scene* scene,
+                 Scene::Scene* scene,
                  Camera* camera);
 
     void record(PassContext ctx) override;

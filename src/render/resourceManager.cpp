@@ -367,10 +367,8 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
         return {vertices, indices};
     };
 
-    auto buildNode = [&](this auto& self,
-                         tinygltf::Node& gltfNode,
-                         std::optional<entt::entity> parent) -> std::pair<Node, entt::entity> {
-        auto node = Node();
+    auto buildNode = [&](this auto& self, tinygltf::Node& gltfNode, std::optional<entt::entity> parent) -> void {
+        Scene::LocalTransform transform{};
 
         if (!gltfNode.matrix.empty()) {
             glm::mat4 matrix;
@@ -380,39 +378,39 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
 
             glm::vec3 skew;
             glm::vec4 perspective;
-            glm::decompose(matrix, node.scale, node.rotation, node.position, skew, perspective);
+            glm::decompose(matrix, transform.scale, transform.rotation, transform.position, skew, perspective);
         } else {
             if (!gltfNode.translation.empty()) {
-                node.position = {static_cast<float>(gltfNode.translation[0]),
-                                 static_cast<float>(gltfNode.translation[1]),
-                                 static_cast<float>(gltfNode.translation[2])};
+                transform.position = {static_cast<float>(gltfNode.translation[0]),
+                                      static_cast<float>(gltfNode.translation[1]),
+                                      static_cast<float>(gltfNode.translation[2])};
             } else {
-                node.position = glm::vec3(0.0f);
+                transform.position = glm::vec3(0.0f);
             }
 
             if (!gltfNode.rotation.empty()) {
-                node.rotation = glm::quat(static_cast<float>(gltfNode.rotation[3]),
-                                          static_cast<float>(gltfNode.rotation[0]),
-                                          static_cast<float>(gltfNode.rotation[1]),
-                                          static_cast<float>(gltfNode.rotation[2]));
+                transform.rotation = glm::quat(static_cast<float>(gltfNode.rotation[3]),
+                                               static_cast<float>(gltfNode.rotation[0]),
+                                               static_cast<float>(gltfNode.rotation[1]),
+                                               static_cast<float>(gltfNode.rotation[2]));
             } else {
-                node.rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+                transform.rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
             }
 
             if (!gltfNode.scale.empty()) {
-                node.scale = {static_cast<float>(gltfNode.scale[0]),
-                              static_cast<float>(gltfNode.scale[1]),
-                              static_cast<float>(gltfNode.scale[2])};
+                transform.scale = {static_cast<float>(gltfNode.scale[0]),
+                                   static_cast<float>(gltfNode.scale[1]),
+                                   static_cast<float>(gltfNode.scale[2])};
             } else {
-                node.scale = glm::vec3(1.0f);
+                transform.scale = glm::vec3(1.0f);
             }
         }
 
         // We have a node with a transform, this can now go in the registry
-        entt::entity currentNode = registry.create();
+        const entt::entity currentNode = registry.create();
 
         registry.emplace<::Scene::Node>(currentNode);
-        registry.emplace<::Scene::LocalTransform>(currentNode, node.rotation, node.position, node.scale);
+        registry.emplace<::Scene::LocalTransform>(currentNode, transform);
         registry.emplace<::Scene::Parent>(currentNode);
         registry.emplace<::Scene::Children>(currentNode);
 
@@ -422,7 +420,6 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
                 auto meshData = loadMesh(gltfPrimitive);
                 auto meshHandle = uploadMesh(meshData.first, meshData.second);
                 auto materialHandle = materialHandles[gltfPrimitive.material];
-                node.primitives.emplace_back(meshHandle, materialHandle);
 
                 // We have a primitive
                 // Now we need to put this in the registry
@@ -448,11 +445,8 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
 
         for (const auto& childID : gltfNode.children) {
             auto& gltfChild = gltfModel.nodes[childID];
-            auto [childNode, childEntity] = self(gltfChild, currentNode);
-            node.children.push_back(std::move(childNode));
+            self(gltfChild, currentNode);
         }
-
-        return {node, currentNode};
     };
 
     // Root nodes correspond to our "Objects"
@@ -486,8 +480,8 @@ auto ResourceManager::uploadMesh(const std::vector<Vertex>& vertices, const std:
     return handle;
 }
 
-auto ResourceManager::loadScene(const std::string& modelPath) -> Scene {
-    Scene scene;
+auto ResourceManager::loadScene(const std::string& modelPath) -> Scene::Scene {
+    Scene::Scene scene;
 
     descriptorSetLayouts.emplace_back(
         *device,

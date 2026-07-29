@@ -1,6 +1,5 @@
 #pragma once
 
-#include "components.hpp"
 #include "material.hpp"
 #include "scene.hpp"
 #include <entt/entity/entity.hpp>
@@ -10,12 +9,12 @@ namespace Render {
 
 class ObjectBrowser {
   public:
-    explicit ObjectBrowser(Scene& scene, const std::vector<Material>& materials);
+    explicit ObjectBrowser(Scene::Scene& scene, const std::vector<Material>& materials);
 
     void update();
 
   private:
-    Scene* scene;
+    Scene::Scene* scene;
     const std::vector<Material>* materials;
     entt::registry& registry;
 
