@@ -104,7 +104,7 @@ class RenderFixture : public ::testing::Test {
         debugMessenger_ = DebugMessengerGuard(*instance_);
 
         resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-        scene_ = std::make_unique<Render::Scene>(resourceManager_->loadScene(""));
+        scene_ = std::make_unique<Scene::Scene>(resourceManager_->loadScene(""));
 
         render_ = std::make_unique<Render::Render>(*resourceManager_,
                                                    *instance_,
@@ -134,7 +134,7 @@ class RenderFixture : public ::testing::Test {
     DebugMessengerGuard debugMessenger_;
 
     std::unique_ptr<Render::ResourceManager> resourceManager_;
-    std::unique_ptr<Render::Scene> scene_;
+    std::unique_ptr<Scene::Scene> scene_;
     std::unique_ptr<Render::Render> render_;
 };
 
@@ -242,7 +242,7 @@ class RenderSceneFixture : public ::testing::Test {
         debugMessenger_ = DebugMessengerGuard(*instance_);
 
         resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-        scene_ = std::make_unique<Render::Scene>(resourceManager_->loadScene(""));
+        scene_ = std::make_unique<Scene::Scene>(resourceManager_->loadScene(""));
 
         render_ = std::make_unique<Render::Render>(
             *resourceManager_, *instance_, *surface_, *physicalDevice_, *device_, 2, 256, 640);
@@ -265,7 +265,7 @@ class RenderSceneFixture : public ::testing::Test {
     DebugMessengerGuard debugMessenger_;
 
     std::unique_ptr<Render::ResourceManager> resourceManager_;
-    std::unique_ptr<Render::Scene> scene_;
+    std::unique_ptr<Scene::Scene> scene_;
     std::unique_ptr<Render::Render> render_;
 };
 
@@ -274,7 +274,7 @@ TEST_F(RenderSceneFixture, RenderWithDifferentSizes) {
     validationErrorMessage.clear();
 
     auto rm = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-    auto emptyScene = std::make_unique<Render::Scene>(rm->loadScene(""));
+    auto emptyScene = std::make_unique<Scene::Scene>(rm->loadScene(""));
     auto r = std::make_unique<Render::Render>(*rm, *instance_, *surface_, *physicalDevice_, *device_, 2, 800, 600);
     r->init(*emptyScene);
 
@@ -292,7 +292,7 @@ TEST_F(RenderSceneFixture, RenderWithSmallSize) {
     validationErrorMessage.clear();
 
     auto rm = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-    auto smallScene = std::make_unique<Render::Scene>(rm->loadScene(""));
+    auto smallScene = std::make_unique<Scene::Scene>(rm->loadScene(""));
     auto r = std::make_unique<Render::Render>(*rm, *instance_, *surface_, *physicalDevice_, *device_, 2, 128, 128);
     r->init(*smallScene);
 

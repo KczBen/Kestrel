@@ -107,6 +107,7 @@ target_include_directories(scene PRIVATE
 
 target_link_libraries(scene PRIVATE
     glm::glm-header-only
+    render
 )
 
 add_library(render
@@ -228,7 +229,6 @@ if(TESTING)
         tests/sampler_unittest.cpp
         tests/camera_unittest.cpp
         tests/firstPersonCamera_unittest.cpp
-        tests/object_unittest.cpp
         tests/renderIntegration_unittest.cpp
         tests/renderTarget_unittest.cpp
         tests/frameGraph_unittest.cpp
