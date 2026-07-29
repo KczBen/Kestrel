@@ -37,7 +37,7 @@ struct Light {
 struct Children {
     std::vector<entt::entity> value;
 
-    auto operator*() const noexcept { return value; }
+    auto operator*() noexcept -> std::vector<entt::entity>& { return value; }
 };
 
 struct Parent {
