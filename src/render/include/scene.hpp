@@ -8,14 +8,16 @@
 #include "input.hpp"
 #include "light.hpp"
 #include "object.hpp"
+#include <entt/entt.hpp>
 #include <memory>
 #include <span>
-#include <string>
 
 namespace Render {
 class Scene {
 
   private:
+    // *THE* ECS
+    entt::registry entityRegistry;
     // Scene objects
     std::unique_ptr<CameraController> playerCamera;
     std::vector<Object> objects;

@@ -14,6 +14,7 @@
 #include "texture.hpp"
 #include "uploadBuffer.hpp"
 #include "vertex.hpp"
+#include <entt/entt.hpp>
 #include <functional>
 #include <string>
 #include <tiny_gltf.h>
@@ -55,7 +56,7 @@ class ResourceManager {
 
     auto getOrCreateSampler(const Vulkan::SamplerConfig& config) -> SamplerHandle;
 
-    auto loadGLTF(const std::string& path) -> std::vector<Object>;
+    auto loadGLTF(const std::string& path, entt::registry& registry) -> std::vector<Object>;
     auto uploadMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) -> MeshHandle;
     auto loadGltfMaterial(const tinygltf::Model& gltfModel, int materialIndex) -> MaterialHandle;
 

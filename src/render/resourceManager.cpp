@@ -6,6 +6,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
+#include "components.hpp"
 #include "descriptorPool.hpp"
 #include "device.hpp"
 #include "deviceBuffer.hpp"
@@ -27,6 +28,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <map>
+#include <optional>
 #include <print>
 #include <utility>
 
@@ -141,7 +143,7 @@ auto extractTextureTransform(const tinygltf::ExtensionMap& extensions) -> Materi
     return result;
 }
 
-auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
+auto ResourceManager::loadGLTF(const std::string& path, entt::registry& registry) -> std::vector<Object> {
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF loader;
     std::string err;
@@ -365,7 +367,9 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
         return {vertices, indices};
     };
 
-    auto buildNode = [&](this auto& self, tinygltf::Node& gltfNode) -> Node {
+    auto buildNode = [&](this auto& self,
+                         tinygltf::Node& gltfNode,
+                         std::optional<entt::entity> parent) -> std::pair<Node, entt::entity> {
         auto node = Node();
 
         if (!gltfNode.matrix.empty()) {
@@ -404,6 +408,14 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
             }
         }
 
+        // We have a node with a transform, this can now go in the registry
+        entt::entity currentNode = registry.create();
+
+        registry.emplace<::Scene::Node>(currentNode);
+        registry.emplace<::Scene::LocalTransform>(currentNode, node.rotation, node.position, node.scale);
+        registry.emplace<::Scene::Parent>(currentNode);
+        registry.emplace<::Scene::Children>(currentNode);
+
         if (gltfNode.mesh >= 0) {
             auto gltfMesh = gltfModel.meshes[gltfNode.mesh];
             for (auto& gltfPrimitive : gltfMesh.primitives) {
@@ -411,16 +423,36 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
                 auto meshHandle = uploadMesh(meshData.first, meshData.second);
                 auto materialHandle = materialHandles[gltfPrimitive.material];
                 node.primitives.emplace_back(meshHandle, materialHandle);
+
+                // We have a primitive
+                // Now we need to put this in the registry
+                const entt::entity primitive = registry.create();
+                registry.emplace<::Scene::Parent>(primitive, ::Scene::Parent{.value = currentNode});
+                registry.emplace<::Scene::Primitive>(
+                    primitive, ::Scene::Primitive{.mesh = meshHandle, .material = materialHandle});
+
+                // Put ourselves in the Children list for the node
+                (*registry.get<::Scene::Children>(currentNode)).emplace_back(primitive);
             }
+        }
+
+        // If we have a parent, put ourselves in the Children list too
+        if (parent.has_value()) {
+            (*registry.get<::Scene::Children>(*parent)).emplace_back(currentNode);
+        }
+
+        // If we do not have one, make ourselves also an Object
+        else {
+            registry.emplace<::Scene::Object>(currentNode);
         }
 
         for (const auto& childID : gltfNode.children) {
             auto& gltfChild = gltfModel.nodes[childID];
-            auto child = self(gltfChild);
-            node.children.push_back(child);
+            auto [childNode, childEntity] = self(gltfChild, currentNode);
+            node.children.push_back(std::move(childNode));
         }
 
-        return node;
+        return {node, currentNode};
     };
 
     // Root nodes correspond to our "Objects"
@@ -429,7 +461,9 @@ auto ResourceManager::loadGLTF(const std::string& path) -> std::vector<Object> {
     for (const auto& nodeIdx : gltfModel.scenes[gltfModel.defaultScene].nodes) {
         auto& rootNode = gltfModel.nodes[nodeIdx];
 
-        objects.emplace_back(buildNode(rootNode));
+        auto object = buildNode(rootNode, std::nullopt);
+
+        objects.emplace_back(object.first);
     }
 
     return objects;
@@ -516,7 +550,7 @@ auto ResourceManager::loadScene(const std::string& modelPath) -> Scene {
 
     // load models
     if (!modelPath.empty()) {
-        auto objects = loadGLTF(modelPath);
+        auto objects = loadGLTF(modelPath, scene.entityRegistry);
         for (auto& object : objects) {
             scene.objects.emplace_back(std::move(object));
         }
