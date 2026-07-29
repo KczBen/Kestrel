@@ -23,9 +23,8 @@ void Scene::update(Input inputs, float deltaTime) { playerCamera->update(inputs,
 void Scene::addLight(glm::vec3 position, glm::quat rotation, glm::vec3 colour, float intensity, float maxRange) {
     const entt::entity entity = entityRegistry.create();
 
-    entityRegistry.emplace<::Scene::LocalTransform>(entity, rotation, position, glm::vec3(1.0f));
-    entityRegistry.emplace<::Scene::Light>(
-        entity, ::Scene::Light{.colour = colour, .intensity = intensity, .maxRange = maxRange});
+    entityRegistry.emplace<LocalTransform>(entity, rotation, position, glm::vec3(1.0f));
+    entityRegistry.emplace<Light>(entity, Light{.colour = colour, .intensity = intensity, .maxRange = maxRange});
 }
 
 auto Scene::getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout& { return *descriptorSetLayout; }
@@ -49,15 +48,15 @@ void Scene::updateUniformBuffers() {
 
     // Collect and pack all lights into a single UBO
     auto& registry = getRegistry();
-    auto view = registry.view<::Scene::Light, ::Scene::LocalTransform>();
+    auto view = registry.view<Light, LocalTransform>();
 
     if (!lightUniformBuffers.empty()) {
         LightUBO lightUBO{};
         uint32_t lightCount = 0;
 
         for (auto entity : view) {
-            auto& light = registry.get<::Scene::Light>(entity);
-            auto& localTransform = registry.get<::Scene::LocalTransform>(entity);
+            auto& light = registry.get<Light>(entity);
+            auto& localTransform = registry.get<LocalTransform>(entity);
 
             lightUBO.lights[lightCount].position = localTransform.position;
             lightUBO.lights[lightCount].intensity = light.intensity;

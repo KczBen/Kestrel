@@ -409,10 +409,10 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
         // We have a node with a transform, this can now go in the registry
         const entt::entity currentNode = registry.create();
 
-        registry.emplace<::Scene::Node>(currentNode);
-        registry.emplace<::Scene::LocalTransform>(currentNode, transform);
-        registry.emplace<::Scene::Parent>(currentNode);
-        registry.emplace<::Scene::Children>(currentNode);
+        registry.emplace<Scene::Node>(currentNode);
+        registry.emplace<Scene::LocalTransform>(currentNode, transform);
+        registry.emplace<Scene::Parent>(currentNode);
+        registry.emplace<Scene::Children>(currentNode);
 
         if (gltfNode.mesh >= 0) {
             auto gltfMesh = gltfModel.meshes[gltfNode.mesh];
@@ -424,23 +424,23 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
                 // We have a primitive
                 // Now we need to put this in the registry
                 const entt::entity primitive = registry.create();
-                registry.emplace<::Scene::Parent>(primitive, ::Scene::Parent{.value = currentNode});
-                registry.emplace<::Scene::Primitive>(
-                    primitive, ::Scene::Primitive{.mesh = meshHandle, .material = materialHandle});
+                registry.emplace<Scene::Parent>(primitive, Scene::Parent{.value = currentNode});
+                registry.emplace<Scene::Primitive>(primitive,
+                                                   Scene::Primitive{.mesh = meshHandle, .material = materialHandle});
 
                 // Put ourselves in the Children list for the node
-                (*registry.get<::Scene::Children>(currentNode)).emplace_back(primitive);
+                (*registry.get<Scene::Children>(currentNode)).emplace_back(primitive);
             }
         }
 
         // If we have a parent, put ourselves in the Children list too
         if (parent.has_value()) {
-            (*registry.get<::Scene::Children>(*parent)).emplace_back(currentNode);
+            (*registry.get<Scene::Children>(*parent)).emplace_back(currentNode);
         }
 
         // If we do not have one, make ourselves also an Object
         else {
-            registry.emplace<::Scene::Object>(currentNode);
+            registry.emplace<Scene::Object>(currentNode);
         }
 
         for (const auto& childID : gltfNode.children) {

@@ -28,7 +28,7 @@ GeometryPass::GeometryPass(const std::string& name,
 void GeometryPass::record(PassContext ctx) {
 
     struct DrawCall {
-        ::Scene::Primitive primitive;
+        Scene::Primitive primitive;
         MaterialHandle material;
         glm::mat4 transform{};
     };
@@ -39,10 +39,10 @@ void GeometryPass::record(PassContext ctx) {
     // Key on the materials
     std::unordered_map<MaterialHandle, std::vector<DrawCall>> drawCalls;
 
-    auto view = registry.view<::Scene::Object, ::Scene::Children>();
+    auto view = registry.view<Scene::Object, Scene::Children>();
 
     auto buildDraws = [&](this auto& self, entt::entity entity, glm::mat4 parentTransform) -> void {
-        auto& localTransform = registry.get<::Scene::LocalTransform>(entity);
+        auto& localTransform = registry.get<Scene::LocalTransform>(entity);
         glm::mat4 localMatrix;
         localMatrix = glm::translate(glm::mat4(1.0f), localTransform.position);
         localMatrix *= glm::mat4_cast(localTransform.rotation);
@@ -50,18 +50,18 @@ void GeometryPass::record(PassContext ctx) {
 
         const glm::mat4 worldTransform = parentTransform * localMatrix;
 
-        if (registry.any_of<::Scene::Primitive>(entity)) {
-            auto& primitive = registry.get<::Scene::Primitive>(entity);
+        if (registry.any_of<Scene::Primitive>(entity)) {
+            auto& primitive = registry.get<Scene::Primitive>(entity);
             auto materialHandle = optMaterial.value_or(primitive.material);
             drawCalls[materialHandle].push_back({primitive, materialHandle, worldTransform});
         }
 
-        auto& children = registry.get<::Scene::Children>(entity);
+        auto& children = registry.get<Scene::Children>(entity);
         for (auto child : *children) {
-            if (registry.any_of<::Scene::Node>(child)) {
+            if (registry.any_of<Scene::Node>(child)) {
                 self(child, worldTransform);
-            } else if (registry.any_of<::Scene::Primitive>(child)) {
-                auto& primitive = registry.get<::Scene::Primitive>(child);
+            } else if (registry.any_of<Scene::Primitive>(child)) {
+                auto& primitive = registry.get<Scene::Primitive>(child);
                 auto materialHandle = optMaterial.value_or(primitive.material);
                 drawCalls[materialHandle].push_back({primitive, materialHandle, worldTransform});
             }
