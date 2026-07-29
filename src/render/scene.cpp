@@ -2,10 +2,10 @@
 #include "cameraController.hpp"
 #include "gpuDataObjects.hpp"
 #include "orbitCamera.hpp"
+#include <entt/entity/fwd.hpp>
 #include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
-#include <utility>
 
 namespace Render {
 Scene::Scene() {
@@ -18,6 +18,7 @@ Scene::Scene() {
     lights.emplace_back(glm::vec3(10.0, 10.0, 10.0), 10.0, glm::vec3(255, 127, 127));
 };
 
+auto Scene::getRegistry() -> entt::registry& { return entityRegistry; }
 auto Scene::getCameras() -> std::vector<Camera>& { return cameras; }
 void Scene::update(Input inputs, float deltaTime) {
     playerCamera->update(inputs, deltaTime);

@@ -1,6 +1,6 @@
 #include "geometryPass.hpp"
+#include "../scene/include/components.hpp"
 #include "material.hpp"
-#include "object.hpp"
 #include "pass.hpp"
 #include <cstdint>
 #include <unordered_map>
@@ -20,40 +20,55 @@ GeometryPass::GeometryPass(const std::string& name,
                            const std::vector<std::string>& dependencies,
                            std::optional<MaterialHandle> optMaterial,
                            Scene* scene,
-                           std::span<const Object> models,
                            Camera* camera)
-    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), scene(scene), models(models),
-      camera(camera), optMaterial(optMaterial) {}
+    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), scene(scene), camera(camera),
+      optMaterial(optMaterial) {}
 
 void GeometryPass::record(PassContext ctx) {
 
     struct DrawCall {
-        Primitive primitive;
+        ::Scene::Primitive primitive;
         MaterialHandle material;
         glm::mat4 transform{};
     };
+
+    auto& registry = scene->getRegistry();
 
     // Build a list of draw calls
     // Key on the materials
     std::unordered_map<MaterialHandle, std::vector<DrawCall>> drawCalls;
 
-    for (const auto& object : models) {
-        auto node = object.model;
+    auto view = registry.view<::Scene::Object, ::Scene::Children>();
 
-        auto buildDraws = [&](this auto& self, const Node& node, glm::mat4 parentTransform) -> void {
-            const glm::mat4 worldTransform = parentTransform * node.getModelMatrix();
+    auto buildDraws = [&](this auto& self, entt::entity entity, glm::mat4 parentTransform) -> void {
+        auto& localTransform = registry.get<::Scene::LocalTransform>(entity);
+        glm::mat4 localMatrix;
+        localMatrix = glm::translate(glm::mat4(1.0f), localTransform.position);
+        localMatrix *= glm::mat4_cast(localTransform.rotation);
+        localMatrix = glm::scale(localMatrix, localTransform.scale);
 
-            for (const auto& primitive : node.primitives) {
+        const glm::mat4 worldTransform = parentTransform * localMatrix;
+
+        if (registry.any_of<::Scene::Primitive>(entity)) {
+            auto& primitive = registry.get<::Scene::Primitive>(entity);
+            auto materialHandle = optMaterial.value_or(primitive.material);
+            drawCalls[materialHandle].push_back({primitive, materialHandle, worldTransform});
+        }
+
+        auto& children = registry.get<::Scene::Children>(entity);
+        for (auto child : *children) {
+            if (registry.any_of<::Scene::Node>(child)) {
+                self(child, worldTransform);
+            } else if (registry.any_of<::Scene::Primitive>(child)) {
+                auto& primitive = registry.get<::Scene::Primitive>(child);
                 auto materialHandle = optMaterial.value_or(primitive.material);
                 drawCalls[materialHandle].push_back({primitive, materialHandle, worldTransform});
             }
+        }
+    };
 
-            for (const auto& child : node.children) {
-                self(child, worldTransform);
-            }
-        };
-
-        buildDraws(object.model, glm::mat4(1.0f));
+    for (auto entity : view) {
+        buildDraws(entity, glm::mat4(1.0f));
     }
 
     const auto formats = getColorAttachmentFormats();

@@ -77,7 +77,6 @@ void Render::Render::init(Scene& scene) {
                      {},
                      resources->getMaterial("depth_only"),
                      &scene,
-                     scene.getObjects(),
                      scene.getCameras().data())));
 
     frameGraph.addPass(std::make_unique<CameraPass>(
@@ -100,7 +99,6 @@ void Render::Render::init(Scene& scene) {
                      {},
                      std::nullopt,
                      &scene,
-                     scene.getObjects(),
                      scene.getCameras().data())));
 
     frameGraph.addPass(std::make_unique<CameraPass>(

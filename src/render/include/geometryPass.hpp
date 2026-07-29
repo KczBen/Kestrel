@@ -2,7 +2,6 @@
 
 #include "camera.hpp"
 #include "material.hpp"
-#include "object.hpp"
 #include "pass.hpp"
 #include "scene.hpp"
 #include <optional>
@@ -12,7 +11,6 @@ class GeometryPass : public Pass {
   private:
     Scene* scene;
     Camera* camera;
-    std::span<const Object> models;
     std::optional<MaterialHandle> optMaterial;
 
   public:
@@ -24,7 +22,6 @@ class GeometryPass : public Pass {
                  const std::vector<std::string>& dependencies,
                  std::optional<MaterialHandle> optMaterial,
                  Scene* scene,
-                 std::span<const Object> models,
                  Camera* camera);
 
     void record(PassContext ctx) override;

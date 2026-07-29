@@ -36,6 +36,7 @@ class Scene {
 
   public:
     Scene();
+    auto getRegistry() -> entt::registry&;
     void update(Input inputs, float deltaTime);
     void addObject(std::unique_ptr<Object> model);
     void addLight(std::unique_ptr<Light> light);
