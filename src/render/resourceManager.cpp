@@ -458,7 +458,9 @@ auto ResourceManager::uploadMesh(const std::vector<Vertex>& vertices, const std:
     return handle;
 }
 
-void ResourceManager::loadScene(Scene& scene) {
+auto ResourceManager::loadScene(const std::string& modelPath) -> Scene {
+    Scene scene;
+
     descriptorSetLayouts.emplace_back(
         *device,
         std::vector<vk::DescriptorSetLayoutBinding>{
@@ -513,10 +515,9 @@ void ResourceManager::loadScene(Scene& scene) {
     pipelineManager.emplace(Vulkan::PipelineManager(*device, descriptorPool));
 
     // load models
-    for (const auto& path : scene.modelPaths) {
-        auto objects = loadGLTF(path);
-
-        for (auto object : objects) {
+    if (!modelPath.empty()) {
+        auto objects = loadGLTF(modelPath);
+        for (auto& object : objects) {
             scene.objects.emplace_back(std::move(object));
         }
     }
@@ -524,6 +525,8 @@ void ResourceManager::loadScene(Scene& scene) {
     for (auto& material : materials) {
         pipelineManager->registerMaterial(material);
     }
+
+    return scene;
 }
 
 auto ResourceManager::getPipelineManager() -> Vulkan::PipelineManager& { return *pipelineManager; }

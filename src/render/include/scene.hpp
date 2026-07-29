@@ -22,7 +22,6 @@ class Scene {
     std::vector<Light> lights;
     std::vector<Camera> cameras;
 
-    std::vector<std::string> modelPaths;
     uint32_t lastUpdatedIndex = 0;
 
     Vulkan::DescriptorSetLayoutHandle descriptorSetLayout;
@@ -34,7 +33,7 @@ class Scene {
     uint32_t lightUBOIndex = 0;
 
   public:
-    Scene(std::vector<std::string> modelPaths);
+    Scene();
     void update(Input inputs, float deltaTime);
     void addObject(std::unique_ptr<Object> model);
     void addLight(std::unique_ptr<Light> light);

@@ -104,9 +104,7 @@ class RenderFixture : public ::testing::Test {
         debugMessenger_ = DebugMessengerGuard(*instance_);
 
         resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-        scene_ = std::make_unique<Render::Scene>(std::vector<std::string>{});
-
-        resourceManager_->loadScene(*scene_);
+        scene_ = std::make_unique<Render::Scene>(resourceManager_->loadScene(""));
 
         render_ = std::make_unique<Render::Render>(*resourceManager_,
                                                    *instance_,
@@ -244,9 +242,7 @@ class RenderSceneFixture : public ::testing::Test {
         debugMessenger_ = DebugMessengerGuard(*instance_);
 
         resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-        scene_ = std::make_unique<Render::Scene>(std::vector<std::string>{});
-
-        resourceManager_->loadScene(*scene_);
+        scene_ = std::make_unique<Render::Scene>(resourceManager_->loadScene(""));
 
         render_ = std::make_unique<Render::Render>(
             *resourceManager_, *instance_, *surface_, *physicalDevice_, *device_, 2, 256, 640);
@@ -278,8 +274,7 @@ TEST_F(RenderSceneFixture, RenderWithDifferentSizes) {
     validationErrorMessage.clear();
 
     auto rm = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-    auto emptyScene = std::make_unique<Render::Scene>(std::vector<std::string>{});
-    rm->loadScene(*emptyScene);
+    auto emptyScene = std::make_unique<Render::Scene>(rm->loadScene(""));
     auto r = std::make_unique<Render::Render>(*rm, *instance_, *surface_, *physicalDevice_, *device_, 2, 800, 600);
     r->init(*emptyScene);
 
@@ -297,8 +292,7 @@ TEST_F(RenderSceneFixture, RenderWithSmallSize) {
     validationErrorMessage.clear();
 
     auto rm = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-    auto smallScene = std::make_unique<Render::Scene>(std::vector<std::string>{});
-    rm->loadScene(*smallScene);
+    auto smallScene = std::make_unique<Render::Scene>(rm->loadScene(""));
     auto r = std::make_unique<Render::Render>(*rm, *instance_, *surface_, *physicalDevice_, *device_, 2, 128, 128);
     r->init(*smallScene);
 

@@ -8,7 +8,7 @@
 #include <utility>
 
 namespace Render {
-Scene::Scene(std::vector<std::string> modelPaths) : modelPaths(std::move(modelPaths)) {
+Scene::Scene() {
     // just make *a* camera for now
     cameras.emplace_back();
 

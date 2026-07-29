@@ -71,8 +71,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
         Vulkan::Device device(physicalDevice, instance);
 
         Render::ResourceManager resourceManager(physicalDevice, device);
-        Render::Scene scene({std::string(SDL_GetBasePath()).append("models/CarConcept.glb")});
-        resourceManager.loadScene(scene);
+        auto scene = resourceManager.loadScene(std::string(SDL_GetBasePath()).append("models/CarConcept.glb"));
 
         Render::Render renderer(window, resourceManager, instance, surface, physicalDevice, device, 2);
 

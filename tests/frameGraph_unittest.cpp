@@ -47,8 +47,7 @@ class FrameGraphFixture : public ::testing::Test {
         physicalDevice_ = std::make_unique<Vulkan::PhysicalDevice>(*instance_, *surface_);
         device_ = std::make_unique<Vulkan::Device>(*physicalDevice_, *instance_);
         resourceManager_ = std::make_unique<ResourceManager>(*physicalDevice_, *device_);
-        scene_ = std::make_unique<Scene>(std::vector<std::string>{});
-        resourceManager_->loadScene(*scene_);
+        scene_ = std::make_unique<Scene>(resourceManager_->loadScene(""));
         pipelineManager_ = &resourceManager_->getPipelineManager();
     }
 

@@ -67,7 +67,7 @@ class ResourceManager {
     ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::Device& device);
     auto getPipelineManager() -> Vulkan::PipelineManager&;
     auto getMaterial(const std::string& name) -> MaterialHandle;
-    void loadScene(Scene& scene);
+    auto loadScene(const std::string& modelPath) -> Scene;
     auto createRenderTarget(const std::string& name,
                             vk::Extent3D extent,
                             vk::Format format,
