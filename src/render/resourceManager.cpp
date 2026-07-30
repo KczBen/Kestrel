@@ -409,7 +409,7 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
         // We have a node with a transform, this can now go in the registry
         const entt::entity currentNode = registry.create();
 
-        registry.emplace<Scene::Node>(currentNode);
+        registry.emplace<Scene::Node>(currentNode, gltfNode.name);
         registry.emplace<Scene::LocalTransform>(currentNode, transform);
         registry.emplace<Scene::Parent>(currentNode);
         registry.emplace<Scene::Children>(currentNode);

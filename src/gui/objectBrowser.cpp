@@ -11,13 +11,13 @@ ObjectBrowser::ObjectBrowser(Scene::Scene& scene, const std::vector<Material>& m
 void ObjectBrowser::update() {
     ImGui::Begin("Object Browser", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-    auto objectView = registry.view<Scene::Object, Scene::Children>();
+    auto objectView = registry.view<Scene::Object, Scene::Node, Scene::Children>();
 
-    for (auto entity : objectView) {
+    for (auto [entity, object, node, children] : objectView.each()) {
         ImGui::PushID(static_cast<int>(entity));
 
         const bool isExpanded =
-            ImGui::TreeNodeEx("Object", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding);
+            ImGui::TreeNodeEx(node.name.c_str(), ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding);
         ImGui::PopID();
 
         if (isExpanded) {
@@ -42,8 +42,8 @@ void ObjectBrowser::update() {
 void ObjectBrowser::renderNode(entt::entity nodeEntity) {
     ImGui::PushID(static_cast<int>(nodeEntity));
 
-    const bool isExpanded =
-        ImGui::TreeNodeEx("Node", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding);
+    const bool isExpanded = ImGui::TreeNodeEx(registry.get<Scene::Node>(nodeEntity).name.c_str(),
+                                              ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding);
     ImGui::PopID();
 
     if (isExpanded) {

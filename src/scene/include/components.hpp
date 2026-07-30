@@ -9,6 +9,7 @@
 #include <entt/entity/fwd.hpp>
 #include <glm/detail/type_quat.hpp>
 #include <glm/fwd.hpp>
+#include <string>
 
 // All the ECS components go here for now until I figure out how it actually works
 namespace Scene {
@@ -24,7 +25,7 @@ struct Primitive {
 };
 
 struct Node {
-    // nothing here, this is just a tag now
+    std::string name;
 };
 
 struct Object {
