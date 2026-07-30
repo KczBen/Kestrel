@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hostBuffer.hpp"
 #include "material.hpp"
 #include "resourceHandles.hpp"
 
@@ -36,6 +37,53 @@ struct Light {
     float maxRange;
 };
 
+// Camera stuff
+
+struct ActiveCamera {
+    // nothing here, just a tag
+};
+
+struct CameraSettings {
+    float fov = 45.0f;
+    float aspectRatio = 1280.0f / 720.0f;
+    float nearPlane = 0.1f;
+    float farPlane = 100.0f;
+};
+
+struct CameraTransform {
+    glm::vec3 position;
+    glm::quat orientation;
+    glm::vec3 worldUp{0.f, 1.f, 0.f};
+};
+
+struct CameraGpuData {
+    std::vector<Vulkan::HostBufferHandle> uniformBuffers;
+    int32_t lastUpdatedIndex;
+};
+
+struct FirstPersonController {
+    float movementSpeed = 5.f;
+    float mouseSensitivity = 0.1f;
+    float zoomSpeed = 3.0f;
+    float pitchLimit = 90.f;
+    float minFov = 15.0f;
+    float maxFov = 90.0f;
+};
+
+struct OrbitController {
+    glm::vec3 focalPoint{0.f};
+    float orbitRadius = 5.f;
+    float minRadius = 0.5f;
+    float maxRadius = 500.f;
+    float minFov = 15.0f;
+    float maxFov = 90.0f;
+    float mouseSensitivity = 0.001f;
+    float zoomSpeed = 3.0f;
+    float yaw = 0.f;
+    float pitch = 0.f;
+};
+
+// Generic relation components
 struct Children {
     std::vector<entt::entity> value;
 

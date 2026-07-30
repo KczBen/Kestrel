@@ -1,97 +1,159 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "camera.hpp"
+#include "components.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <gtest/gtest.h>
 
-TEST(CameraTest, DefaultConstruction) {
-    Render::Camera cam;
-    auto pos = cam.getPosition();
-    EXPECT_EQ(pos.x, 0.0f);
-    EXPECT_EQ(pos.y, 0.0f);
-    EXPECT_EQ(pos.z, 0.0f);
+TEST(CameraTest, DefaultProjectionMatrix) {
+    Scene::CameraSettings settings;
+    auto proj = Scene::Camera::getProjectionMatrix(settings);
+
+    // Projection matrix should be perspective with -1 on [1][1] for Vulkan
+    EXPECT_LT(proj[1][1], 0.0f);
 }
 
-TEST(CameraTest, CustomPosition) {
-    Render::Camera cam({1.0f, 2.0f, 3.0f});
-    auto pos = cam.getPosition();
-    EXPECT_EQ(pos.x, 1.0f);
-    EXPECT_EQ(pos.y, 2.0f);
-    EXPECT_EQ(pos.z, 3.0f);
-}
+TEST(CameraTest, ProjectionMatrixFOV) {
+    Scene::CameraSettings settings;
+    settings.fov = 60.0f;
+    auto proj1 = Scene::Camera::getProjectionMatrix(settings);
 
-TEST(CameraTest, DefaultOrientationIsIdentity) {
-    Render::Camera cam;
-    auto orient = cam.getOrientation();
-    // Default orientation is identity quaternion
-    EXPECT_NEAR(glm::length(orient), 1.0f, 1e-6);
-}
+    Scene::CameraSettings settings2;
+    settings2.fov = 30.0f;
+    auto proj2 = Scene::Camera::getProjectionMatrix(settings2);
 
-TEST(CameraTest, SetPosition) {
-    Render::Camera cam;
-    cam.setPosition({5.0f, 10.0f, 15.0f});
-    auto pos = cam.getPosition();
-    EXPECT_EQ(pos.x, 5.0f);
-    EXPECT_EQ(pos.y, 10.0f);
-    EXPECT_EQ(pos.z, 15.0f);
-}
-
-TEST(CameraTest, SetOrientation) {
-    Render::Camera cam;
-    const glm::quat rot = glm::angleAxis(glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    cam.setOrientation(rot);
-    auto orient = cam.getOrientation();
-    // The quaternion should be normalized
-    EXPECT_NEAR(glm::length(orient), 1.0f, 1e-6);
-}
-
-TEST(CameraTest, DefaultFovIs45Degrees) {
-    const Render::Camera cam;
-    EXPECT_NEAR(cam.getFov(), 45.0f, 0.01f);
-}
-
-TEST(CameraTest, SetFov) {
-    Render::Camera cam;
-    cam.setFov(60.0f);
-    EXPECT_NEAR(cam.getFov(), 60.0f, 0.01f);
-}
-
-TEST(CameraTest, SetAspectRatio) {
-    Render::Camera cam;
-    cam.setAspectRatio(16.0f / 9.0f);
-    EXPECT_NEAR(cam.getAspectRatio(), 16.0f / 9.0f, 0.01f);
-}
-
-TEST(CameraTest, ProjectionMatrixUsesFov) {
-    Render::Camera cam;
-    cam.setFov(60.0f);
-    auto proj1 = cam.getProjectionMatrix();
-
-    Render::Camera cam2;
-    cam2.setFov(30.0f);
-    auto proj2 = cam2.getProjectionMatrix();
-
-    // Different FOV should produce different projection matrices
     EXPECT_NE(proj1, proj2);
 }
 
-TEST(CameraTest, UpdateViewMatrix) {
-    Render::Camera cam({0.0f, 0.0f, 5.0f});
-    cam.updateViewMatrix();
+TEST(CameraTest, ProjectionMatrixNearFarPlanes) {
+    Scene::CameraSettings settings;
+    settings.nearPlane = 0.1f;
+    settings.farPlane = 100.0f;
+    auto proj = Scene::Camera::getProjectionMatrix(settings);
 
-    auto view = cam.getViewMatrix();
-    auto pos = cam.getPosition();
+    // Verify the projection matrix has the expected structure
+    // [2][3] and [3][2] should be non-zero for perspective projection
+    EXPECT_NE(proj[2][3], 0.0f);
+}
 
-    // View matrix should reflect the camera position
-    EXPECT_NEAR(view[3][0], 0.0f, 0.01f);
-    EXPECT_NEAR(view[3][1], 0.0f, 0.01f);
+TEST(CameraTest, ViewMatrixIdentity) {
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
+    transform.orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+
+    auto view = Scene::Camera::getViewMatrix(transform);
+    // Identity camera should produce an identity view matrix
+    EXPECT_NEAR(view[0][0], 1.0f, 0.01f);
+    EXPECT_NEAR(view[1][1], 1.0f, 0.01f);
+    EXPECT_NEAR(view[2][2], 1.0f, 0.01f);
+}
+
+TEST(CameraTest, ViewMatrixTranslation) {
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3(0.0f, 0.0f, 5.0f);
+    transform.orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+
+    auto view = Scene::Camera::getViewMatrix(transform);
     EXPECT_NEAR(view[3][2], -5.0f, 0.01f);
 }
 
-TEST(CameraTest, ProjectionMatrixFlipsY) {
-    const Render::Camera cam;
-    auto proj = cam.getProjectionMatrix();
-    // Vulkan requires -1 on [1][1]
-    EXPECT_LT(proj[1][1], 0.0f);
+TEST(CameraTest, ViewMatrixWithCustomWorldUp) {
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3(0.0f, 0.0f, 3.0f);
+    transform.orientation = glm::angleAxis(glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    transform.worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    auto view = Scene::Camera::getViewMatrix(transform);
+    // The view matrix should reflect the camera position and orientation
+    EXPECT_NE(view, glm::mat4(1.0f));
+}
+
+TEST(CameraTest, CustomWorldUp) {
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{};
+    transform.orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+    transform.worldUp = glm::vec3(1.0f, 0.0f, 0.0f);
+
+    auto view = Scene::Camera::getViewMatrix(transform);
+    EXPECT_NEAR(view[3][0], 0.0f, 0.01f);
+    EXPECT_NEAR(view[3][1], 0.0f, 0.01f);
+    EXPECT_NEAR(view[3][2], 0.0f, 0.01f);
+}
+
+TEST(OrbitCameraTest, InitOrbitCameraSetsRadius) {
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{0.0f, 0.0f, 5.0f};
+
+    Scene::OrbitController controller;
+    controller.focalPoint = glm::vec3{0.0f};
+
+    Scene::Camera::initOrbitCamera(transform, controller);
+
+    EXPECT_NEAR(controller.orbitRadius, 5.0f, 0.01f);
+}
+
+TEST(OrbitCameraTest, InitOrbitCameraFromOffset) {
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{5.0f, 3.0f, 8.0f};
+
+    Scene::OrbitController controller;
+    controller.focalPoint = glm::vec3{0.0f, 0.0f, 0.0f};
+
+    Scene::Camera::initOrbitCamera(transform, controller);
+
+    float expectedRadius = glm::length(transform.position);
+    EXPECT_NEAR(controller.orbitRadius, expectedRadius, 0.01f);
+}
+
+TEST(OrbitCameraTest, InitOrbitCameraSmallOffset) {
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{0.0f, 0.0f, 0.0f};
+
+    Scene::OrbitController controller;
+    controller.focalPoint = glm::vec3{0.0f, 0.0f, 0.0f};
+
+    Scene::Camera::initOrbitCamera(transform, controller);
+
+    // Should default to radius of 5 when camera is at focal point
+    EXPECT_NEAR(controller.orbitRadius, 5.0f, 0.1f);
+}
+
+TEST(OrbitCameraTest, UpdateOrbitCameraScroll) {
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{0.0f, 0.0f, 5.0f};
+
+    Scene::OrbitController controller;
+    controller.focalPoint = glm::vec3{0.0f};
+    controller.orbitRadius = 5.0f;
+
+    Scene::Camera::initOrbitCamera(transform, controller);
+    float initialRadius = controller.orbitRadius;
+
+    Input input{};
+    input.mouseScrollY = -1.0f; // Scroll forward
+
+    Scene::Camera::updateOrbitCamera(transform, controller, input, 0.016f);
+
+    // Radius should have changed
+    EXPECT_NE(controller.orbitRadius, initialRadius);
+}
+
+TEST(OrbitCameraTest, OrbitRadiusClamped) {
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{0.0f, 0.0f, 5.0f};
+
+    Scene::OrbitController controller;
+    controller.focalPoint = glm::vec3{0.0f};
+    controller.orbitRadius = 5.0f;
+    controller.minRadius = 1.0f;
+    controller.maxRadius = 10.0f;
+
+    Input input{};
+    input.mouseScrollY = -100.0f;
+
+    Scene::Camera::updateOrbitCamera(transform, controller, input, 0.016f);
+
+    EXPECT_LE(controller.orbitRadius, controller.maxRadius);
 }

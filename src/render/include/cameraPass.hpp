@@ -6,7 +6,6 @@
 namespace Render {
 class CameraPass : public Pass {
   private:
-    Camera* camera;
     Scene::Scene* scene;
     MaterialHandle materialHandle;
 
@@ -18,8 +17,7 @@ class CameraPass : public Pass {
                const RenderTargetAttachment& depthOutput,
                const std::vector<std::string>& dependencies,
                MaterialHandle materialHandle,
-               Scene::Scene* scene,
-               Camera* camera);
+               Scene::Scene* scene);
 
     void record(PassContext ctx) override;
     [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override;

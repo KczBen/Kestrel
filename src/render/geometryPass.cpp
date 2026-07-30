@@ -20,9 +20,8 @@ GeometryPass::GeometryPass(const std::string& name,
                            const RenderTargetAttachment& depthOutput,
                            const std::vector<std::string>& dependencies,
                            std::optional<MaterialHandle> optMaterial,
-                           Scene::Scene* scene,
-                           Camera* camera)
-    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), scene(scene), camera(camera),
+                           Scene::Scene* scene)
+    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), scene(scene),
       optMaterial(optMaterial) {}
 
 void GeometryPass::record(PassContext ctx) {

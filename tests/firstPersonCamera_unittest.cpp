@@ -1,5 +1,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
-#include "firstPersonCamera.hpp"
+#include "camera.hpp"
+#include "components.hpp"
 #include "input.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -7,77 +8,110 @@
 #include <gtest/gtest.h>
 
 TEST(FirstPersonCameraTest, Construction) {
-    Render::Camera cam;
-    Render::FirstPersonCamera controller(cam);
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{0.0f};
+    transform.orientation = glm::angleAxis(glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    Scene::CameraSettings settings;
+    Scene::FirstPersonController controller;
+
+    Input input{};
+
+    Scene::Camera::updateFirstPersonCamera(transform, settings, controller, input, 1.0f);
+
     EXPECT_TRUE(true);
 }
 
 TEST(FirstPersonCameraTest, RotationChangesOrientation) {
-    Render::Camera cam;
-    Render::FirstPersonCamera controller(cam);
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{0.0f};
+    transform.orientation = glm::angleAxis(glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    transform.worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    Scene::CameraSettings settings;
+    Scene::FirstPersonController controller;
 
     Input input{};
     input.mouseX = 10.0f;
     input.mouseY = 0.0f;
 
-    controller.update(input, 1.0f);
+    Scene::Camera::updateFirstPersonCamera(transform, settings, controller, input, 1.0f);
 
-    auto orientation = cam.getOrientation();
+    auto orientation = transform.orientation;
     EXPECT_FALSE(orientation == glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
 }
 
 TEST(FirstPersonCameraTest, MovementChangesPosition) {
-    Render::Camera cam({0.0f, 0.0f, 0.0f});
-    Render::FirstPersonCamera controller(cam);
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{0.0f, 0.0f, 0.0f};
+    transform.orientation = glm::angleAxis(glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    transform.worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    Scene::CameraSettings settings;
+    Scene::FirstPersonController controller;
+    controller.movementSpeed = 5.0f;
 
     Input input{};
     input.movement = MovementDirection::forward;
 
-    controller.update(input, 1.0f);
+    Scene::Camera::updateFirstPersonCamera(transform, settings, controller, input, 1.0f);
 
-    auto pos = cam.getPosition();
-    // Default forward direction is -z, so moving forward decreases z
-    EXPECT_LT(pos.z, 0.0f);
+    // Moving forward should change the position
+    EXPECT_NE(transform.position, glm::vec3{0.0f});
 }
 
 TEST(FirstPersonCameraTest, ScrollChangesFov) {
-    Render::Camera cam;
-    cam.setFov(45.0f);
-    Render::FirstPersonCamera controller(cam);
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{0.0f};
+    transform.orientation = glm::angleAxis(glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    Scene::CameraSettings settings;
+    settings.fov = 45.0f;
+    Scene::FirstPersonController controller;
 
     Input input{};
     input.mouseScrollY = 1.0f;
 
-    controller.update(input, 1.0f);
+    Scene::Camera::updateFirstPersonCamera(transform, settings, controller, input, 1.0f);
 
-    auto fov = cam.getFov();
+    auto fov = settings.fov;
     EXPECT_NE(fov, 45.0f);
 }
 
 TEST(FirstPersonCameraTest, FovClampedToMax) {
-    Render::Camera cam;
-    cam.setFov(85.0f);
-    Render::FirstPersonCamera controller(cam);
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{0.0f};
+    transform.orientation = glm::angleAxis(glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    Scene::CameraSettings settings;
+    settings.fov = 85.0f;
+    Scene::FirstPersonController controller;
+    controller.maxFov = 90.0f;
 
     Input input{};
     input.mouseScrollY = 10.0f;
 
-    controller.update(input, 1.0f);
+    Scene::Camera::updateFirstPersonCamera(transform, settings, controller, input, 1.0f);
 
-    auto fov = cam.getFov();
-    EXPECT_LE(fov, 90.0f);
+    auto fov = settings.fov;
+    EXPECT_LE(fov, controller.maxFov);
 }
 
 TEST(FirstPersonCameraTest, FovClampedToMin) {
-    Render::Camera cam;
-    cam.setFov(20.0f);
-    Render::FirstPersonCamera controller(cam);
+    Scene::CameraTransform transform;
+    transform.position = glm::vec3{0.0f};
+    transform.orientation = glm::angleAxis(glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    Scene::CameraSettings settings;
+    settings.fov = 20.0f;
+    Scene::FirstPersonController controller;
+    controller.minFov = 15.0f;
 
     Input input{};
     input.mouseScrollY = -10.0f;
 
-    controller.update(input, 1.0f);
+    Scene::Camera::updateFirstPersonCamera(transform, settings, controller, input, 1.0f);
 
-    auto fov = cam.getFov();
-    EXPECT_GE(fov, 15.0f);
+    auto fov = settings.fov;
+    EXPECT_GE(fov, controller.minFov);
 }

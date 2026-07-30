@@ -502,14 +502,17 @@ auto ResourceManager::loadScene(const std::string& modelPath) -> Scene::Scene {
         std::vector<DescriptorWrite> uboWrites;
 
         // get camera stuff
-        for (auto& camera : scene.cameras) {
-            uniformBuffers.emplace_back(*device, sizeof(CameraUBO));
-            camera.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
+        {
+            auto view = scene.entityRegistry.view<Scene::CameraGpuData>();
+            for (auto [entity, gpuData] : view->each()) {
+                uniformBuffers.emplace_back(*device, sizeof(CameraUBO));
+                gpuData.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
 
-            // This will very likely break with other cameras
-            uboWrites.emplace_back(DescriptorWrite{.binding = 0,
-                                                   .type = vk::DescriptorType::eUniformBuffer,
-                                                   .bufferInfo = {*uniformBuffers.back(), 0, sizeof(CameraUBO)}});
+                // This will very likely break with other cameras
+                uboWrites.emplace_back(DescriptorWrite{.binding = 0,
+                                                       .type = vk::DescriptorType::eUniformBuffer,
+                                                       .bufferInfo = {*uniformBuffers.back(), 0, sizeof(CameraUBO)}});
+            }
         }
 
         // set up light UBO

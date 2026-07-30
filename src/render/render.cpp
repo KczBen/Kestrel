@@ -76,8 +76,7 @@ void Render::Render::init(Scene::Scene& scene) {
                      {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
                      {},
                      resources->getMaterial("depth_only"),
-                     &scene,
-                     scene.getCameras().data())));
+                     &scene)));
 
     frameGraph.addPass(std::make_unique<CameraPass>(
         CameraPass("sky",
@@ -87,8 +86,7 @@ void Render::Render::init(Scene::Scene& scene) {
                    {},
                    {},
                    resources->getMaterial("sky"),
-                   &scene,
-                   scene.getCameras().data())));
+                   &scene)));
 
     frameGraph.addPass(std::make_unique<GeometryPass>(
         GeometryPass("geometry",
@@ -98,8 +96,7 @@ void Render::Render::init(Scene::Scene& scene) {
                      {},
                      {},
                      std::nullopt,
-                     &scene,
-                     scene.getCameras().data())));
+                     &scene)));
 
     frameGraph.addPass(std::make_unique<CameraPass>(
         CameraPass("grid_overlay",
@@ -109,8 +106,7 @@ void Render::Render::init(Scene::Scene& scene) {
                    {},
                    {},
                    resources->getMaterial("grid_overlay"),
-                   &scene,
-                   scene.getCameras().data())));
+                   &scene)));
 
     frameGraph.addPass(std::make_unique<ImGuiPass>(
         ImGuiPass("gui", {colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}, {"sky"})));

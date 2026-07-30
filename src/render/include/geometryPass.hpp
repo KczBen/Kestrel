@@ -1,6 +1,5 @@
 #pragma once
 
-#include "camera.hpp"
 #include "material.hpp"
 #include "pass.hpp"
 #include "scene.hpp"
@@ -10,7 +9,6 @@ namespace Render {
 class GeometryPass : public Pass {
   private:
     Scene::Scene* scene;
-    Camera* camera;
     std::optional<MaterialHandle> optMaterial;
 
   public:
@@ -21,8 +19,7 @@ class GeometryPass : public Pass {
                  const RenderTargetAttachment& depthOutput,
                  const std::vector<std::string>& dependencies,
                  std::optional<MaterialHandle> optMaterial,
-                 Scene::Scene* scene,
-                 Camera* camera);
+                 Scene::Scene* scene);
 
     void record(PassContext ctx) override;
     [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override;

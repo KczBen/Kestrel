@@ -114,9 +114,6 @@ add_library(render
     src/render/render.cpp
     src/render/material.cpp
     src/render/geometryPass.cpp
-    src/render/camera.cpp
-    src/render/firstPersonCamera.cpp
-    src/render/orbitCamera.cpp
     src/render/resourceManager.cpp
     src/render/cameraPass.cpp
     src/render/frameGraph.cpp

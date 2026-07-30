@@ -191,7 +191,6 @@ class RenderWithSwapchainFixture : public ::testing::Test {
         swapchain_ = std::make_unique<Vulkan::Swapchain>(*physicalDevice_, *device_, *surface_, 256, 640);
         descriptorPool_ = std::make_unique<Vulkan::DescriptorPool>(*device_);
         pipelineManager_ = std::make_unique<Vulkan::PipelineManager>(*device_, *descriptorPool_);
-        camera_ = std::make_unique<Render::Camera>(glm::vec3(0.0f, 0.0f, 5.0f));
     }
 
     void TearDown() override { Test::TearDown(); }
@@ -211,7 +210,6 @@ class RenderWithSwapchainFixture : public ::testing::Test {
     std::unique_ptr<Vulkan::Swapchain> swapchain_;
     std::unique_ptr<Vulkan::DescriptorPool> descriptorPool_;
     std::unique_ptr<Vulkan::PipelineManager> pipelineManager_;
-    std::unique_ptr<Render::Camera> camera_;
 };
 
 TEST_F(RenderWithSwapchainFixture, SwapchainRenderTargetsValid) {

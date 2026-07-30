@@ -19,10 +19,9 @@ CameraPass::CameraPass(const std::string& name,
                        const RenderTargetAttachment& depthOutput,
                        const std::vector<std::string>& dependencies,
                        MaterialHandle materialHandle,
-                       Scene::Scene* scene,
-                       Camera* camera)
+                       Scene::Scene* scene)
     : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), materialHandle(materialHandle),
-      scene(scene), camera(camera) {}
+      scene(scene) {}
 
 void CameraPass::record(PassContext ctx) {
 
