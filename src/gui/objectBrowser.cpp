@@ -13,7 +13,7 @@ void ObjectBrowser::update() {
 
     auto objectView = registry.view<Scene::Object, Scene::Node, Scene::Children>();
 
-    for (auto [entity, object, node, children] : objectView.each()) {
+    for (auto [entity, node, children] : objectView.each()) {
         ImGui::PushID(static_cast<int>(entity));
 
         const bool isExpanded =
