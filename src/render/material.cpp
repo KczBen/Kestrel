@@ -6,32 +6,8 @@
 #include <utility>
 #include <vector>
 
-Material::Material(std::string name,
-                   ShaderDef vertexShader,
-                   ShaderDef fragmentShader,
-                   MaterialResources materialResources,
-                   std::vector<vk::PushConstantRange> pushConstants,
-                   VertexInputMode vertexInputMode,
-                   vk::CullModeFlagBits cullMode,
-                   bool depthTest,
-                   bool depthWrite,
-                   vk::CompareOp depthCompare,
-                   BlendMode colorBlendMode,
-                   vk::ColorComponentFlags colorWriteMask)
-    : name(std::move(name)), resources(std::move(materialResources)) {
-
-    // Retain full, explicit control over pipeline state for flexibility
-    pipelineConfiguration = MaterialConfiguration{.vertexShader = std::move(vertexShader),
-                                                  .fragmentShader = std::move(fragmentShader),
-                                                  .vertexInputMode = vertexInputMode,
-                                                  .topology = vk::PrimitiveTopology::eTriangleList,
-                                                  .cullMode = cullMode,
-                                                  .depthTest = depthTest,
-                                                  .depthWrite = depthWrite,
-                                                  .depthCompare = depthCompare,
-                                                  .blendMode = colorBlendMode,
-                                                  .colorWriteMask = colorWriteMask,
-                                                  .pushConstants = std::move(pushConstants)};
+Material::Material(std::string name, MaterialConfiguration config, MaterialResources resources)
+    : name(std::move(name)), resources(std::move(resources)), pipelineConfiguration(std::move(config)) {
 
     uint32_t bindingIndex = 0;
 

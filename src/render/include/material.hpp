@@ -94,19 +94,7 @@ class Material {
         auto operator==(const MaterialConfiguration&) const -> bool;
     };
 
-    Material(std::string name,
-             ShaderDef vertexShader,
-             ShaderDef fragmentShader,
-             MaterialResources materialResources,
-             std::vector<vk::PushConstantRange> pushConstants = {},
-             VertexInputMode vertexInputMode = VertexInputMode::Mesh,
-             vk::CullModeFlagBits cullMode = vk::CullModeFlagBits::eBack,
-             bool depthTest = true,
-             bool depthWrite = true,
-             vk::CompareOp depthCompare = vk::CompareOp::eLessOrEqual,
-             BlendMode colorBlendMode = BlendMode::Opaque,
-             vk::ColorComponentFlags colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                                                      vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+    Material(std::string name, MaterialConfiguration config, MaterialResources resources);
 
     auto getDescriptorSet() -> Vulkan::DescriptorSet&;
     [[nodiscard]] auto getName() const -> const std::string& { return name; }

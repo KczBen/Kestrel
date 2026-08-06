@@ -44,43 +44,63 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
     stagingBuffer = Vulkan::UploadBuffer(device, static_cast<long>(512 * 1024 * 1024));
 
     // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
-    materials.emplace_back(Material("sky",
-                                    ShaderDef{.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
-                                    ShaderDef{.filePath = "shaders/skyFrag.glsl", .stage = EShLangFragment},
-                                    {},
-                                    {},
-                                    Material::VertexInputMode::None,
-                                    vk::CullModeFlagBits::eNone,
-                                    true,
-                                    false,
-                                    vk::CompareOp::eLessOrEqual));
+    materials.emplace_back(
+        Material("sky",
+                 Material::MaterialConfiguration{
+                     .vertexShader = {.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
+                     .fragmentShader = {.filePath = "shaders/skyFrag.glsl", .stage = EShLangFragment},
+                     .vertexInputMode = Material::VertexInputMode::None,
+                     .topology = vk::PrimitiveTopology::eTriangleList,
+                     .cullMode = vk::CullModeFlagBits::eNone,
+                     .depthTest = true,
+                     .depthWrite = false,
+                     .depthCompare = vk::CompareOp::eLessOrEqual,
+                     .blendMode = Material::BlendMode::Opaque,
+                     .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+                     .descriptorSetBindings = {},
+                     .pushConstants = {}},
+                 Material::MaterialResources{}));
 
     materialNameMap[materials.back().name] = {&materials, materials.size() - 1};
 
-    materials.emplace_back(Material("depth_only",
-                                    ShaderDef{.filePath = "shaders/depthVert.glsl", .stage = EShLangVertex},
-                                    ShaderDef{.filePath = "shaders/depthFrag.glsl", .stage = EShLangFragment},
-                                    {},
-                                    {vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))},
-                                    Material::VertexInputMode::Mesh,
-                                    vk::CullModeFlagBits::eBack,
-                                    true,
-                                    true,
-                                    vk::CompareOp::eLessOrEqual,
-                                    Material::BlendMode::Opaque));
+    materials.emplace_back(Material(
+        "depth_only",
+        Material::MaterialConfiguration{
+            .vertexShader = {.filePath = "shaders/depthVert.glsl", .stage = EShLangVertex},
+            .fragmentShader = {.filePath = "shaders/depthFrag.glsl", .stage = EShLangFragment},
+            .vertexInputMode = Material::VertexInputMode::Mesh,
+            .topology = vk::PrimitiveTopology::eTriangleList,
+            .cullMode = vk::CullModeFlagBits::eBack,
+            .depthTest = true,
+            .depthWrite = true,
+            .depthCompare = vk::CompareOp::eLessOrEqual,
+            .blendMode = Material::BlendMode::Opaque,
+            .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                              vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+            .descriptorSetBindings = {},
+            .pushConstants = {vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))}},
+        Material::MaterialResources{}));
 
     materialNameMap[materials.back().name] = {&materials, materials.size() - 1};
 
-    materials.emplace_back(Material("grid_overlay",
-                                    ShaderDef{.filePath = "shaders/gridVert.glsl", .stage = EShLangVertex},
-                                    ShaderDef{.filePath = "shaders/gridFrag.glsl", .stage = EShLangFragment},
-                                    {},
-                                    {},
-                                    Material::VertexInputMode::None,
-                                    vk::CullModeFlagBits::eNone,
-                                    true,
-                                    false,
-                                    vk::CompareOp::eLessOrEqual));
+    materials.emplace_back(
+        Material("grid_overlay",
+                 Material::MaterialConfiguration{
+                     .vertexShader = {.filePath = "shaders/gridVert.glsl", .stage = EShLangVertex},
+                     .fragmentShader = {.filePath = "shaders/gridFrag.glsl", .stage = EShLangFragment},
+                     .vertexInputMode = Material::VertexInputMode::None,
+                     .topology = vk::PrimitiveTopology::eTriangleList,
+                     .cullMode = vk::CullModeFlagBits::eNone,
+                     .depthTest = true,
+                     .depthWrite = false,
+                     .depthCompare = vk::CompareOp::eLessOrEqual,
+                     .blendMode = Material::BlendMode::Opaque,
+                     .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+                     .descriptorSetBindings = {},
+                     .pushConstants = {}},
+                 Material::MaterialResources{}));
 
     materialNameMap[materials.back().name] = {&materials, materials.size() - 1};
 
@@ -257,18 +277,23 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
         resources.metallicFactor = static_cast<float>(pbr.metallicFactor);
         resources.roughnessFactor = static_cast<float>(pbr.roughnessFactor);
 
-        auto mat = Material(material.name,
-                            ShaderDef{.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
-                            ShaderDef{.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
-                            resources,
-                            std::vector<vk::PushConstantRange>{
-                                vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))},
-                            Material::VertexInputMode::Mesh,
-                            cullMode,
-                            true, // depthTest
-                            true, // depthWrite
-                            vk::CompareOp::eLessOrEqual,
-                            blendMode);
+        auto mat = Material(
+            material.name,
+            Material::MaterialConfiguration{
+                .vertexShader = {.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
+                .fragmentShader = {.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
+                .vertexInputMode = Material::VertexInputMode::Mesh,
+                .topology = vk::PrimitiveTopology::eTriangleList,
+                .cullMode = cullMode,
+                .depthTest = true,
+                .depthWrite = true,
+                .depthCompare = vk::CompareOp::eLessOrEqual,
+                .blendMode = blendMode,
+                .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                  vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+                .descriptorSetBindings = {},
+                .pushConstants = {vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))}},
+            std::move(resources));
 
         uniformBuffers.emplace_back(*device, sizeof(MaterialUBO));
         mat.materialBufferHandle = {&uniformBuffers, uniformBuffers.size() - 1};

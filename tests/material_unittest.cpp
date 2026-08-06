@@ -17,26 +17,44 @@ using namespace Vulkan;
 TEST(MaterialTest, CreateMaterialWithDefaults) {
     ShaderDef vertexDef{"shaders/shader.vert", EShLanguage::EShLangVertex};
     ShaderDef fragmentDef{"shaders/shader.frag", EShLanguage::EShLangFragment};
+    Material::MaterialConfiguration config{.vertexShader = vertexDef,
+                                           .fragmentShader = fragmentDef,
+                                           .vertexInputMode = Material::VertexInputMode::Mesh,
+                                           .topology = vk::PrimitiveTopology::eTriangleList,
+                                           .cullMode = vk::CullModeFlagBits::eBack,
+                                           .depthTest = true,
+                                           .depthWrite = true,
+                                           .depthCompare = vk::CompareOp::eLessOrEqual,
+                                           .blendMode = Material::BlendMode::Opaque,
+                                           .colorWriteMask =
+                                               vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                               vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+                                           .descriptorSetBindings = {},
+                                           .pushConstants = {}};
     Material::MaterialResources resources;
-    Material mat{"test_material", vertexDef, fragmentDef, resources};
+    Material mat{"test_material", config, resources};
     EXPECT_EQ(mat.getBlendMode(), Material::BlendMode::Opaque);
 }
 
 TEST(MaterialTest, CreateMaterialWithAlphaBlend) {
     ShaderDef vertexDef{"shaders/shader.vert", EShLanguage::EShLangVertex};
     ShaderDef fragmentDef{"shaders/shader.frag", EShLanguage::EShLangFragment};
+    Material::MaterialConfiguration config{.vertexShader = vertexDef,
+                                           .fragmentShader = fragmentDef,
+                                           .vertexInputMode = Material::VertexInputMode::Mesh,
+                                           .topology = vk::PrimitiveTopology::eTriangleList,
+                                           .cullMode = vk::CullModeFlagBits::eBack,
+                                           .depthTest = true,
+                                           .depthWrite = true,
+                                           .depthCompare = vk::CompareOp::eLess,
+                                           .blendMode = Material::BlendMode::Alpha,
+                                           .colorWriteMask =
+                                               vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                               vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+                                           .descriptorSetBindings = {},
+                                           .pushConstants = {}};
     Material::MaterialResources resources;
-    Material mat{"test_material",
-                 vertexDef,
-                 fragmentDef,
-                 resources,
-                 {},
-                 Material::VertexInputMode::Mesh,
-                 vk::CullModeFlagBits::eBack,
-                 true,
-                 true,
-                 vk::CompareOp::eLess,
-                 Material::BlendMode::Alpha};
+    Material mat{"test_material", config, resources};
     EXPECT_EQ(mat.getBlendMode(), Material::BlendMode::Alpha);
 }
 
