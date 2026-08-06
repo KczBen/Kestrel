@@ -24,7 +24,7 @@ auto Vulkan::Swapchain::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFor
     -> vk::SurfaceFormatKHR {
     for (const auto& availableFormat : availableFormats) {
         if (availableFormat.format == vk::Format::eB8G8R8A8Srgb &&
-            availableFormat.colorSpace == vk::ColorSpaceKHR::eVkColorspaceSrgbNonlinear) {
+            availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) {
             return availableFormat;
         }
     }
