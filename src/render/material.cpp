@@ -47,4 +47,18 @@ auto Material::MaterialConfiguration::operator==(const MaterialConfiguration& ot
            this->descriptorSetBindings == other.descriptorSetBindings && this->pushConstants == other.pushConstants;
 }
 
+auto Material::MaterialResources::operator==(const MaterialResources& other) const -> bool {
+    return baseColorTexture == other.baseColorTexture && metallicRoughnessTexture == other.metallicRoughnessTexture &&
+           normalTexture == other.normalTexture && occlusionTexture == other.occlusionTexture &&
+           emissiveTexture == other.emissiveTexture && baseColorUVIndex == other.baseColorUVIndex &&
+           metallicRoughnessUVIndex == other.metallicRoughnessUVIndex && normalUVIndex == other.normalUVIndex &&
+           aoUVIndex == other.aoUVIndex && emissiveUVIndex == other.emissiveUVIndex &&
+           baseColorTransform == other.baseColorTransform &&
+           metallicRoughnessTransform == other.metallicRoughnessTransform && normalTransform == other.normalTransform &&
+           occlusionTransform == other.occlusionTransform && emissiveTransform == other.emissiveTransform &&
+           baseColorFactor == other.baseColorFactor && emissiveFactor == other.emissiveFactor &&
+           metallicFactor == other.metallicFactor && roughnessFactor == other.roughnessFactor &&
+           normalScale == other.normalScale && occlusionStrength == other.occlusionStrength;
+}
+
 auto Material::getDescriptorSet() -> Vulkan::DescriptorSet& { return descriptorSet.value(); }

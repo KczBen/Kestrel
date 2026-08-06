@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hashHelpers.hpp"
 #include <glslang/Public/ShaderLang.h>
 #include <string>
 
@@ -19,12 +20,6 @@ template <> struct hash<ShaderDef> {
         hashCombine(seed, shader.filePath);
         hashCombine(seed, static_cast<int>(shader.stage));
         return seed;
-    }
-
-  private:
-    template <typename T> static void hashCombine(size_t& seed, const T& value) noexcept {
-        const std::hash<T> hasher;
-        seed ^= hasher(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 };
 } // namespace std

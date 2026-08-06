@@ -3,6 +3,7 @@
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
 #include "graphicsPipeline.hpp"
+#include "hashHelpers.hpp"
 #include "hostBuffer.hpp"
 #include "resourceHandles.hpp"
 #include "shaderDef.hpp"
@@ -32,6 +33,10 @@ class Material {
         glm::vec2 offset{0.0f, 0.0f};
         float rotation{0.0f};
         glm::vec2 scale{1.0f, 1.0f};
+
+        auto operator==(const TextureTransform& other) const -> bool {
+            return offset == other.offset && rotation == other.rotation && scale == other.scale;
+        }
     };
 
     // This should be compatible with the glTF 2.0 spec
@@ -65,6 +70,8 @@ class Material {
         float normalScale{1.0f};
         float occlusionStrength{1.0f};
 
+        auto operator==(const MaterialResources& other) const -> bool;
+
         [[nodiscard]] auto isEmpty() const -> bool {
             return !baseColorTexture.isPresent() && !metallicRoughnessTexture.isPresent() &&
                    !normalTexture.isPresent() && !occlusionTexture.isPresent() && !emissiveTexture.isPresent();
@@ -90,8 +97,16 @@ class Material {
         std::vector<vk::DescriptorSetLayoutBinding> descriptorSetBindings;
         std::vector<vk::PushConstantRange> pushConstants;
 
-        [[nodiscard]] auto hash() const -> uint64_t;
-        auto operator==(const MaterialConfiguration&) const -> bool;
+        auto operator==(const MaterialConfiguration& other) const -> bool;
+    };
+
+    struct MaterialKey {
+        Material::MaterialConfiguration config;
+        Material::MaterialResources resources;
+
+        auto operator==(const MaterialKey& other) const -> bool {
+            return config == other.config && resources == other.resources;
+        }
     };
 
     Material(std::string name, MaterialConfiguration config, MaterialResources resources);
@@ -133,6 +148,16 @@ inline auto buildTextureTransformMatrix(const Material::TextureTransform& transf
 using MaterialHandle = Render::ResourceHandle<Material>;
 
 namespace std {
+template <> struct hash<Material::TextureTransform> {
+    auto operator()(const Material::TextureTransform& transform) const noexcept -> size_t {
+        size_t seed = 0;
+        hashCombine(seed, transform.offset); // uses hash<glm::vec2> above
+        hashCombine(seed, transform.rotation);
+        hashCombine(seed, transform.scale);
+        return seed;
+    }
+};
+
 template <> struct hash<Material::MaterialConfiguration> {
     auto operator()(const Material::MaterialConfiguration& config) const noexcept -> size_t {
         size_t seed = 0;
@@ -145,15 +170,67 @@ template <> struct hash<Material::MaterialConfiguration> {
         hashCombine(seed, config.depthWrite);
         hashCombine(seed, static_cast<uint32_t>(config.depthCompare));
         hashCombine(seed, static_cast<uint8_t>(config.blendMode));
-        hashCombine(seed, static_cast<uint32_t>(config.colorWriteMask));
-        hashCombine(seed, config.descriptorSetBindings.size());
-        hashCombine(seed, config.pushConstants.size());
+        hashCombine(seed, static_cast<VkColorComponentFlags>(config.colorWriteMask));
+
+        for (const auto& binding : config.descriptorSetBindings) {
+            hashCombine(seed, binding.binding);
+            hashCombine(seed, static_cast<uint32_t>(binding.descriptorType));
+            hashCombine(seed, binding.descriptorCount);
+            hashCombine(seed, static_cast<VkShaderStageFlags>(binding.stageFlags));
+        }
+        for (const auto& range : config.pushConstants) {
+            hashCombine(seed, static_cast<VkShaderStageFlags>(range.stageFlags));
+            hashCombine(seed, range.offset);
+            hashCombine(seed, range.size);
+        }
         return seed;
     }
+};
 
-  private:
-    template <typename T> static void hashCombine(size_t& seed, const T& value) noexcept {
-        seed ^= std::hash<T>{}(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+template <> struct hash<Material::MaterialResources> {
+    auto operator()(const Material::MaterialResources& res) const noexcept -> size_t {
+        size_t seed = 0;
+        hashCombine(seed, res.baseColorTexture);
+        hashCombine(seed, res.metallicRoughnessTexture);
+        hashCombine(seed, res.normalTexture);
+        hashCombine(seed, res.occlusionTexture);
+        hashCombine(seed, res.emissiveTexture);
+
+        hashCombine(seed, res.baseColorUVIndex);
+        hashCombine(seed, res.metallicRoughnessUVIndex);
+        hashCombine(seed, res.normalUVIndex);
+        hashCombine(seed, res.aoUVIndex);
+        hashCombine(seed, res.emissiveUVIndex);
+
+        hashCombine(seed, res.baseColorTransform);
+        hashCombine(seed, res.metallicRoughnessTransform);
+        hashCombine(seed, res.normalTransform);
+        hashCombine(seed, res.occlusionTransform);
+        hashCombine(seed, res.emissiveTransform);
+
+        for (const double v : res.baseColorFactor) {
+            hashCombine(seed, v);
+        }
+        for (const double v : res.emissiveFactor) {
+            hashCombine(seed, v);
+        }
+
+        hashCombine(seed, res.metallicFactor);
+        hashCombine(seed, res.roughnessFactor);
+        hashCombine(seed, res.normalScale);
+        hashCombine(seed, res.occlusionStrength);
+
+        return seed;
+    }
+};
+
+template <> struct hash<Material::MaterialKey> {
+    auto operator()(const Material::MaterialKey& key) const noexcept -> size_t {
+        size_t seed = 0;
+        hashCombine(seed, key.config);
+        hashCombine(seed, key.resources);
+
+        return seed;
     }
 };
 } // namespace std
