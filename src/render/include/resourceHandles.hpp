@@ -1,6 +1,7 @@
 #pragma once
 
 #include "deviceBuffer.hpp"
+#include "hashHelpers.hpp"
 #include <cassert>
 #include <cstdint>
 
@@ -38,7 +39,10 @@ template <typename T, typename Container = std::vector<T>> struct ResourceHandle
 } // namespace Render
 
 template <typename T, typename Container> struct std::hash<Render::ResourceHandle<T, Container>> {
-    auto operator()(const Render::ResourceHandle<T, Container>& handle) const -> size_t {
-        return std::hash<size_t>{}(handle.index);
+    auto operator()(const Render::ResourceHandle<T, Container>& handle) const -> std::size_t {
+        std::size_t seed = 0;
+        hashCombine(seed, std::hash<Container*>{}(handle.backingStorage));
+        hashCombine(seed, std::hash<size_t>{}(handle.index));
+        return seed;
     }
 };
