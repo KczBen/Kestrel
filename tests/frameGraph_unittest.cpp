@@ -11,6 +11,7 @@
 #include "resourceManager.hpp"
 #include "surface.hpp"
 #include <algorithm>
+#include <entt/entt.hpp>
 #include <set>
 #include <string>
 #include <utility>
@@ -46,8 +47,10 @@ class FrameGraphFixture : public ::testing::Test {
         surface_ = std::make_unique<Vulkan::Surface>(*instance_);
         physicalDevice_ = std::make_unique<Vulkan::PhysicalDevice>(*instance_, *surface_);
         device_ = std::make_unique<Vulkan::Device>(*physicalDevice_, *instance_);
-        resourceManager_ = std::make_unique<ResourceManager>(*physicalDevice_, *device_);
-        scene_ = std::make_unique<Scene::Scene>(resourceManager_->loadScene(""));
+        entt::registry registry;
+        resourceManager_ = std::make_unique<ResourceManager>(*physicalDevice_, *device_, registry);
+        scene_ = std::make_unique<Scene::Scene>(registry);
+        resourceManager_->loadScene(*scene_);
         pipelineManager_ = &resourceManager_->getPipelineManager();
     }
 

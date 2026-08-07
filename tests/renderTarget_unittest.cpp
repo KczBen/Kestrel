@@ -7,6 +7,7 @@
 #include "renderTarget.hpp"
 #include "resourceManager.hpp"
 #include "surface.hpp"
+#include <entt/entt.hpp>
 #include <gtest/gtest.h>
 
 using namespace Vulkan;
@@ -19,7 +20,8 @@ class RenderTargetFixture : public ::testing::Test {
     Surface surface{instance};
     PhysicalDevice physicalDevice{instance, surface};
     Device device{physicalDevice, instance};
-    ResourceManager resources{physicalDevice, device};
+    entt::registry registry;
+    ResourceManager resources{physicalDevice, device, registry};
 };
 
 TEST_F(RenderTargetFixture, CreateRenderTargetCreatesValidImage) {

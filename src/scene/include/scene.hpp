@@ -2,6 +2,7 @@
 
 #include "descriptorSet.hpp"
 #include "descriptorSetLayout.hpp"
+#include "gltfAsset.hpp"
 #include "hostBuffer.hpp"
 #include "input.hpp"
 #include <entt/entt.hpp>
@@ -17,7 +18,7 @@ class Scene {
 
   private:
     // *THE* ECS
-    entt::registry entityRegistry;
+    entt::registry* entityRegistry;
     uint32_t lastUpdatedIndex = 0;
 
     Vulkan::DescriptorSetLayoutHandle descriptorSetLayout;
@@ -29,9 +30,10 @@ class Scene {
     uint32_t lightUBOIndex = 0;
 
   public:
-    Scene();
+    Scene(entt::registry& registry);
     auto getRegistry() -> entt::registry&;
     void update(Input inputs, float deltaTime);
+    void addObject(AssetHandle object);
     void addLight(glm::vec3 position, glm::quat rotation, glm::vec3 colour, float intensity, float maxRange);
 
     auto getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout&;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gltfAsset.hpp"
 #include "hostBuffer.hpp"
 #include "material.hpp"
 #include "resourceHandles.hpp"
@@ -22,6 +23,11 @@ struct LocalTransform {
 struct Primitive {
     Render::MeshHandle mesh{};
     MaterialHandle material;
+};
+
+// This signals the resource manager to upload the primitive to the GPU
+struct WantsPrimitive {
+    glTFPrimitive* primitive;
 };
 
 struct Node {

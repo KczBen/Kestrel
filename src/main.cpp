@@ -20,6 +20,7 @@
 #include <SDL3/SDL_properties.h>
 #include <SDL3/SDL_video.h>
 #include <chrono>
+#include <entt/entity/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glslang/Public/ShaderLang.h>
 
@@ -71,8 +72,15 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
         Vulkan::PhysicalDevice physicalDevice(instance, surface);
         Vulkan::Device device(physicalDevice, instance);
 
-        Render::ResourceManager resourceManager(physicalDevice, device);
-        auto scene = resourceManager.loadScene(std::string(SDL_GetBasePath()).append("models/CarConcept.glb"));
+        entt::registry registry;
+
+        Render::ResourceManager resourceManager(physicalDevice, device, registry);
+        Scene::Scene scene = (registry);
+        resourceManager.loadScene(scene);
+
+        auto asset = resourceManager.importGLTF(std::string(SDL_GetBasePath()).append("models/CarConcept.glb"));
+
+        scene.addObject(asset);
 
         Render::Render renderer(window, resourceManager, instance, surface, physicalDevice, device, 2);
 

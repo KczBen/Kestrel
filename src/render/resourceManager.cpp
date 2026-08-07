@@ -1,5 +1,7 @@
 #include "descriptorSet.hpp"
+#include "gltfAsset.hpp"
 #include "renderTarget.hpp"
+#include <entt/entity/fwd.hpp>
 #include <glslang/Public/ShaderLang.h>
 #include <string>
 #define TINYGLTF_IMPLEMENTATION
@@ -16,7 +18,6 @@
 #include "resourceHandles.hpp"
 #include "resourceManager.hpp"
 #include "sampler.hpp"
-#include "shaderDef.hpp"
 #include "texture.hpp"
 #include "uploadBuffer.hpp"
 #include "uploadContext.hpp"
@@ -33,8 +34,11 @@
 #include <utility>
 
 namespace Render {
-ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::Device& device)
-    : device(&device), uploadPool(physicalDevice, device, 2), descriptorPool(device), vBufferEnd(0), iBufferEnd(0) {
+ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice,
+                                 Vulkan::Device& device,
+                                 entt::registry& registry)
+    : device(&device), uploadPool(physicalDevice, device, 2), descriptorPool(device), vBufferEnd(0), iBufferEnd(0),
+      pipelineManager(device, descriptorPool) {
     vertexBuffer = Vulkan::DeviceBuffer(device,
                                         5000000 * sizeof(Vertex),
                                         vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst);
@@ -43,66 +47,57 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
                                        vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst);
     stagingBuffer = Vulkan::UploadBuffer(device, static_cast<long>(512 * 1024 * 1024));
 
+    registry.on_construct<Scene::WantsPrimitive>().connect<&ResourceManager::onWantsPrimitive>(*this);
+
     // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
-    materials.emplace_back(
-        Material("sky",
-                 Material::MaterialConfiguration{
-                     .vertexShader = {.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
-                     .fragmentShader = {.filePath = "shaders/skyFrag.glsl", .stage = EShLangFragment},
-                     .vertexInputMode = Material::VertexInputMode::None,
-                     .topology = vk::PrimitiveTopology::eTriangleList,
-                     .cullMode = vk::CullModeFlagBits::eNone,
-                     .depthTest = true,
-                     .depthWrite = false,
-                     .depthCompare = vk::CompareOp::eLessOrEqual,
-                     .blendMode = Material::BlendMode::Opaque,
-                     .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                                       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
-                     .descriptorSetBindings = {},
-                     .pushConstants = {}},
-                 Material::MaterialResources{}));
+    getOrCreateMaterial("sky",
+                        {.vertexShader = {.filePath = "shaders/skyVert.glsl", .stage = EShLangVertex},
+                         .fragmentShader = {.filePath = "shaders/skyFrag.glsl", .stage = EShLangFragment},
+                         .vertexInputMode = Material::VertexInputMode::None,
+                         .topology = vk::PrimitiveTopology::eTriangleList,
+                         .cullMode = vk::CullModeFlagBits::eNone,
+                         .depthTest = true,
+                         .depthWrite = false,
+                         .depthCompare = vk::CompareOp::eLessOrEqual,
+                         .blendMode = Material::BlendMode::Opaque,
+                         .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                           vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+                         .descriptorSetBindings = {},
+                         .pushConstants = {}},
+                        {});
 
-    materialNameMap[materials.back().name] = {&materials, materials.size() - 1};
-
-    materials.emplace_back(Material(
+    getOrCreateMaterial(
         "depth_only",
-        Material::MaterialConfiguration{
-            .vertexShader = {.filePath = "shaders/depthVert.glsl", .stage = EShLangVertex},
-            .fragmentShader = {.filePath = "shaders/depthFrag.glsl", .stage = EShLangFragment},
-            .vertexInputMode = Material::VertexInputMode::Mesh,
-            .topology = vk::PrimitiveTopology::eTriangleList,
-            .cullMode = vk::CullModeFlagBits::eBack,
-            .depthTest = true,
-            .depthWrite = true,
-            .depthCompare = vk::CompareOp::eLessOrEqual,
-            .blendMode = Material::BlendMode::Opaque,
-            .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                              vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
-            .descriptorSetBindings = {},
-            .pushConstants = {vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))}},
-        Material::MaterialResources{}));
+        {.vertexShader = {.filePath = "shaders/depthVert.glsl", .stage = EShLangVertex},
+         .fragmentShader = {.filePath = "shaders/depthFrag.glsl", .stage = EShLangFragment},
+         .vertexInputMode = Material::VertexInputMode::Mesh,
+         .topology = vk::PrimitiveTopology::eTriangleList,
+         .cullMode = vk::CullModeFlagBits::eBack,
+         .depthTest = true,
+         .depthWrite = true,
+         .depthCompare = vk::CompareOp::eLessOrEqual,
+         .blendMode = Material::BlendMode::Opaque,
+         .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                           vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+         .descriptorSetBindings = {},
+         .pushConstants = {vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))}},
+        {});
 
-    materialNameMap[materials.back().name] = {&materials, materials.size() - 1};
-
-    materials.emplace_back(
-        Material("grid_overlay",
-                 Material::MaterialConfiguration{
-                     .vertexShader = {.filePath = "shaders/gridVert.glsl", .stage = EShLangVertex},
-                     .fragmentShader = {.filePath = "shaders/gridFrag.glsl", .stage = EShLangFragment},
-                     .vertexInputMode = Material::VertexInputMode::None,
-                     .topology = vk::PrimitiveTopology::eTriangleList,
-                     .cullMode = vk::CullModeFlagBits::eNone,
-                     .depthTest = true,
-                     .depthWrite = false,
-                     .depthCompare = vk::CompareOp::eLessOrEqual,
-                     .blendMode = Material::BlendMode::Opaque,
-                     .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                                       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
-                     .descriptorSetBindings = {},
-                     .pushConstants = {}},
-                 Material::MaterialResources{}));
-
-    materialNameMap[materials.back().name] = {&materials, materials.size() - 1};
+    getOrCreateMaterial("grid_overlay",
+                        {.vertexShader = {.filePath = "shaders/gridVert.glsl", .stage = EShLangVertex},
+                         .fragmentShader = {.filePath = "shaders/gridFrag.glsl", .stage = EShLangFragment},
+                         .vertexInputMode = Material::VertexInputMode::None,
+                         .topology = vk::PrimitiveTopology::eTriangleList,
+                         .cullMode = vk::CullModeFlagBits::eNone,
+                         .depthTest = true,
+                         .depthWrite = false,
+                         .depthCompare = vk::CompareOp::eLessOrEqual,
+                         .blendMode = Material::BlendMode::Opaque,
+                         .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                           vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+                         .descriptorSetBindings = {},
+                         .pushConstants = {}},
+                        {});
 
     auto defaultSamplerConfig = Vulkan::SamplerConfig{};
     auto whitePixelHandle = getOrCreateSampler(defaultSamplerConfig);
@@ -115,7 +110,7 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::
     context.upload(textures.back());
 }
 
-auto extractTextureTransform(const tinygltf::ExtensionMap& extensions) -> Material::TextureTransform {
+auto ResourceManager::extractTextureTransform(const tinygltf::ExtensionMap& extensions) -> Material::TextureTransform {
     Material::TextureTransform result;
     auto it = extensions.find("KHR_texture_transform");
     if (it == extensions.end()) {
@@ -163,7 +158,92 @@ auto extractTextureTransform(const tinygltf::ExtensionMap& extensions) -> Materi
     return result;
 }
 
-void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry) {
+auto ResourceManager::uploadMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
+    -> MeshHandle {
+    MeshHandle handle{.vertexBuffer = &vertexBuffer.value(),
+                      .indexBuffer = &indexBuffer.value(),
+                      .vertexOffset = vBufferEnd,
+                      .vertexCount = static_cast<uint32_t>(vertices.size()),
+                      .indexOffset = iBufferEnd,
+                      .indexCount = static_cast<uint32_t>(indices.size())};
+
+    auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
+
+    context.upload(
+        vertexBuffer.value(), vertices.data(), vertices.size() * sizeof(Vertex), vBufferEnd * sizeof(Vertex));
+
+    context.upload(
+        indexBuffer.value(), indices.data(), indices.size() * sizeof(uint32_t), iBufferEnd * sizeof(uint32_t));
+
+    vBufferEnd += vertices.size();
+    iBufferEnd += indices.size();
+
+    return handle;
+}
+
+void ResourceManager::onWantsPrimitive(entt::registry& registry, entt::entity entity) {
+    // Remove whatever we queued last
+    for (auto entity : tagRemovalQueue) {
+        if (registry.all_of<Scene::WantsPrimitive>(entity)) {
+            registry.remove<Scene::WantsPrimitive>(entity);
+        }
+    }
+    tagRemovalQueue.clear();
+
+    auto want = registry.get<Scene::WantsPrimitive>(entity);
+    auto mesh = uploadMesh(want.primitive->vertices, want.primitive->indices);
+    want.primitive->uploadedMesh = mesh;
+    tagRemovalQueue.emplace_back(entity);
+    registry.emplace<Scene::Primitive>(entity, mesh, want.primitive->material);
+}
+
+void ResourceManager::loadScene(Scene::Scene& scene) {
+    descriptorSetLayouts.emplace_back(
+        *device,
+        std::vector<vk::DescriptorSetLayoutBinding>{
+            vk::DescriptorSetLayoutBinding(0,
+                                           vk::DescriptorType::eUniformBuffer,
+                                           1,
+                                           vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment),
+            vk::DescriptorSetLayoutBinding(
+                1, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment)});
+
+    scene.descriptorSetLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
+
+    for (uint32_t i = 0; i < 2; i++) {
+
+        descriptorSets.emplace_back(*device, descriptorPool, *scene.descriptorSetLayout);
+
+        std::vector<DescriptorWrite> uboWrites;
+
+        // get camera stuff
+        {
+            auto view = scene.entityRegistry->view<Scene::CameraGpuData>();
+            for (auto [entity, gpuData] : view->each()) {
+                uniformBuffers.emplace_back(*device, sizeof(CameraUBO));
+                gpuData.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
+
+                // This will very likely break with other cameras
+                uboWrites.emplace_back(DescriptorWrite{.binding = 0,
+                                                       .type = vk::DescriptorType::eUniformBuffer,
+                                                       .bufferInfo = {*uniformBuffers.back(), 0, sizeof(CameraUBO)}});
+            }
+        }
+
+        // set up light UBO
+        uniformBuffers.emplace_back(*device, sizeof(LightUBO));
+        scene.lightUniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
+
+        uboWrites.emplace_back(DescriptorWrite{.binding = 1,
+                                               .type = vk::DescriptorType::eUniformBuffer,
+                                               .bufferInfo = {*uniformBuffers.back(), 0, sizeof(LightUBO)}});
+
+        scene.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
+        descriptorSets[i].write(uboWrites);
+    }
+}
+
+auto ResourceManager::importGLTF(const std::string& path) -> AssetHandle {
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF loader;
     std::string err;
@@ -277,33 +357,24 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
         resources.metallicFactor = static_cast<float>(pbr.metallicFactor);
         resources.roughnessFactor = static_cast<float>(pbr.roughnessFactor);
 
-        auto mat = Material(
+        auto mat = getOrCreateMaterial(
             material.name,
-            Material::MaterialConfiguration{
-                .vertexShader = {.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
-                .fragmentShader = {.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
-                .vertexInputMode = Material::VertexInputMode::Mesh,
-                .topology = vk::PrimitiveTopology::eTriangleList,
-                .cullMode = cullMode,
-                .depthTest = true,
-                .depthWrite = true,
-                .depthCompare = vk::CompareOp::eLessOrEqual,
-                .blendMode = blendMode,
-                .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                                  vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
-                .descriptorSetBindings = {},
-                .pushConstants = {vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))}},
-            std::move(resources));
+            {.vertexShader = {.filePath = "shaders/vert.glsl", .stage = EShLangVertex},
+             .fragmentShader = {.filePath = "shaders/frag.glsl", .stage = EShLangFragment},
+             .vertexInputMode = Material::VertexInputMode::Mesh,
+             .topology = vk::PrimitiveTopology::eTriangleList,
+             .cullMode = cullMode,
+             .depthTest = true,
+             .depthWrite = true,
+             .depthCompare = vk::CompareOp::eLessOrEqual,
+             .blendMode = blendMode,
+             .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                               vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+             .descriptorSetBindings = {},
+             .pushConstants = {vk::PushConstantRange(vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstants))}},
+            resources);
 
-        uniformBuffers.emplace_back(*device, sizeof(MaterialUBO));
-        mat.materialBufferHandle = {&uniformBuffers, uniformBuffers.size() - 1};
-
-        materials.emplace_back(std::move(mat));
-
-        auto handle = MaterialHandle{&materials, materials.size() - 1};
-
-        materialNameMap[handle->name] = handle;
-        materialHandles.emplace_back(handle);
+        materialHandles.emplace_back(mat);
     }
 
     auto loadMesh = [&](tinygltf::Primitive& primitive) -> std::pair<std::vector<Vertex>, std::vector<uint32_t>> {
@@ -392,8 +463,8 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
         return {vertices, indices};
     };
 
-    auto buildNode = [&](this auto& self, tinygltf::Node& gltfNode, std::optional<entt::entity> parent) -> void {
-        Scene::LocalTransform transform{};
+    auto buildNode = [&](this auto& self, tinygltf::Node& gltfNode) -> glTFNode {
+        glTFNode node{};
 
         if (!gltfNode.matrix.empty()) {
             glm::mat4 matrix;
@@ -403,170 +474,70 @@ void ResourceManager::loadGLTF(const std::string& path, entt::registry& registry
 
             glm::vec3 skew;
             glm::vec4 perspective;
-            glm::decompose(matrix, transform.scale, transform.rotation, transform.position, skew, perspective);
+            glm::decompose(matrix, node.scale, node.rotation, node.translation, skew, perspective);
         } else {
             if (!gltfNode.translation.empty()) {
-                transform.position = {static_cast<float>(gltfNode.translation[0]),
-                                      static_cast<float>(gltfNode.translation[1]),
-                                      static_cast<float>(gltfNode.translation[2])};
+                node.translation = {static_cast<float>(gltfNode.translation[0]),
+                                    static_cast<float>(gltfNode.translation[1]),
+                                    static_cast<float>(gltfNode.translation[2])};
             } else {
-                transform.position = glm::vec3(0.0f);
+                node.translation = glm::vec3(0.0f);
             }
 
             if (!gltfNode.rotation.empty()) {
-                transform.rotation = glm::quat(static_cast<float>(gltfNode.rotation[3]),
-                                               static_cast<float>(gltfNode.rotation[0]),
-                                               static_cast<float>(gltfNode.rotation[1]),
-                                               static_cast<float>(gltfNode.rotation[2]));
+                node.rotation = glm::quat(static_cast<float>(gltfNode.rotation[3]),
+                                          static_cast<float>(gltfNode.rotation[0]),
+                                          static_cast<float>(gltfNode.rotation[1]),
+                                          static_cast<float>(gltfNode.rotation[2]));
             } else {
-                transform.rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+                node.rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
             }
 
             if (!gltfNode.scale.empty()) {
-                transform.scale = {static_cast<float>(gltfNode.scale[0]),
-                                   static_cast<float>(gltfNode.scale[1]),
-                                   static_cast<float>(gltfNode.scale[2])};
+                node.scale = {static_cast<float>(gltfNode.scale[0]),
+                              static_cast<float>(gltfNode.scale[1]),
+                              static_cast<float>(gltfNode.scale[2])};
             } else {
-                transform.scale = glm::vec3(1.0f);
+                node.scale = glm::vec3(1.0f);
             }
         }
-
-        // We have a node with a transform, this can now go in the registry
-        const entt::entity currentNode = registry.create();
-
-        registry.emplace<Scene::Node>(currentNode, gltfNode.name);
-        registry.emplace<Scene::LocalTransform>(currentNode, transform);
-        registry.emplace<Scene::Parent>(currentNode);
-        registry.emplace<Scene::Children>(currentNode);
 
         if (gltfNode.mesh >= 0) {
             auto gltfMesh = gltfModel.meshes[gltfNode.mesh];
             for (auto& gltfPrimitive : gltfMesh.primitives) {
                 auto meshData = loadMesh(gltfPrimitive);
-                auto meshHandle = uploadMesh(meshData.first, meshData.second);
                 auto materialHandle = materialHandles[gltfPrimitive.material];
 
                 // We have a primitive
                 // Now we need to put this in the registry
-                const entt::entity primitive = registry.create();
-                registry.emplace<Scene::Parent>(primitive, Scene::Parent{.value = currentNode});
-                registry.emplace<Scene::Primitive>(primitive,
-                                                   Scene::Primitive{.mesh = meshHandle, .material = materialHandle});
-
-                // Put ourselves in the Children list for the node
-                (*registry.get<Scene::Children>(currentNode)).emplace_back(primitive);
+                node.primitives.emplace_back(
+                    glTFPrimitive{.vertices = meshData.first, .indices = meshData.second, .material = materialHandle});
             }
         }
 
+        node.name = gltfNode.name;
+
         // If we have a parent, put ourselves in the Children list too
-        if (parent.has_value()) {
-            (*registry.get<Scene::Children>(*parent)).emplace_back(currentNode);
-        }
-
-        // If we do not have one, make ourselves also an Object
-        else {
-            registry.emplace<Scene::Object>(currentNode);
-        }
-
         for (const auto& childID : gltfNode.children) {
             auto& gltfChild = gltfModel.nodes[childID];
-            self(gltfChild, currentNode);
+            auto child = self(gltfChild);
+            node.children.emplace_back(child);
         }
+
+        return node;
     };
 
     // Root nodes correspond to our "Objects"
     for (const auto& nodeIdx : gltfModel.scenes[gltfModel.defaultScene].nodes) {
         auto& rootNode = gltfModel.nodes[nodeIdx];
 
-        buildNode(rootNode, std::nullopt);
+        assets.emplace_back(buildNode(rootNode));
     }
+
+    return {&assets, assets.size() - 1};
 }
 
-auto ResourceManager::uploadMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
-    -> MeshHandle {
-    MeshHandle handle{.vertexBuffer = &vertexBuffer.value(),
-                      .indexBuffer = &indexBuffer.value(),
-                      .vertexOffset = vBufferEnd,
-                      .vertexCount = static_cast<uint32_t>(vertices.size()),
-                      .indexOffset = iBufferEnd,
-                      .indexCount = static_cast<uint32_t>(indices.size())};
-
-    auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
-
-    context.upload(
-        vertexBuffer.value(), vertices.data(), vertices.size() * sizeof(Vertex), vBufferEnd * sizeof(Vertex));
-
-    context.upload(
-        indexBuffer.value(), indices.data(), indices.size() * sizeof(uint32_t), iBufferEnd * sizeof(uint32_t));
-
-    vBufferEnd += vertices.size();
-    iBufferEnd += indices.size();
-
-    return handle;
-}
-
-auto ResourceManager::loadScene(const std::string& modelPath) -> Scene::Scene {
-    Scene::Scene scene;
-
-    descriptorSetLayouts.emplace_back(
-        *device,
-        std::vector<vk::DescriptorSetLayoutBinding>{
-            vk::DescriptorSetLayoutBinding(0,
-                                           vk::DescriptorType::eUniformBuffer,
-                                           1,
-                                           vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment),
-            vk::DescriptorSetLayoutBinding(
-                1, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment)});
-
-    scene.descriptorSetLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
-
-    for (uint32_t i = 0; i < 2; i++) {
-
-        descriptorSets.emplace_back(*device, descriptorPool, *scene.descriptorSetLayout);
-
-        std::vector<DescriptorWrite> uboWrites;
-
-        // get camera stuff
-        {
-            auto view = scene.entityRegistry.view<Scene::CameraGpuData>();
-            for (auto [entity, gpuData] : view->each()) {
-                uniformBuffers.emplace_back(*device, sizeof(CameraUBO));
-                gpuData.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
-
-                // This will very likely break with other cameras
-                uboWrites.emplace_back(DescriptorWrite{.binding = 0,
-                                                       .type = vk::DescriptorType::eUniformBuffer,
-                                                       .bufferInfo = {*uniformBuffers.back(), 0, sizeof(CameraUBO)}});
-            }
-        }
-
-        // set up light UBO
-        uniformBuffers.emplace_back(*device, sizeof(LightUBO));
-        scene.lightUniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
-
-        uboWrites.emplace_back(DescriptorWrite{.binding = 1,
-                                               .type = vk::DescriptorType::eUniformBuffer,
-                                               .bufferInfo = {*uniformBuffers.back(), 0, sizeof(LightUBO)}});
-
-        scene.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
-        descriptorSets[i].write(uboWrites);
-    }
-
-    pipelineManager.emplace(Vulkan::PipelineManager(*device, descriptorPool));
-
-    // load models
-    if (!modelPath.empty()) {
-        loadGLTF(modelPath, scene.entityRegistry);
-    }
-
-    for (auto& material : materials) {
-        pipelineManager->registerMaterial(material);
-    }
-
-    return scene;
-}
-
-auto ResourceManager::getPipelineManager() -> Vulkan::PipelineManager& { return *pipelineManager; }
+auto ResourceManager::getPipelineManager() -> Vulkan::PipelineManager& { return pipelineManager; }
 auto ResourceManager::getMaterial(const std::string& name) -> MaterialHandle { return materialNameMap[name]; }
 
 auto ResourceManager::createRenderTarget(const std::string& name,
@@ -596,5 +567,41 @@ auto ResourceManager::getOrCreateSampler(const Vulkan::SamplerConfig& config) ->
     auto index = samplers.size() - 1;
     samplerIndex[config] = index;
     return SamplerHandle{&samplers, index};
+}
+
+auto ResourceManager::getOrCreateMaterial(const std::string& name,
+                                          const Material::MaterialConfiguration& config,
+                                          const Material::MaterialResources& resources) -> MaterialHandle {
+    // Do we maybe know it by name
+    auto handleByName = materialNameMap.find(name);
+
+    if (handleByName != materialNameMap.end()) {
+        return handleByName->second;
+    }
+
+    // By configuration then
+    auto key = Material::MaterialKey{.config = config, .resources = resources};
+
+    auto handleByConfig = materialConfigMap.find(key);
+
+    if (handleByConfig != materialConfigMap.end()) {
+        // We didn't match by name, but the setups are the same... Opportunity to deduplicate?
+        return handleByConfig->second;
+    }
+
+    // Make a new material
+    Material mat = {name, config, resources};
+
+    uniformBuffers.emplace_back(*device, sizeof(MaterialUBO));
+    mat.materialBufferHandle = {&uniformBuffers, uniformBuffers.size() - 1};
+
+    materials.emplace_back(std::move(mat));
+    auto insertedHandle = MaterialHandle{&materials, materials.size() - 1};
+    materialNameMap.emplace(name, insertedHandle);
+    materialConfigMap.emplace(key, insertedHandle);
+
+    pipelineManager.registerMaterial(*insertedHandle);
+
+    return insertedHandle;
 }
 } // namespace Render

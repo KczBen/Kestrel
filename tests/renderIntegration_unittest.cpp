@@ -16,6 +16,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <atomic>
+#include <entt/entt.hpp>
 #include <gtest/gtest.h>
 #include <mutex>
 #include <vulkan/vulkan.hpp>
@@ -103,8 +104,10 @@ class RenderFixture : public ::testing::Test {
 
         debugMessenger_ = DebugMessengerGuard(*instance_);
 
-        resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-        scene_ = std::make_unique<Scene::Scene>(resourceManager_->loadScene(""));
+        entt::registry registry;
+        resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_, registry);
+        scene_ = std::make_unique<Scene::Scene>(registry);
+        resourceManager_->loadScene(*scene_);
 
         render_ = std::make_unique<Render::Render>(*resourceManager_,
                                                    *instance_,
@@ -239,8 +242,10 @@ class RenderSceneFixture : public ::testing::Test {
 
         debugMessenger_ = DebugMessengerGuard(*instance_);
 
-        resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-        scene_ = std::make_unique<Scene::Scene>(resourceManager_->loadScene(""));
+        entt::registry registry;
+        resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_, registry);
+        scene_ = std::make_unique<Scene::Scene>(registry);
+        resourceManager_->loadScene(*scene_);
 
         render_ = std::make_unique<Render::Render>(
             *resourceManager_, *instance_, *surface_, *physicalDevice_, *device_, 2, 256, 640);
@@ -271,8 +276,10 @@ TEST_F(RenderSceneFixture, RenderWithDifferentSizes) {
     validationErrorDetected = false;
     validationErrorMessage.clear();
 
-    auto rm = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-    auto emptyScene = std::make_unique<Scene::Scene>(rm->loadScene(""));
+    auto registry = std::make_unique<entt::registry>();
+    auto rm = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_, *registry);
+    auto emptyScene = std::make_unique<Scene::Scene>(*registry);
+    rm->loadScene(*emptyScene);
     auto r = std::make_unique<Render::Render>(*rm, *instance_, *surface_, *physicalDevice_, *device_, 2, 800, 600);
     r->init(*emptyScene);
 
@@ -289,8 +296,10 @@ TEST_F(RenderSceneFixture, RenderWithSmallSize) {
     validationErrorDetected = false;
     validationErrorMessage.clear();
 
-    auto rm = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_);
-    auto smallScene = std::make_unique<Scene::Scene>(rm->loadScene(""));
+    auto registry = std::make_unique<entt::registry>();
+    auto rm = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_, *registry);
+    auto smallScene = std::make_unique<Scene::Scene>(*registry);
+    rm->loadScene(*smallScene);
     auto r = std::make_unique<Render::Render>(*rm, *instance_, *surface_, *physicalDevice_, *device_, 2, 128, 128);
     r->init(*smallScene);
 
