@@ -1,13 +1,13 @@
 #pragma once
 
 #include "device.hpp"
+#include "gpuDataObjects.hpp"
 #include "resourceHandles.hpp"
 #include "vk_mem_alloc.h"
 #include "vulkan/vulkan.hpp"
-#include <deque>
 
 namespace Vulkan {
-class HostBuffer {
+template <typename T> class HostBuffer {
   private:
     VmaAllocator allocator;
     vk::Buffer buffer;
@@ -16,9 +16,22 @@ class HostBuffer {
     vk::DeviceSize bufferSize{};
 
   public:
-    HostBuffer(Vulkan::Device& device,
-               vk::DeviceSize size,
-               vk::BufferUsageFlags usage = vk::BufferUsageFlagBits::eUniformBuffer);
+    explicit HostBuffer(Vulkan::Device& device, vk::BufferUsageFlags usage = vk::BufferUsageFlagBits::eUniformBuffer)
+        : allocator(device.getAllocator()), bufferSize(sizeof(T)) {
+        vk::BufferCreateInfo bufferInfo({}, bufferSize, usage);
+
+        VmaAllocationCreateInfo allocInfo{};
+        allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+        VmaAllocationInfo info{};
+        VkBuffer raw{};
+        vmaCreateBuffer(
+            allocator, &static_cast<const VkBufferCreateInfo&>(bufferInfo), &allocInfo, &raw, &allocation, &info);
+
+        buffer = raw;
+        mapped = info.pMappedData;
+    }
 
     ~HostBuffer() {
         if (buffer) {
@@ -56,12 +69,17 @@ class HostBuffer {
         return *this;
     }
 
-    void update(const void* data, vk::DeviceSize dataSize);
+    void update(const void* data, vk::DeviceSize dataSize) { std::memcpy(mapped, data, dataSize); };
 
-    [[nodiscard]] auto operator*() const noexcept -> vk::Buffer { return buffer; }
-    [[nodiscard]] auto get() const noexcept -> vk::Buffer;
+    [[nodiscard]] auto data() noexcept -> T* { return static_cast<T*>(mapped); }
+    [[nodiscard]] auto data() const noexcept -> const T* { return static_cast<const T*>(mapped); }
+
+    [[nodiscard]] auto operator->() noexcept -> T* { return data(); }
+    [[nodiscard]] auto operator*() noexcept -> T& { return *data(); }
+
+    [[nodiscard]] auto get() const noexcept -> vk::Buffer { return buffer; }
+    [[nodiscard]] auto byteSize() const noexcept -> vk::DeviceSize { return bufferSize; }
 };
 
-using HostBufferHandle = Render::ResourceHandle<HostBuffer>;
-
+using MaterialUBOHandle = Render::ResourceHandle<HostBuffer<MaterialUBO>>;
 } // namespace Vulkan

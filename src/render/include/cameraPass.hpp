@@ -1,12 +1,12 @@
 #pragma once
 
 #include "pass.hpp"
-#include "scene.hpp"
+#include "resourceManager.hpp"
 
 namespace Render {
 class CameraPass : public Pass {
   private:
-    Scene::Scene* scene;
+    const RenderResources* resources;
     MaterialHandle materialHandle;
 
   public:
@@ -17,7 +17,7 @@ class CameraPass : public Pass {
                const RenderTargetAttachment& depthOutput,
                const std::vector<std::string>& dependencies,
                MaterialHandle materialHandle,
-               Scene::Scene* scene);
+               const RenderResources& resources);
 
     void record(PassContext ctx) override;
     [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override;

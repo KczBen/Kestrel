@@ -50,7 +50,6 @@ add_library(vulkan-wrapper
     src/vulkan/deviceBuffer.cpp
     src/vulkan/uploadContext.cpp
     src/vulkan/descriptorSet.cpp
-    src/vulkan/hostBuffer.cpp
     src/vulkan/pipelineManager.cpp
 )
 

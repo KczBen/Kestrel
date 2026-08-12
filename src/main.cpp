@@ -1,3 +1,4 @@
+#include "components.hpp"
 #include "descriptorPool.hpp"
 #include "device.hpp"
 #include "input.hpp"
@@ -74,9 +75,11 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
 
         entt::registry registry;
 
+        const entt::entity frameContextEntity = registry.create();
+        registry.emplace<FrameContext>(frameContextEntity);
+
         Render::ResourceManager resourceManager(physicalDevice, device, registry);
         Scene::Scene scene = (registry);
-        resourceManager.loadScene(scene);
 
         auto asset = resourceManager.importGLTF(std::string(SDL_GetBasePath()).append("models/CarConcept.glb"));
 
@@ -112,6 +115,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
         SDL_Event event;
 
         // MAIN LOOP
+        uint32_t currentFrame = 0;
         while (running) {
             // Handle events
             Input input;
@@ -164,6 +168,11 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
                 std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastFrameTime).count();
 
             scene.update(input, time);
+
+            // Trigger UBO updates after we captured inputs and ran simulations
+            uint32_t frameIndex = (currentFrame++) % 2;
+            registry.patch<FrameContext>(frameContextEntity, [&](FrameContext& fc) -> void { fc.index = frameIndex; });
+
             renderer.render(scene, time);
             lastFrameTime = currentTime;
         }

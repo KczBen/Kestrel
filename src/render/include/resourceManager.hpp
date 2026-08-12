@@ -2,8 +2,11 @@
 
 #include "commandPool.hpp"
 #include "descriptorPool.hpp"
+#include "descriptorSet.hpp"
+#include "descriptorSetLayout.hpp"
 #include "deviceBuffer.hpp"
 #include "gltfAsset.hpp"
+#include "gpuDataObjects.hpp"
 #include "hostBuffer.hpp"
 #include "material.hpp"
 #include "physicalDevice.hpp"
@@ -15,6 +18,7 @@
 #include "texture.hpp"
 #include "uploadBuffer.hpp"
 #include "vertex.hpp"
+#include <entt/entity/fwd.hpp>
 #include <entt/entt.hpp>
 #include <functional>
 #include <string>
@@ -23,6 +27,18 @@
 #include <vector>
 
 namespace Render {
+struct RenderResources {
+    entt::registry* entityRegistry{};
+    Vulkan::DescriptorSetLayoutHandle sceneLayout;
+    Vulkan::DescriptorSetHandle sceneDescriptorSet;
+
+  private:
+    std::vector<Vulkan::DescriptorSetHandle> sceneDescriptorSets;
+    uint32_t currentFrameIndex = 0;
+
+    friend class ResourceManager;
+};
+
 class ResourceManager {
   private:
     // Vulkan internals
@@ -35,7 +51,9 @@ class ResourceManager {
     std::optional<Vulkan::DeviceBuffer> vertexBuffer;
     std::optional<Vulkan::DeviceBuffer> indexBuffer;
 
-    std::vector<Vulkan::HostBuffer> uniformBuffers;
+    std::vector<Vulkan::HostBuffer<CameraUBO>> cameraUniformBuffers;
+    std::vector<Vulkan::HostBuffer<LightUBO>> lightUniformBuffers;
+    std::vector<Vulkan::HostBuffer<MaterialUBO>> materialUniformBuffers;
 
     uint32_t iBufferEnd;
     uint32_t vBufferEnd;
@@ -48,6 +66,8 @@ class ResourceManager {
     std::unordered_map<Vulkan::SamplerConfig, size_t, std::hash<Vulkan::SamplerConfig>> samplerIndex;
 
     Vulkan::PipelineManager pipelineManager;
+
+    std::vector<CameraData> cameraUBOCache;
 
     std::vector<entt::entity> tagRemovalQueue;
 
@@ -62,6 +82,8 @@ class ResourceManager {
     std::vector<RenderTarget> renderTargets;
     std::unordered_map<std::string, RenderTargetHandle> renderTargetNameMap;
 
+    RenderResources publicResources;
+
     auto getOrCreateSampler(const Vulkan::SamplerConfig& config) -> SamplerHandle;
 
     static auto extractTextureTransform(const tinygltf::ExtensionMap& extensions) -> Material::TextureTransform;
@@ -75,12 +97,16 @@ class ResourceManager {
 
     // EnTT callback stuff
     void onWantsPrimitive(entt::registry& registry, entt::entity entity);
+    void onCameraCreated(entt::registry& registry, entt::entity entity);
+    void onCameraDeleted(entt::registry& registry, entt::entity entity);
+    void onCameraUpdated(entt::registry& registry, entt::entity entity);
+
+    void onFrameTick(entt::registry& registry, entt::entity entity);
 
   public:
     ResourceManager(Vulkan::PhysicalDevice physicalDevice, Vulkan::Device& device, entt::registry& registry);
     auto getPipelineManager() -> Vulkan::PipelineManager&;
     auto getMaterial(const std::string& name) -> MaterialHandle;
-    void loadScene(Scene::Scene& scene);
     auto importGLTF(const std::string& path) -> AssetHandle;
     auto createRenderTarget(const std::string& name,
                             vk::Extent3D extent,
@@ -89,6 +115,7 @@ class ResourceManager {
                             vk::ImageAspectFlags aspectFlags,
                             vk::SampleCountFlagBits sampleCount = vk::SampleCountFlagBits::e1) -> RenderTargetHandle;
     auto getRenderTarget(const std::string& name) -> RenderTargetHandle;
+    auto getResources() const -> const RenderResources&;
     [[nodiscard]] auto getMaterials() const -> const std::vector<Material>& { return materials; }
 };
 } // namespace Render

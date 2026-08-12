@@ -1,6 +1,7 @@
 #include "descriptorSet.hpp"
 #include "descriptorPool.hpp"
 #include "descriptorSetLayout.hpp"
+#include "vulkan/vulkan.hpp"
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -27,7 +28,8 @@ void Vulkan::DescriptorSet::write(std::span<const DescriptorWrite> writes) {
         write.descriptorCount = 1;
         write.descriptorType = w.type;
 
-        if (w.type == vk::DescriptorType::eUniformBuffer || w.type == vk::DescriptorType::eStorageBuffer) {
+        if (w.type == vk::DescriptorType::eUniformBuffer || w.type == vk::DescriptorType::eUniformBufferDynamic ||
+            w.type == vk::DescriptorType::eStorageBuffer) {
             write.pBufferInfo = &w.bufferInfo;
         } else {
             write.pImageInfo = &w.imageInfo;

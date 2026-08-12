@@ -2,8 +2,6 @@
 #include "camera.hpp"
 #include "components.hpp"
 #include "gltfAsset.hpp"
-#include "gpuDataObjects.hpp"
-#include "hostBuffer.hpp"
 #include <entt/entity/fwd.hpp>
 #include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -11,11 +9,23 @@
 
 namespace Scene {
 Scene::Scene(entt::registry& registry) : entityRegistry(&registry) {
+    // make a few cameras to test dynamic offset
+    const auto dummycam1 = entityRegistry->create();
+    entityRegistry->emplace<CameraSettings>(dummycam1);
+    entityRegistry->emplace<CameraTransform>(dummycam1, glm::vec3{}, glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
+    entityRegistry->emplace<OrbitController>(dummycam1);
+    const auto dummycam2 = entityRegistry->create();
+    entityRegistry->emplace<CameraSettings>(dummycam2);
+    entityRegistry->emplace<CameraTransform>(dummycam2, glm::vec3{}, glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
+    entityRegistry->emplace<OrbitController>(dummycam2);
+    const auto dummycam3 = entityRegistry->create();
+    entityRegistry->emplace<CameraSettings>(dummycam3);
+    entityRegistry->emplace<CameraTransform>(dummycam3, glm::vec3{}, glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
+    entityRegistry->emplace<OrbitController>(dummycam3);
     // just make *a* camera for now
     const auto defaultCamera = entityRegistry->create();
     entityRegistry->emplace<CameraSettings>(defaultCamera);
     entityRegistry->emplace<CameraTransform>(defaultCamera, glm::vec3{}, glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
-    entityRegistry->emplace<CameraGpuData>(defaultCamera, std::vector<Vulkan::HostBufferHandle>{}, 0);
     entityRegistry->emplace<OrbitController>(defaultCamera);
 
     // Mark it active
@@ -31,7 +41,8 @@ void Scene::update(Input inputs, float deltaTime) {
     auto view = entityRegistry->view<CameraTransform, OrbitController, ActiveCamera>();
 
     for (auto [entity, transform, controller] : view.each()) {
-        Camera::updateOrbitCamera(transform, controller, inputs, deltaTime);
+        auto [newTransform, newController] = Camera::updateOrbitCamera(transform, controller, inputs, deltaTime);
+        entityRegistry->patch<CameraTransform>(entity, [&](auto& transform) -> void { transform = newTransform; });
     }
 }
 
@@ -92,12 +103,7 @@ void Scene::addLight(glm::vec3 position, glm::quat rotation, glm::vec3 colour, f
     entityRegistry->emplace<Light>(entity, Light{.colour = colour, .intensity = intensity, .maxRange = maxRange});
 }
 
-auto Scene::getDescriptorSetLayout() -> Vulkan::DescriptorSetLayout& { return *descriptorSetLayout; }
-auto Scene::getDescriptorSet() -> Vulkan::DescriptorSet& { return *descriptorSets[lastUpdatedIndex]; }
-
-auto Scene::flipDescriptorSet() -> void { lastUpdatedIndex = (lastUpdatedIndex + 1) % 2; }
-
-void Scene::updateUniformBuffers() {
+/*void Scene::updateUniformBuffers() {
     // Update each camera's UBO
     {
         auto view = entityRegistry->view<CameraTransform, CameraSettings, CameraGpuData>();
@@ -105,12 +111,12 @@ void Scene::updateUniformBuffers() {
         for (auto [entity, transform, settings, gpuData] : view.each()) {
             gpuData.lastUpdatedIndex = (gpuData.lastUpdatedIndex + 1) % 2;
 
-            CameraUBO ubo{};
+            CameraData ubo{};
             ubo.view = Camera::getViewMatrix(transform);
             ubo.proj = Camera::getProjectionMatrix(settings);
             ubo.invView = glm::inverse(ubo.view);
             ubo.invProj = glm::inverse(ubo.proj);
-            gpuData.uniformBuffers[gpuData.lastUpdatedIndex]->update(&ubo, sizeof(CameraUBO));
+            gpuData.uniformBuffers[gpuData.lastUpdatedIndex]->update(&ubo, sizeof(CameraData));
         }
     }
 
@@ -148,5 +154,5 @@ void Scene::updateUniformBuffers() {
             lightUniformBuffers[lightUBOIndex]->update(&lightUBO, sizeof(LightUBO));
         }
     }
-}
+}*/
 } // namespace Scene

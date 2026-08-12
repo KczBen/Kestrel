@@ -27,8 +27,9 @@ class Camera {
         return rotation * translation;
     }
 
-    static void
-    updateOrbitCamera(CameraTransform& transform, OrbitController& controller, const Input& input, float deltaTime) {
+    static auto
+    updateOrbitCamera(CameraTransform& transform, OrbitController& controller, const Input& input, float deltaTime)
+        -> std::pair<CameraTransform, OrbitController> {
         bool anyChange = false;
 
         // --- Scroll: dolly in/out ---
@@ -68,9 +69,13 @@ class Camera {
             }
         }
 
+        auto newTransform = transform;
+        auto newController = controller;
         if (anyChange) {
-            rebuildOrbitCamera(transform, controller);
+            rebuildOrbitCamera(newTransform, newController);
         }
+
+        return std::pair(newTransform, newController);
     }
 
     static void updateFirstPersonCamera(CameraTransform& transform,

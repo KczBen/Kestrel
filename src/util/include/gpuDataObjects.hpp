@@ -1,13 +1,45 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <optional>
 #define GLM_FORCE_RADIANS
 
-struct CameraUBO {
+struct CameraData {
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
     alignas(16) glm::mat4 invView;
     alignas(16) glm::mat4 invProj;
+};
+
+struct CameraUBO {
+    CameraData cameras[16];
+    uint32_t cameraCount;
+    uint32_t pad[3];
+
+    auto operator[](uint32_t slot) -> CameraData& {
+        assert(slot < cameraCount && "slot out of range");
+        return cameras[slot]; // NOLINT
+    }
+
+    auto operator[](uint32_t slot) const -> const CameraData& {
+        assert(slot < cameraCount && "slot out of range");
+        return cameras[slot]; // NOLINT
+    }
+
+    auto allocate() -> uint32_t {
+        assert(cameraCount < 16 && "buffer full");
+        return cameraCount++;
+    }
+
+    auto free(uint32_t slot) -> std::optional<uint32_t> {
+        assert(slot < cameraCount && "slot out of range");
+        --cameraCount;
+        if (slot == cameraCount) {
+            return std::nullopt;
+        }
+        cameras[slot] = cameras[cameraCount]; // NOLINT
+        return cameraCount;
+    }
 };
 
 struct MaterialUBO {
@@ -48,6 +80,30 @@ struct LightData {
 struct LightUBO {
     LightData lights[16];
     uint32_t lightCount;
+    uint32_t pad[3];
 
-    uint32_t pad[3]; // alignment requirements are stupid
+    auto operator[](uint32_t slot) -> LightData& {
+        assert(slot < lightCount && "slot out of range");
+        return lights[slot]; // NOLINT
+    }
+
+    auto operator[](uint32_t slot) const -> const LightData& {
+        assert(slot < lightCount && "slot out of range");
+        return lights[slot]; // NOLINT
+    }
+
+    auto allocate() -> uint32_t {
+        assert(lightCount < 16 && "buffer full");
+        return lightCount++;
+    }
+
+    auto free(uint32_t slot) -> std::optional<uint32_t> {
+        assert(slot < lightCount && "slot out of range");
+        --lightCount;
+        if (slot == lightCount) {
+            return std::nullopt;
+        }
+        lights[slot] = lights[lightCount]; // NOLINT
+        return lightCount;
+    }
 };

@@ -3,6 +3,7 @@
 #include "gpuDataObjects.hpp"
 #include "material.hpp"
 #include "pass.hpp"
+#include "vulkan/vulkan.hpp"
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
@@ -20,8 +21,8 @@ GeometryPass::GeometryPass(const std::string& name,
                            const RenderTargetAttachment& depthOutput,
                            const std::vector<std::string>& dependencies,
                            std::optional<MaterialHandle> optMaterial,
-                           Scene::Scene* scene)
-    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), scene(scene),
+                           const RenderResources& resources)
+    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), resources(&resources),
       optMaterial(optMaterial) {}
 
 void GeometryPass::record(PassContext ctx) {
@@ -32,16 +33,16 @@ void GeometryPass::record(PassContext ctx) {
         glm::mat4 transform{};
     };
 
-    auto& registry = scene->getRegistry();
+    const auto& registry = resources->entityRegistry;
 
     // Build a list of draw calls
     // Key on the materials
     std::unordered_map<MaterialHandle, std::vector<DrawCall>> drawCalls;
 
-    auto view = registry.view<Scene::Object, Scene::Children>();
+    auto view = registry->view<Scene::Object, Scene::Children>();
 
     auto buildDraws = [&](this auto& self, entt::entity entity, glm::mat4 parentTransform) -> void {
-        auto& localTransform = registry.get<Scene::LocalTransform>(entity);
+        auto& localTransform = registry->get<Scene::LocalTransform>(entity);
         glm::mat4 localMatrix;
         localMatrix = glm::translate(glm::mat4(1.0f), localTransform.position);
         localMatrix *= glm::mat4_cast(localTransform.rotation);
@@ -49,18 +50,18 @@ void GeometryPass::record(PassContext ctx) {
 
         const glm::mat4 worldTransform = parentTransform * localMatrix;
 
-        if (registry.any_of<Scene::Primitive>(entity)) {
-            auto& primitive = registry.get<Scene::Primitive>(entity);
+        if (registry->any_of<Scene::Primitive>(entity)) {
+            auto& primitive = registry->get<Scene::Primitive>(entity);
             auto materialHandle = optMaterial.value_or(primitive.material);
             drawCalls[materialHandle].push_back({primitive, materialHandle, worldTransform});
         }
 
-        auto& children = registry.get<Scene::Children>(entity);
+        auto& children = registry->get<Scene::Children>(entity);
         for (auto child : *children) {
-            if (registry.any_of<Scene::Node>(child)) {
+            if (registry->any_of<Scene::Node>(child)) {
                 self(child, worldTransform);
-            } else if (registry.any_of<Scene::Primitive>(child)) {
-                auto& primitive = registry.get<Scene::Primitive>(child);
+            } else if (registry->any_of<Scene::Primitive>(child)) {
+                auto& primitive = registry->get<Scene::Primitive>(child);
                 auto materialHandle = optMaterial.value_or(primitive.material);
                 drawCalls[materialHandle].push_back({primitive, materialHandle, worldTransform});
             }
@@ -86,16 +87,31 @@ void GeometryPass::record(PassContext ctx) {
             continue;
         }
 
+        // always have the scene layout included (for now)
+        std::vector<const Vulkan::DescriptorSetLayout*> layouts =
+            material->getDescriptorSetLayout().has_value()
+                ? std::vector<const Vulkan::DescriptorSetLayout*>{&*resources->sceneLayout,
+                                                                  &material->getDescriptorSetLayout().value()}
+                : std::vector<const Vulkan::DescriptorSetLayout*>{&*resources->sceneLayout};
+
         auto& pipeline = ctx.pipelineManager->getOrCreatePipeline(
-            material, *scene, formats, vk::SampleCountFlagBits::e1, depthWrite);
+            material, layouts, formats, vk::SampleCountFlagBits::e1, depthWrite);
         ctx.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
-        const Vulkan::DescriptorSet& sceneWS = scene->getDescriptorSet();
         const Vulkan::DescriptorSet& materialWS = material->getDescriptorSet();
 
-        const std::array<vk::DescriptorSet, 2> rawSets = {*sceneWS, *materialWS};
+        const std::array<vk::DescriptorSet, 2> rawSets = {**resources->sceneDescriptorSet, *materialWS};
 
-        ctx.cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline.getLayout(), 0, rawSets, nullptr);
+        // Get active camera
+        auto view = resources->entityRegistry->view<Scene::CameraIndex, Scene::ActiveCamera>();
+        const entt::entity activeCamera = view.front();
+        auto& index = view.get<Scene::CameraIndex>(activeCamera).index;
+
+        ctx.cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+                                   pipeline.getLayout(),
+                                   0,
+                                   rawSets,
+                                   {index * static_cast<uint32_t>(sizeof(CameraData))});
 
         const vk::DeviceSize offsets[] = {0};
 

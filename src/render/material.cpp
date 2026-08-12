@@ -1,6 +1,8 @@
 #include "material.hpp"
 #include "descriptorSet.hpp"
+#include "descriptorSetLayout.hpp"
 #include "vulkan/vulkan.hpp"
+#include <optional>
 #include <unistd.h>
 
 #include <utility>
@@ -62,3 +64,4 @@ auto Material::MaterialResources::operator==(const MaterialResources& other) con
 }
 
 auto Material::getDescriptorSet() -> Vulkan::DescriptorSet& { return descriptorSet.value(); }
+auto Material::getDescriptorSetLayout() -> std::optional<Vulkan::DescriptorSetLayout>& { return descriptorSetLayout; }

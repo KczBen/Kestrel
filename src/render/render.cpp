@@ -68,6 +68,8 @@ void Render::Render::init(Scene::Scene& scene) {
                                                 vk::ImageUsageFlagBits::eDepthStencilAttachment,
                                                 vk::ImageAspectFlagBits::eDepth);
 
+    const auto& res = resources->getResources();
+
     frameGraph.addPass(std::make_unique<GeometryPass>(
         GeometryPass("depth_pre",
                      {},
@@ -76,7 +78,7 @@ void Render::Render::init(Scene::Scene& scene) {
                      {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
                      {},
                      resources->getMaterial("depth_only"),
-                     &scene)));
+                     res)));
 
     frameGraph.addPass(std::make_unique<CameraPass>(
         CameraPass("sky",
@@ -86,7 +88,7 @@ void Render::Render::init(Scene::Scene& scene) {
                    {},
                    {},
                    resources->getMaterial("sky"),
-                   &scene)));
+                   res)));
 
     frameGraph.addPass(std::make_unique<GeometryPass>(
         GeometryPass("geometry",
@@ -96,7 +98,7 @@ void Render::Render::init(Scene::Scene& scene) {
                      {},
                      {},
                      std::nullopt,
-                     &scene)));
+                     res)));
 
     frameGraph.addPass(std::make_unique<CameraPass>(
         CameraPass("grid_overlay",
@@ -106,7 +108,7 @@ void Render::Render::init(Scene::Scene& scene) {
                    {},
                    {},
                    resources->getMaterial("grid_overlay"),
-                   &scene)));
+                   res)));
 
     frameGraph.addPass(std::make_unique<ImGuiPass>(
         ImGuiPass("gui", {colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}, {"sky"})));
@@ -115,9 +117,6 @@ void Render::Render::init(Scene::Scene& scene) {
 }
 
 void Render::Render::render(Scene::Scene& scene, float deltaTime) {
-    scene.flipDescriptorSet();
-    scene.updateUniformBuffers();
-
     syncObjects.waitForFrame(frameIndex);
 
     auto [result, imageIndex] = (*swapchain).acquireNextImage(UINT64_MAX, syncObjects.getImageAvailable(frameIndex));

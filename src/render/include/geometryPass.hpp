@@ -2,13 +2,13 @@
 
 #include "material.hpp"
 #include "pass.hpp"
-#include "scene.hpp"
+#include "resourceManager.hpp"
 #include <optional>
 
 namespace Render {
 class GeometryPass : public Pass {
   private:
-    Scene::Scene* scene;
+    const RenderResources* resources;
     std::optional<MaterialHandle> optMaterial;
 
   public:
@@ -19,7 +19,7 @@ class GeometryPass : public Pass {
                  const RenderTargetAttachment& depthOutput,
                  const std::vector<std::string>& dependencies,
                  std::optional<MaterialHandle> optMaterial,
-                 Scene::Scene* scene);
+                 const RenderResources& resources);
 
     void record(PassContext ctx) override;
     [[nodiscard]] auto supportedMaterialTypes() const -> uint32_t override;

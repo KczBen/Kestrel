@@ -1,3 +1,4 @@
+#include "camera.hpp"
 #include "descriptorSet.hpp"
 #include "gltfAsset.hpp"
 #include "renderTarget.hpp"
@@ -47,7 +48,52 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice,
                                        vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst);
     stagingBuffer = Vulkan::UploadBuffer(device, static_cast<long>(512 * 1024 * 1024));
 
+    cameraUBOCache.resize(16);
+
+    publicResources.entityRegistry = &registry;
+
+    descriptorSetLayouts.emplace_back(
+        device,
+        std::vector<vk::DescriptorSetLayoutBinding>{
+            vk::DescriptorSetLayoutBinding(0,
+                                           vk::DescriptorType::eUniformBufferDynamic,
+                                           1,
+                                           vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment),
+            vk::DescriptorSetLayoutBinding(
+                1, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment)});
+
+    publicResources.sceneLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
+
+    for (uint32_t i = 0; i < 2; i++) {
+        descriptorSets.emplace_back(device, descriptorPool, descriptorSetLayouts.back());
+
+        std::vector<DescriptorWrite> uboWrites;
+
+        // set up camera UBO
+        cameraUniformBuffers.emplace_back(device);
+        uboWrites.emplace_back(
+            DescriptorWrite{.binding = 0,
+                            .type = vk::DescriptorType::eUniformBufferDynamic,
+                            .bufferInfo = {cameraUniformBuffers.back().get(), 0, sizeof(CameraData)}});
+
+        // set up light UBO
+        lightUniformBuffers.emplace_back(device);
+        uboWrites.emplace_back(DescriptorWrite{.binding = 1,
+                                               .type = vk::DescriptorType::eUniformBuffer,
+                                               .bufferInfo = {lightUniformBuffers.back().get(), 0, sizeof(LightUBO)}});
+
+        publicResources.sceneDescriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
+        descriptorSets.back().write(uboWrites);
+    }
+
+    publicResources.sceneDescriptorSet = publicResources.sceneDescriptorSets[0];
+
     registry.on_construct<Scene::WantsPrimitive>().connect<&ResourceManager::onWantsPrimitive>(*this);
+    registry.on_construct<Scene::CameraTransform>().connect<&ResourceManager::onCameraCreated>(*this);
+    registry.on_update<FrameContext>().connect<&ResourceManager::onFrameTick>(*this);
+
+    registry.on_update<Scene::CameraTransform>().connect<&ResourceManager::onCameraUpdated>(*this);
+    registry.on_update<Scene::CameraSettings>().connect<&ResourceManager::onCameraUpdated>(*this);
 
     // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
     getOrCreateMaterial("sky",
@@ -182,14 +228,6 @@ auto ResourceManager::uploadMesh(const std::vector<Vertex>& vertices, const std:
 }
 
 void ResourceManager::onWantsPrimitive(entt::registry& registry, entt::entity entity) {
-    // Remove whatever we queued last
-    for (auto entity : tagRemovalQueue) {
-        if (registry.all_of<Scene::WantsPrimitive>(entity)) {
-            registry.remove<Scene::WantsPrimitive>(entity);
-        }
-    }
-    tagRemovalQueue.clear();
-
     auto want = registry.get<Scene::WantsPrimitive>(entity);
     auto mesh = uploadMesh(want.primitive->vertices, want.primitive->indices);
     want.primitive->uploadedMesh = mesh;
@@ -197,50 +235,70 @@ void ResourceManager::onWantsPrimitive(entt::registry& registry, entt::entity en
     registry.emplace<Scene::Primitive>(entity, mesh, want.primitive->material);
 }
 
-void ResourceManager::loadScene(Scene::Scene& scene) {
-    descriptorSetLayouts.emplace_back(
-        *device,
-        std::vector<vk::DescriptorSetLayoutBinding>{
-            vk::DescriptorSetLayoutBinding(0,
-                                           vk::DescriptorType::eUniformBuffer,
-                                           1,
-                                           vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment),
-            vk::DescriptorSetLayoutBinding(
-                1, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment)});
+void ResourceManager::onFrameTick(entt::registry& registry, entt::entity entity) {
+    auto frame = registry.get<FrameContext>(entity).index;
+    publicResources.currentFrameIndex = frame;
+    publicResources.sceneDescriptorSet = publicResources.sceneDescriptorSets[frame];
 
-    scene.descriptorSetLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
-
-    for (uint32_t i = 0; i < 2; i++) {
-
-        descriptorSets.emplace_back(*device, descriptorPool, *scene.descriptorSetLayout);
-
-        std::vector<DescriptorWrite> uboWrites;
-
-        // get camera stuff
-        {
-            auto view = scene.entityRegistry->view<Scene::CameraGpuData>();
-            for (auto [entity, gpuData] : view->each()) {
-                uniformBuffers.emplace_back(*device, sizeof(CameraUBO));
-                gpuData.uniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
-
-                // This will very likely break with other cameras
-                uboWrites.emplace_back(DescriptorWrite{.binding = 0,
-                                                       .type = vk::DescriptorType::eUniformBuffer,
-                                                       .bufferInfo = {*uniformBuffers.back(), 0, sizeof(CameraUBO)}});
-            }
+    // Clear flags
+    for (auto e : tagRemovalQueue) {
+        if (registry.all_of<Scene::WantsPrimitive>(e)) {
+            registry.remove<Scene::WantsPrimitive>(e);
         }
-
-        // set up light UBO
-        uniformBuffers.emplace_back(*device, sizeof(LightUBO));
-        scene.lightUniformBuffers.emplace_back(&uniformBuffers, uniformBuffers.size() - 1);
-
-        uboWrites.emplace_back(DescriptorWrite{.binding = 1,
-                                               .type = vk::DescriptorType::eUniformBuffer,
-                                               .bufferInfo = {*uniformBuffers.back(), 0, sizeof(LightUBO)}});
-
-        scene.descriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
-        descriptorSets[i].write(uboWrites);
     }
+    tagRemovalQueue.clear();
+
+    // Do UBO updates
+    {
+        auto view = registry.view<Scene::DirtyUBOs, Scene::CameraIndex>();
+        for (auto [e, dirtyUBOs, slot] : view.each()) {
+            if (dirtyUBOs.dirtyUBOs[frame] == 1) { // NOLINT
+                (*cameraUniformBuffers[frame])[slot.index] = cameraUBOCache[slot.index];
+            }
+
+            registry.get<Scene::DirtyUBOs>(e).dirtyUBOs[frame] = 0; // NOLINT
+        }
+    }
+}
+
+void ResourceManager::onCameraCreated(entt::registry& registry, entt::entity entity) {
+    auto [transform, settings] = registry.get<Scene::CameraTransform, Scene::CameraSettings>(entity);
+    // allocate a new camera in the buffers
+    auto& ubo = cameraUniformBuffers[publicResources.currentFrameIndex];
+    auto cameraIndex = ubo->allocate();
+    // We can put in an index now
+    registry.emplace<Scene::CameraIndex>(entity, Scene::CameraIndex{cameraIndex});
+
+    // Mark both UBOs dirty
+    registry.emplace<Scene::DirtyUBOs>(entity, Scene::DirtyUBOs{1, 1});
+
+    // on creation we need to write to both UBOs
+    // this is kind of hacky, we need to free the camera we just allocated so the slot is free again
+    ubo->free(cameraIndex);
+
+    for (auto& buffer : cameraUniformBuffers) {
+        (*buffer)[buffer->allocate()];
+    }
+
+    cameraUBOCache[cameraIndex].view = Scene::Camera::getViewMatrix(transform);
+    cameraUBOCache[cameraIndex].proj = Scene::Camera::getProjectionMatrix(settings);
+    cameraUBOCache[cameraIndex].invView = glm::inverse(cameraUBOCache[cameraIndex].view);
+    cameraUBOCache[cameraIndex].invProj = glm::inverse(cameraUBOCache[cameraIndex].proj);
+}
+
+void ResourceManager::onCameraUpdated(entt::registry& registry, entt::entity entity) {
+    auto [transform, settings, index] =
+        registry.get<Scene::CameraTransform, Scene::CameraSettings, Scene::CameraIndex>(entity);
+
+    auto cameraIndex = index.index;
+
+    cameraUBOCache[cameraIndex].view = Scene::Camera::getViewMatrix(transform);
+    cameraUBOCache[cameraIndex].proj = Scene::Camera::getProjectionMatrix(settings);
+    cameraUBOCache[cameraIndex].invView = glm::inverse(cameraUBOCache[cameraIndex].view);
+    cameraUBOCache[cameraIndex].invProj = glm::inverse(cameraUBOCache[cameraIndex].proj);
+
+    // Mark both UBOs dirty
+    registry.emplace_or_replace<Scene::DirtyUBOs>(entity, Scene::DirtyUBOs{1, 1});
 }
 
 auto ResourceManager::importGLTF(const std::string& path) -> AssetHandle {
@@ -539,6 +597,7 @@ auto ResourceManager::importGLTF(const std::string& path) -> AssetHandle {
 
 auto ResourceManager::getPipelineManager() -> Vulkan::PipelineManager& { return pipelineManager; }
 auto ResourceManager::getMaterial(const std::string& name) -> MaterialHandle { return materialNameMap[name]; }
+auto ResourceManager::getResources() const -> const RenderResources& { return publicResources; }
 
 auto ResourceManager::createRenderTarget(const std::string& name,
                                          vk::Extent3D extent,
@@ -592,8 +651,8 @@ auto ResourceManager::getOrCreateMaterial(const std::string& name,
     // Make a new material
     Material mat = {name, config, resources};
 
-    uniformBuffers.emplace_back(*device, sizeof(MaterialUBO));
-    mat.materialBufferHandle = {&uniformBuffers, uniformBuffers.size() - 1};
+    materialUniformBuffers.emplace_back(*device);
+    mat.materialBufferHandle = {&materialUniformBuffers, materialUniformBuffers.size() - 1};
 
     materials.emplace_back(std::move(mat));
     auto insertedHandle = MaterialHandle{&materials, materials.size() - 1};

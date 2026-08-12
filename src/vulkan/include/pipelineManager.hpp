@@ -4,7 +4,6 @@
 #include "device.hpp"
 #include "graphicsPipeline.hpp"
 #include "material.hpp"
-#include "scene.hpp"
 #include "vulkan/vulkan.hpp"
 #include <span>
 #include <unordered_map>
@@ -70,7 +69,7 @@ class PipelineManager {
 
     void registerMaterial(Material& material);
     auto getOrCreatePipeline(MaterialHandle materialHandle,
-                             Scene::Scene& scene,
+                             std::span<const Vulkan::DescriptorSetLayout*> layouts,
                              std::span<const vk::Format> formats,
                              vk::SampleCountFlagBits sampleCount = vk::SampleCountFlagBits::e1,
                              bool depthWrite = true) -> Vulkan::GraphicsPipeline&;

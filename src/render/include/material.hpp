@@ -112,6 +112,7 @@ class Material {
     Material(std::string name, MaterialConfiguration config, MaterialResources resources);
 
     auto getDescriptorSet() -> Vulkan::DescriptorSet&;
+    auto getDescriptorSetLayout() -> std::optional<Vulkan::DescriptorSetLayout>&;
     [[nodiscard]] auto getName() const -> const std::string& { return name; }
     [[nodiscard]] auto getResources() const -> const MaterialResources& { return resources; }
     [[nodiscard]] auto getConfiguration() const -> const MaterialConfiguration& { return pipelineConfiguration; }
@@ -124,7 +125,7 @@ class Material {
 
     std::optional<Vulkan::DescriptorSetLayout> descriptorSetLayout;
     std::optional<Vulkan::DescriptorSet> descriptorSet;
-    Vulkan::HostBufferHandle materialBufferHandle;
+    Vulkan::MaterialUBOHandle materialBufferHandle;
     Vulkan::GraphicsPipeline* graphicsPipeline = nullptr;
 
     friend class Vulkan::PipelineManager;

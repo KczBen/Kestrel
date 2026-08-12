@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gltfAsset.hpp"
-#include "hostBuffer.hpp"
 #include "material.hpp"
 #include "resourceHandles.hpp"
 
@@ -50,6 +49,14 @@ struct ActiveCamera {
     // nothing here, just a tag
 };
 
+struct CameraIndex {
+    uint32_t index; // tells us where in the UBO this camera is
+};
+
+struct DirtyUBOs {
+    std::array<uint8_t, 2> dirtyUBOs;
+};
+
 struct CameraSettings {
     float fov = 45.0f;
     float aspectRatio = 1280.0f / 720.0f;
@@ -61,11 +68,6 @@ struct CameraTransform {
     glm::vec3 position;
     glm::quat orientation;
     glm::vec3 worldUp{0.f, 1.f, 0.f};
-};
-
-struct CameraGpuData {
-    std::vector<Vulkan::HostBufferHandle> uniformBuffers;
-    int32_t lastUpdatedIndex;
 };
 
 struct FirstPersonController {
@@ -103,3 +105,7 @@ struct Parent {
     auto operator*() const noexcept { return value; }
 };
 } // namespace Scene
+
+struct FrameContext {
+    uint32_t index = 0; // current frame-in-flight index
+};

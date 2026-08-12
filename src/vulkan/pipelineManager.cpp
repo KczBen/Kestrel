@@ -48,7 +48,7 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
                 .occlusionTransformMatrix = buildTextureTransformMatrix(material.resources.occlusionTransform),
                 .emissiveTransformMatrix = buildTextureTransformMatrix(material.resources.emissiveTransform)};
 
-            material.materialBufferHandle->update(&ubo, sizeof(MaterialUBO));
+            **material.materialBufferHandle = ubo;
 
             writes.emplace_back(
                 DescriptorWrite{.binding = bindingIndex++,
@@ -107,7 +107,7 @@ void Vulkan::PipelineManager::registerMaterial(Material& material) {
 }
 
 auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
-                                                  Scene::Scene& scene,
+                                                  std::span<const Vulkan::DescriptorSetLayout*> layouts,
                                                   std::span<const vk::Format> formats,
                                                   vk::SampleCountFlagBits sampleCount,
                                                   bool depthWrite) -> Vulkan::GraphicsPipeline& {
@@ -117,13 +117,6 @@ auto Vulkan::PipelineManager::getOrCreatePipeline(MaterialHandle materialHandle,
         materialHandle->graphicsPipeline = &pipelineCache.find(key)->second;
         return *materialHandle->graphicsPipeline;
     }
-
-    // always have the scene layout included (for now)
-    std::vector<const Vulkan::DescriptorSetLayout*> layouts =
-        materialHandle->descriptorSetLayout.has_value()
-            ? std::vector<const Vulkan::DescriptorSetLayout*>{&scene.getDescriptorSetLayout(),
-                                                              &materialHandle->descriptorSetLayout.value()}
-            : std::vector<const Vulkan::DescriptorSetLayout*>{&scene.getDescriptorSetLayout()};
 
     vk::BlendOp blendMode = vk::BlendOp::eAdd;
 
