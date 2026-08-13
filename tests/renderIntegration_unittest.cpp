@@ -107,7 +107,6 @@ class RenderFixture : public ::testing::Test {
         entt::registry registry;
         resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_, registry);
         scene_ = std::make_unique<Scene::Scene>(registry);
-        resourceManager_->loadScene(*scene_);
 
         render_ = std::make_unique<Render::Render>(*resourceManager_,
                                                    *instance_,
@@ -245,7 +244,6 @@ class RenderSceneFixture : public ::testing::Test {
         entt::registry registry;
         resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_, registry);
         scene_ = std::make_unique<Scene::Scene>(registry);
-        resourceManager_->loadScene(*scene_);
 
         render_ = std::make_unique<Render::Render>(
             *resourceManager_, *instance_, *surface_, *physicalDevice_, *device_, 2, 256, 640);
@@ -279,7 +277,6 @@ TEST_F(RenderSceneFixture, RenderWithDifferentSizes) {
     auto registry = std::make_unique<entt::registry>();
     auto rm = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_, *registry);
     auto emptyScene = std::make_unique<Scene::Scene>(*registry);
-    rm->loadScene(*emptyScene);
     auto r = std::make_unique<Render::Render>(*rm, *instance_, *surface_, *physicalDevice_, *device_, 2, 800, 600);
     r->init(*emptyScene);
 
@@ -299,7 +296,6 @@ TEST_F(RenderSceneFixture, RenderWithSmallSize) {
     auto registry = std::make_unique<entt::registry>();
     auto rm = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_, *registry);
     auto smallScene = std::make_unique<Scene::Scene>(*registry);
-    rm->loadScene(*smallScene);
     auto r = std::make_unique<Render::Render>(*rm, *instance_, *surface_, *physicalDevice_, *device_, 2, 128, 128);
     r->init(*smallScene);
 

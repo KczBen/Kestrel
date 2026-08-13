@@ -50,7 +50,6 @@ class FrameGraphFixture : public ::testing::Test {
         entt::registry registry;
         resourceManager_ = std::make_unique<ResourceManager>(*physicalDevice_, *device_, registry);
         scene_ = std::make_unique<Scene::Scene>(registry);
-        resourceManager_->loadScene(*scene_);
         pipelineManager_ = &resourceManager_->getPipelineManager();
     }
 

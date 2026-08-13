@@ -11,6 +11,15 @@
 
 using namespace Vulkan;
 
+namespace {
+struct TestUBO {
+    float data[16];
+};
+struct TestSSBO {
+    float data[64];
+};
+} // namespace
+
 // Shared base for anything that needs a Device
 class DeviceFixture : public ::testing::Test {
   protected:
@@ -41,9 +50,9 @@ TEST_F(DescriptorSetFixture, GetReturnsNonNull) { ASSERT_NE(*descriptorSet, VK_N
 
 // Covers the eUniformBuffer branch in write()
 TEST_F(DescriptorSetFixture, WriteUniformBuffer) {
-    const HostBuffer ubo{device, sizeof(float) * 16}; // defaults to eUniformBuffer
+    HostBuffer<TestUBO> ubo{device};
 
-    const vk::DescriptorBufferInfo bufferInfo{*ubo, 0, sizeof(float) * 16};
+    const vk::DescriptorBufferInfo bufferInfo{ubo.get(), 0, sizeof(TestUBO)};
 
     DescriptorWrite write{};
     write.binding = 0;
@@ -65,9 +74,9 @@ class DescriptorSetStorageFixture : public DeviceFixture {
 };
 
 TEST_F(DescriptorSetStorageFixture, WriteStorageBuffer) {
-    const HostBuffer ssbo{device, sizeof(float) * 64, vk::BufferUsageFlagBits::eStorageBuffer};
+    HostBuffer<TestSSBO> ssbo{device, vk::BufferUsageFlagBits::eStorageBuffer};
 
-    const vk::DescriptorBufferInfo bufferInfo{*ssbo, 0, sizeof(float) * 64};
+    const vk::DescriptorBufferInfo bufferInfo{ssbo.get(), 0, sizeof(TestSSBO)};
 
     DescriptorWrite write{};
     write.binding = 0;
