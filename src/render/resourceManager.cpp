@@ -252,11 +252,10 @@ void ResourceManager::onFrameTick(entt::registry& registry, entt::entity entity)
     {
         auto view = registry.view<Scene::DirtyUBOs, Scene::CameraIndex>();
         for (auto [e, dirtyUBOs, slot] : view.each()) {
-            if (dirtyUBOs.dirtyUBOs[frame] == 1) { // NOLINT
+            if (dirtyUBOs.dirtyUBOs > 0) {
                 (*cameraUniformBuffers[frame])[slot.index] = cameraUBOCache[slot.index];
+                dirtyUBOs.dirtyUBOs -= 1;
             }
-
-            registry.get<Scene::DirtyUBOs>(e).dirtyUBOs[frame] = 0; // NOLINT
         }
     }
 }
@@ -270,7 +269,7 @@ void ResourceManager::onCameraCreated(entt::registry& registry, entt::entity ent
     registry.emplace<Scene::CameraIndex>(entity, Scene::CameraIndex{cameraIndex});
 
     // Mark both UBOs dirty
-    registry.emplace<Scene::DirtyUBOs>(entity, Scene::DirtyUBOs{1, 1});
+    registry.emplace<Scene::DirtyUBOs>(entity, Scene::DirtyUBOs{2});
 
     // on creation we need to write to both UBOs
     // this is kind of hacky, we need to free the camera we just allocated so the slot is free again
@@ -298,7 +297,7 @@ void ResourceManager::onCameraUpdated(entt::registry& registry, entt::entity ent
     cameraUBOCache[cameraIndex].invProj = glm::inverse(cameraUBOCache[cameraIndex].proj);
 
     // Mark both UBOs dirty
-    registry.emplace_or_replace<Scene::DirtyUBOs>(entity, Scene::DirtyUBOs{1, 1});
+    registry.emplace_or_replace<Scene::DirtyUBOs>(entity, Scene::DirtyUBOs{2});
 }
 
 auto ResourceManager::importGLTF(const std::string& path) -> AssetHandle {

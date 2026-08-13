@@ -42,7 +42,9 @@ void Scene::update(Input inputs, float deltaTime) {
 
     for (auto [entity, transform, controller] : view.each()) {
         auto [newTransform, newController] = Camera::updateOrbitCamera(transform, controller, inputs, deltaTime);
-        entityRegistry->patch<CameraTransform>(entity, [&](auto& transform) -> void { transform = newTransform; });
+        if (newTransform != transform) {
+            entityRegistry->patch<CameraTransform>(entity, [&](auto& transform) -> void { transform = newTransform; });
+        }
     }
 }
 

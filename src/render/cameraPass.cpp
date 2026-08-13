@@ -3,7 +3,6 @@
 #include "material.hpp"
 #include "pass.hpp"
 #include <cstdint>
-#include <print>
 #include <vector>
 
 namespace Render {

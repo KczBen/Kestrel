@@ -54,7 +54,7 @@ struct CameraIndex {
 };
 
 struct DirtyUBOs {
-    std::array<uint8_t, 2> dirtyUBOs;
+    uint8_t dirtyUBOs;
 };
 
 struct CameraSettings {
@@ -68,6 +68,10 @@ struct CameraTransform {
     glm::vec3 position;
     glm::quat orientation;
     glm::vec3 worldUp{0.f, 1.f, 0.f};
+
+    auto operator==(const CameraTransform& other) const -> bool {
+        return position == other.position && orientation == other.orientation && worldUp == other.worldUp;
+    }
 };
 
 struct FirstPersonController {
