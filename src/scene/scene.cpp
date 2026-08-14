@@ -9,19 +9,6 @@
 
 namespace Scene {
 Scene::Scene(entt::registry& registry) : entityRegistry(&registry) {
-    // make a few cameras to test dynamic offset
-    const auto dummycam1 = entityRegistry->create();
-    entityRegistry->emplace<CameraSettings>(dummycam1);
-    entityRegistry->emplace<CameraTransform>(dummycam1, glm::vec3{}, glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
-    entityRegistry->emplace<OrbitController>(dummycam1);
-    const auto dummycam2 = entityRegistry->create();
-    entityRegistry->emplace<CameraSettings>(dummycam2);
-    entityRegistry->emplace<CameraTransform>(dummycam2, glm::vec3{}, glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
-    entityRegistry->emplace<OrbitController>(dummycam2);
-    const auto dummycam3 = entityRegistry->create();
-    entityRegistry->emplace<CameraSettings>(dummycam3);
-    entityRegistry->emplace<CameraTransform>(dummycam3, glm::vec3{}, glm::quat{1.0f, 0.0f, 0.0f, 0.0f});
-    entityRegistry->emplace<OrbitController>(dummycam3);
     // just make *a* camera for now
     const auto defaultCamera = entityRegistry->create();
     entityRegistry->emplace<CameraSettings>(defaultCamera);
