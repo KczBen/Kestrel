@@ -307,3 +307,140 @@ TEST_F(RenderSceneFixture, RenderWithSmallSize) {
         FAIL() << "Validation error during init: " << getValidationErrors();
     }
 }
+
+// Fixture for testing camera lifecycle with ResourceManager
+class CameraLifecycleFixture : public ::testing::Test {
+  protected:
+    void SetUp() override {
+        validationErrorDetected = false;
+        validationErrorMessage.clear();
+
+        std::array<const char*, 3> extensions = {
+            vk::KHRSurfaceExtensionName, vk::EXTHeadlessSurfaceExtensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+
+        instance_ = std::make_unique<Vulkan::Instance>("TestApp", extensions);
+        surface_ = std::make_unique<Vulkan::Surface>(*instance_);
+        physicalDevice_ = std::make_unique<Vulkan::PhysicalDevice>(*instance_, *surface_);
+        device_ = std::make_unique<Vulkan::Device>(*physicalDevice_, *instance_);
+
+        debugMessenger_ = DebugMessengerGuard(*instance_);
+
+        registry_ = std::make_unique<entt::registry>();
+        resourceManager_ = std::make_unique<Render::ResourceManager>(*physicalDevice_, *device_, *registry_);
+    }
+
+    void TearDown() override { Test::TearDown(); }
+
+    auto getValidationErrors() -> std::string {
+        std::lock_guard<std::mutex> lock(validationErrorMutex);
+        return validationErrorMessage;
+    }
+
+    // Manually create a camera by emplacing all required components
+    auto createCameraManual(entt::entity entity) -> void {
+        registry_->emplace<Scene::CameraSettings>(entity);
+        registry_->emplace<Scene::CameraTransform>(entity);
+    }
+
+  protected:
+    std::unique_ptr<Vulkan::Instance> instance_;
+    std::unique_ptr<Vulkan::Surface> surface_;
+    std::unique_ptr<Vulkan::PhysicalDevice> physicalDevice_;
+    std::unique_ptr<Vulkan::Device> device_;
+    DebugMessengerGuard debugMessenger_;
+
+    std::unique_ptr<entt::registry> registry_;
+    std::unique_ptr<Render::ResourceManager> resourceManager_;
+};
+
+TEST_F(CameraLifecycleFixture, DeleteSingleCameraRemovesIndex) {
+    validationErrorDetected = false;
+    validationErrorMessage.clear();
+
+    // Create a single camera manually
+    auto entity = registry_->create();
+    createCameraManual(entity);
+
+    // Verify CameraIndex was created
+    auto index = registry_->get<Scene::CameraIndex>(entity);
+    EXPECT_EQ(index.index, 0u);
+
+    // Verify camera count
+    EXPECT_EQ(resourceManager_->getCameraCount(), 1u);
+
+    // Delete the camera manually by calling onCameraDeleted
+    resourceManager_->onCameraDeleted(*registry_, entity);
+
+    // Verify camera count is now 0
+    EXPECT_EQ(resourceManager_->getCameraCount(), 0u);
+
+    if (validationErrorDetected.load()) {
+        FAIL() << "Validation error during camera deletion: " << getValidationErrors();
+    }
+}
+
+TEST_F(CameraLifecycleFixture, DeleteOneOfTwoCamerasUpdatesRemainingIndex) {
+    validationErrorDetected = false;
+    validationErrorMessage.clear();
+
+    // Create two cameras manually
+    auto camera1 = registry_->create();
+    createCameraManual(camera1);
+
+    auto camera2 = registry_->create();
+    createCameraManual(camera2);
+
+    auto index1 = registry_->get<Scene::CameraIndex>(camera1);
+    auto index2 = registry_->get<Scene::CameraIndex>(camera2);
+
+    // Verify initial indices
+    EXPECT_EQ(index1.index, 0u);
+    EXPECT_EQ(index2.index, 1u);
+
+    // Delete the first camera manually by calling onCameraDeleted
+    resourceManager_->onCameraDeleted(*registry_, camera1);
+
+    // Verify camera2's index was updated to 0
+    auto newIndex2 = registry_->get<Scene::CameraIndex>(camera2);
+    EXPECT_EQ(newIndex2.index, 0u);
+
+    // Verify camera count is now 1
+    EXPECT_EQ(resourceManager_->getCameraCount(), 1u);
+
+    if (validationErrorDetected.load()) {
+        FAIL() << "Validation error during camera deletion: " << getValidationErrors();
+    }
+}
+
+TEST_F(CameraLifecycleFixture, DeleteLastCameraInBatchDoesNotSwap) {
+    validationErrorDetected = false;
+    validationErrorMessage.clear();
+
+    // Create two cameras manually
+    auto camera1 = registry_->create();
+    createCameraManual(camera1);
+
+    auto camera2 = registry_->create();
+    createCameraManual(camera2);
+
+    auto index1 = registry_->get<Scene::CameraIndex>(camera1);
+    auto index2 = registry_->get<Scene::CameraIndex>(camera2);
+
+    // Verify initial indices
+    EXPECT_EQ(index1.index, 0u);
+    EXPECT_EQ(index2.index, 1u);
+
+    // Delete the last camera manually by calling onCameraDeleted
+    resourceManager_->onCameraDeleted(*registry_, camera2);
+
+    // Verify camera1's index is still 0 (not changed)
+    auto index1After = registry_->get<Scene::CameraIndex>(camera1);
+    EXPECT_EQ(index1After.index, 0u);
+
+    // Verify camera count is now 1
+    EXPECT_EQ(resourceManager_->getCameraCount(), 1u);
+
+    if (validationErrorDetected.load()) {
+        FAIL() << "Validation error during camera deletion: " << getValidationErrors();
+    }
+}

@@ -48,8 +48,6 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice,
                                        vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst);
     stagingBuffer = Vulkan::UploadBuffer(device, static_cast<long>(512 * 1024 * 1024));
 
-    cameraUBOCache.resize(16);
-
     publicResources.entityRegistry = &registry;
 
     descriptorSetLayouts.emplace_back(
@@ -93,7 +91,12 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice,
     registry.on_update<FrameContext>().connect<&ResourceManager::onFrameTick>(*this);
 
     registry.on_update<Scene::CameraTransform>().connect<&ResourceManager::onCameraUpdated>(*this);
-    registry.on_update<Scene::CameraSettings>().connect<&ResourceManager::onCameraUpdated>(*this);
+    // Currently unused
+    // registry.on_update<Scene::CameraSettings>().connect<&ResourceManager::onCameraUpdated>(*this);
+
+    registry.on_construct<Scene::Light>().connect<&ResourceManager::onLightCreated>(*this);
+
+    registry.on_destroy<Scene::CameraTransform>().connect<&ResourceManager::onCameraDeleted>(*this);
 
     // TODO: IMPLEMENT https://github.com/ebruneton/precomputed_atmospheric_scattering
     getOrCreateMaterial("sky",
@@ -263,26 +266,23 @@ void ResourceManager::onFrameTick(entt::registry& registry, entt::entity entity)
 void ResourceManager::onCameraCreated(entt::registry& registry, entt::entity entity) {
     auto [transform, settings] = registry.get<Scene::CameraTransform, Scene::CameraSettings>(entity);
     // allocate a new camera in the buffers
-    auto& ubo = cameraUniformBuffers[publicResources.currentFrameIndex];
-    auto cameraIndex = ubo->allocate();
+    auto index = cameraUBOCache.allocate();
     // We can put in an index now
-    registry.emplace<Scene::CameraIndex>(entity, Scene::CameraIndex{cameraIndex});
+    registry.emplace<Scene::CameraIndex>(entity, Scene::CameraIndex{index});
 
     // Mark both UBOs dirty
     registry.emplace<Scene::DirtyUBOs>(entity, Scene::DirtyUBOs{2});
-
-    // on creation we need to write to both UBOs
-    // this is kind of hacky, we need to free the camera we just allocated so the slot is free again
-    ubo->free(cameraIndex);
 
     for (auto& buffer : cameraUniformBuffers) {
         (*buffer)[buffer->allocate()];
     }
 
-    cameraUBOCache[cameraIndex].view = Scene::Camera::getViewMatrix(transform);
-    cameraUBOCache[cameraIndex].proj = Scene::Camera::getProjectionMatrix(settings);
-    cameraUBOCache[cameraIndex].invView = glm::inverse(cameraUBOCache[cameraIndex].view);
-    cameraUBOCache[cameraIndex].invProj = glm::inverse(cameraUBOCache[cameraIndex].proj);
+    cameraUBOCache[index].view = Scene::Camera::getViewMatrix(transform);
+    cameraUBOCache[index].proj = Scene::Camera::getProjectionMatrix(settings);
+    cameraUBOCache[index].invView = glm::inverse(cameraUBOCache[index].view);
+    cameraUBOCache[index].invProj = glm::inverse(cameraUBOCache[index].proj);
+
+    cameraIndexMap[index] = entity;
 }
 
 void ResourceManager::onCameraUpdated(entt::registry& registry, entt::entity entity) {
@@ -299,6 +299,24 @@ void ResourceManager::onCameraUpdated(entt::registry& registry, entt::entity ent
     // Mark both UBOs dirty
     registry.emplace_or_replace<Scene::DirtyUBOs>(entity, Scene::DirtyUBOs{2});
 }
+
+void ResourceManager::onCameraDeleted(entt::registry& registry, entt::entity entity) {
+    auto& index = registry.get<Scene::CameraIndex>(entity);
+    const auto cameraIndex = index.index;
+
+    auto movedIndex = cameraUBOCache.free(cameraIndex);
+
+    if (movedIndex.has_value() && cameraIndexMap.contains(movedIndex.value())) {
+        auto movedEntity = cameraIndexMap[movedIndex.value()];
+        registry.emplace_or_replace<Scene::CameraIndex>(movedEntity, Scene::CameraIndex{cameraIndex});
+        cameraIndexMap.erase(movedIndex.value());
+        cameraIndexMap[cameraIndex] = movedEntity;
+    }
+
+    cameraIndexMap.erase(cameraIndex);
+}
+
+void ResourceManager::onLightCreated(entt::registry& registry, entt::entity entity) {}
 
 auto ResourceManager::importGLTF(const std::string& path) -> AssetHandle {
     tinygltf::Model gltfModel;

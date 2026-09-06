@@ -67,7 +67,10 @@ class ResourceManager {
 
     Vulkan::PipelineManager pipelineManager;
 
-    std::vector<CameraData> cameraUBOCache;
+    CameraUBO cameraUBOCache{};
+    LightUBO lightUBOCache{};
+
+    std::unordered_map<uint32_t, entt::entity> cameraIndexMap;
 
     std::vector<entt::entity> tagRemovalQueue;
 
@@ -97,10 +100,8 @@ class ResourceManager {
 
     // EnTT callback stuff
     void onWantsPrimitive(entt::registry& registry, entt::entity entity);
-    void onCameraCreated(entt::registry& registry, entt::entity entity);
-    void onCameraDeleted(entt::registry& registry, entt::entity entity);
     void onCameraUpdated(entt::registry& registry, entt::entity entity);
-
+    void onLightCreated(entt::registry& registry, entt::entity entity);
     void onFrameTick(entt::registry& registry, entt::entity entity);
 
   public:
@@ -117,5 +118,10 @@ class ResourceManager {
     auto getRenderTarget(const std::string& name) -> RenderTargetHandle;
     auto getResources() const -> const RenderResources&;
     [[nodiscard]] auto getMaterials() const -> const std::vector<Material>& { return materials; }
+    [[nodiscard]] auto getCameraCount() const -> uint32_t { return cameraUBOCache.cameraCount; }
+
+    // EnTT callback methods (also callable directly for testing)
+    void onCameraCreated(entt::registry& registry, entt::entity entity);
+    void onCameraDeleted(entt::registry& registry, entt::entity entity);
 };
 } // namespace Render
