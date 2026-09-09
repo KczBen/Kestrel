@@ -71,6 +71,7 @@ class ResourceManager {
     LightUBO lightUBOCache{};
 
     std::unordered_map<uint32_t, entt::entity> cameraIndexMap;
+    std::unordered_map<uint32_t, entt::entity> lightIndexMap;
 
     std::vector<entt::entity> tagRemovalQueue;
 

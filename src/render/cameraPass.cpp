@@ -47,9 +47,9 @@ void CameraPass::record(PassContext ctx) {
     const std::array<vk::DescriptorSet, 1> rawSets = {**resources->sceneDescriptorSet};
 
     // Get active camera
-    auto view = resources->entityRegistry->view<Scene::CameraIndex, Scene::ActiveCamera>();
+    auto view = resources->entityRegistry->view<Scene::UBOArrayIndex, Scene::ActiveCamera>();
     const entt::entity activeCamera = view.front();
-    auto& index = view.get<Scene::CameraIndex>(activeCamera).index;
+    auto& index = view.get<Scene::UBOArrayIndex>(activeCamera).index;
 
     ctx.cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                pipeline.getLayout(),

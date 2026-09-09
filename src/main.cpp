@@ -84,6 +84,8 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
         auto asset = resourceManager.importGLTF(std::string(SDL_GetBasePath()).append("models/CarConcept.glb"));
 
         scene.addObject(asset);
+        scene.addLight({10.0, 10.0, 10.0}, {}, {255.0, 255.0, 255.0}, 0.5, 50.0);
+        scene.addLight({0.0, 10.0, -10.0}, {}, {127.0, 0.0, 127.0}, 0.3, 50.0);
 
         Render::Render renderer(window, resourceManager, instance, surface, physicalDevice, device, 2);
 

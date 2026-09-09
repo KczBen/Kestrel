@@ -89,7 +89,8 @@ void Scene::addLight(glm::vec3 position, glm::quat rotation, glm::vec3 colour, f
     const entt::entity entity = entityRegistry->create();
 
     entityRegistry->emplace<LocalTransform>(entity, rotation, position, glm::vec3(1.0f));
-    entityRegistry->emplace<Light>(entity, Light{.colour = colour, .intensity = intensity, .maxRange = maxRange});
+    entityRegistry->emplace<LightSettings>(
+        entity, LightSettings{.colour = colour, .intensity = intensity, .maxRange = maxRange});
 }
 
 /*void Scene::updateUniformBuffers() {

@@ -37,7 +37,7 @@ struct Object {
     // objects are just nodes at the top level
 };
 
-struct Light {
+struct LightSettings {
     glm::vec3 colour;
     float intensity;
     float maxRange;
@@ -49,7 +49,7 @@ struct ActiveCamera {
     // nothing here, just a tag
 };
 
-struct CameraIndex {
+struct UBOArrayIndex {
     uint32_t index; // tells us where in the UBO this camera is
 };
 

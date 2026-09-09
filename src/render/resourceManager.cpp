@@ -94,7 +94,7 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice,
     // Currently unused
     // registry.on_update<Scene::CameraSettings>().connect<&ResourceManager::onCameraUpdated>(*this);
 
-    registry.on_construct<Scene::Light>().connect<&ResourceManager::onLightCreated>(*this);
+    registry.on_construct<Scene::LightSettings>().connect<&ResourceManager::onLightCreated>(*this);
 
     registry.on_destroy<Scene::CameraTransform>().connect<&ResourceManager::onCameraDeleted>(*this);
 
@@ -253,10 +253,18 @@ void ResourceManager::onFrameTick(entt::registry& registry, entt::entity entity)
 
     // Do UBO updates
     {
-        auto view = registry.view<Scene::DirtyUBOs, Scene::CameraIndex>();
-        for (auto [e, dirtyUBOs, slot] : view.each()) {
+        auto cameraView = registry.view<Scene::CameraSettings, Scene::DirtyUBOs, Scene::UBOArrayIndex>();
+        for (auto [e, camera, dirtyUBOs, slot] : cameraView.each()) {
             if (dirtyUBOs.dirtyUBOs > 0) {
                 (*cameraUniformBuffers[frame])[slot.index] = cameraUBOCache[slot.index];
+                dirtyUBOs.dirtyUBOs -= 1;
+            }
+        }
+
+        auto lightView = registry.view<Scene::LightSettings, Scene::DirtyUBOs, Scene::UBOArrayIndex>();
+        for (auto [e, light, dirtyUBOs, slot] : lightView.each()) {
+            if (dirtyUBOs.dirtyUBOs > 0) {
+                (*lightUniformBuffers[frame])[slot.index] = lightUBOCache[slot.index];
                 dirtyUBOs.dirtyUBOs -= 1;
             }
         }
@@ -268,7 +276,7 @@ void ResourceManager::onCameraCreated(entt::registry& registry, entt::entity ent
     // allocate a new camera in the buffers
     auto index = cameraUBOCache.allocate();
     // We can put in an index now
-    registry.emplace<Scene::CameraIndex>(entity, Scene::CameraIndex{index});
+    registry.emplace<Scene::UBOArrayIndex>(entity, Scene::UBOArrayIndex{index});
 
     // Mark both UBOs dirty
     registry.emplace<Scene::DirtyUBOs>(entity, Scene::DirtyUBOs{2});
@@ -287,7 +295,7 @@ void ResourceManager::onCameraCreated(entt::registry& registry, entt::entity ent
 
 void ResourceManager::onCameraUpdated(entt::registry& registry, entt::entity entity) {
     auto [transform, settings, index] =
-        registry.get<Scene::CameraTransform, Scene::CameraSettings, Scene::CameraIndex>(entity);
+        registry.get<Scene::CameraTransform, Scene::CameraSettings, Scene::UBOArrayIndex>(entity);
 
     auto cameraIndex = index.index;
 
@@ -301,14 +309,14 @@ void ResourceManager::onCameraUpdated(entt::registry& registry, entt::entity ent
 }
 
 void ResourceManager::onCameraDeleted(entt::registry& registry, entt::entity entity) {
-    auto& index = registry.get<Scene::CameraIndex>(entity);
+    auto& index = registry.get<Scene::UBOArrayIndex>(entity);
     const auto cameraIndex = index.index;
 
     auto movedIndex = cameraUBOCache.free(cameraIndex);
 
     if (movedIndex.has_value() && cameraIndexMap.contains(movedIndex.value())) {
         auto movedEntity = cameraIndexMap[movedIndex.value()];
-        registry.emplace_or_replace<Scene::CameraIndex>(movedEntity, Scene::CameraIndex{cameraIndex});
+        registry.emplace_or_replace<Scene::UBOArrayIndex>(movedEntity, Scene::UBOArrayIndex{cameraIndex});
         cameraIndexMap.erase(movedIndex.value());
         cameraIndexMap[cameraIndex] = movedEntity;
     }
@@ -316,7 +324,26 @@ void ResourceManager::onCameraDeleted(entt::registry& registry, entt::entity ent
     cameraIndexMap.erase(cameraIndex);
 }
 
-void ResourceManager::onLightCreated(entt::registry& registry, entt::entity entity) {}
+void ResourceManager::onLightCreated(entt::registry& registry, entt::entity entity) {
+    auto [transform, settings] = registry.get<Scene::LocalTransform, Scene::LightSettings>(entity);
+    auto index = lightUBOCache.allocate();
+
+    registry.emplace<Scene::UBOArrayIndex>(entity, Scene::UBOArrayIndex{index});
+
+    // Mark both UBOs dirty
+    registry.emplace<Scene::DirtyUBOs>(entity, Scene::DirtyUBOs{2});
+
+    for (auto& buffer : lightUniformBuffers) {
+        (*buffer)[buffer->allocate()];
+    }
+
+    lightUBOCache[index].colour = settings.colour;
+    lightUBOCache[index].intensity = settings.intensity;
+    lightUBOCache[index].maxRange = settings.maxRange;
+    lightUBOCache[index].position = transform.position;
+
+    lightIndexMap[index] = entity;
+}
 
 auto ResourceManager::importGLTF(const std::string& path) -> AssetHandle {
     tinygltf::Model gltfModel;
