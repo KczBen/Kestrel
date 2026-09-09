@@ -4,6 +4,7 @@
 #include "pipelineManager.hpp"
 #include "renderTarget.hpp"
 #include "resourceHandles.hpp"
+#include "resourceManager.hpp"
 #include "sampler.hpp"
 #include "vulkan/vulkan.hpp"
 #include <memory>
@@ -38,6 +39,7 @@ struct RenderTargetAttachment {
 struct PassContext {
     Vulkan::PipelineManager* pipelineManager;
     vk::CommandBuffer cmd;
+    const RenderResources* res;
 };
 
 class Pass {

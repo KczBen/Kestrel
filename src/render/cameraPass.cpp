@@ -20,10 +20,8 @@ CameraPass::CameraPass(const std::string& name,
                        const RenderTargetAttachment& depthInput,
                        const RenderTargetAttachment& depthOutput,
                        const std::vector<std::string>& dependencies,
-                       MaterialHandle materialHandle,
-                       const RenderResources& resources)
-    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), materialHandle(materialHandle),
-      resources(&resources) {}
+                       MaterialHandle materialHandle)
+    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), materialHandle(materialHandle) {}
 
 void CameraPass::record(PassContext ctx) {
 
@@ -36,18 +34,18 @@ void CameraPass::record(PassContext ctx) {
 
     std::vector<const Vulkan::DescriptorSetLayout*> layouts =
         materialHandle->getDescriptorSetLayout().has_value()
-            ? std::vector<const Vulkan::DescriptorSetLayout*>{&*resources->sceneLayout,
+            ? std::vector<const Vulkan::DescriptorSetLayout*>{&*ctx.res->sceneLayout,
                                                               &materialHandle->getDescriptorSetLayout().value()}
-            : std::vector<const Vulkan::DescriptorSetLayout*>{&*resources->sceneLayout};
+            : std::vector<const Vulkan::DescriptorSetLayout*>{&*ctx.res->sceneLayout};
 
     auto& pipeline = ctx.pipelineManager->getOrCreatePipeline(
         materialHandle, layouts, getColorAttachmentFormats(), vk::SampleCountFlagBits::e1, depthWrite);
     ctx.cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 
-    const std::array<vk::DescriptorSet, 1> rawSets = {**resources->sceneDescriptorSet};
+    const std::array<vk::DescriptorSet, 1> rawSets = {**ctx.res->sceneDescriptorSet};
 
     // Get active camera
-    auto view = resources->entityRegistry->view<Scene::UBOArrayIndex, Scene::ActiveCamera>();
+    auto view = ctx.res->entityRegistry->view<Scene::UBOArrayIndex, Scene::ActiveCamera>();
     const entt::entity activeCamera = view.front();
     auto& index = view.get<Scene::UBOArrayIndex>(activeCamera).index;
 

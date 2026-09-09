@@ -68,8 +68,6 @@ void Render::Render::init(Scene::Scene& scene) {
                                                 vk::ImageUsageFlagBits::eDepthStencilAttachment,
                                                 vk::ImageAspectFlagBits::eDepth);
 
-    const auto& res = resources->getResources();
-
     frameGraph.addPass(std::make_unique<GeometryPass>(
         GeometryPass("depth_pre",
                      {},
@@ -77,8 +75,7 @@ void Render::Render::init(Scene::Scene& scene) {
                      {},
                      {depthTarget, vk::AttachmentLoadOp::eClear, vk::AttachmentStoreOp::eStore},
                      {},
-                     resources->getMaterial("depth_only"),
-                     res)));
+                     resources->getMaterial("depth_only"))));
 
     frameGraph.addPass(std::make_unique<CameraPass>(
         CameraPass("sky",
@@ -87,8 +84,7 @@ void Render::Render::init(Scene::Scene& scene) {
                    {depthTarget},
                    {},
                    {},
-                   resources->getMaterial("sky"),
-                   res)));
+                   resources->getMaterial("sky"))));
 
     frameGraph.addPass(std::make_unique<GeometryPass>(
         GeometryPass("geometry",
@@ -97,8 +93,7 @@ void Render::Render::init(Scene::Scene& scene) {
                      {depthTarget},
                      {},
                      {},
-                     std::nullopt,
-                     res)));
+                     std::nullopt)));
 
     frameGraph.addPass(std::make_unique<CameraPass>(
         CameraPass("grid_overlay",
@@ -107,8 +102,7 @@ void Render::Render::init(Scene::Scene& scene) {
                    {depthTarget},
                    {},
                    {},
-                   resources->getMaterial("grid_overlay"),
-                   res)));
+                   resources->getMaterial("grid_overlay"))));
 
     frameGraph.addPass(std::make_unique<ImGuiPass>(
         ImGuiPass("gui", {colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}, {"sky"})));
@@ -158,7 +152,7 @@ void Render::Render::render(Scene::Scene& scene, float deltaTime) {
                                          cmd);
 
     // Execute frame graph
-    frameGraph.execute(cmd);
+    frameGraph.execute(cmd, resources->getResources());
 
     // Transition render target to transfer src
     Vulkan::CommandPool::transitionImage(colorImage,

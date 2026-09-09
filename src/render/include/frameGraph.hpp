@@ -3,6 +3,7 @@
 #include "pass.hpp"
 #include "pipelineManager.hpp"
 #include "renderTarget.hpp"
+#include "resourceManager.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -27,6 +28,6 @@ class FrameGraph {
     FrameGraph(Vulkan::PipelineManager& pipelineManager);
     auto addPass(std::unique_ptr<Pass> pass) -> PassHandle;
     auto compile() -> const std::vector<Pass*>&;
-    void execute(vk::CommandBuffer cmd);
+    void execute(vk::CommandBuffer cmd, const RenderResources& res);
 };
 } // namespace Render

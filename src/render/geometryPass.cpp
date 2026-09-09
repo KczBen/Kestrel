@@ -20,10 +20,8 @@ GeometryPass::GeometryPass(const std::string& name,
                            const RenderTargetAttachment& depthInput,
                            const RenderTargetAttachment& depthOutput,
                            const std::vector<std::string>& dependencies,
-                           std::optional<MaterialHandle> optMaterial,
-                           const RenderResources& resources)
-    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), resources(&resources),
-      optMaterial(optMaterial) {}
+                           std::optional<MaterialHandle> optMaterial)
+    : Pass(name, inputs, colorAttachments, depthInput, depthOutput, dependencies), optMaterial(optMaterial) {}
 
 void GeometryPass::record(PassContext ctx) {
 
@@ -33,7 +31,7 @@ void GeometryPass::record(PassContext ctx) {
         glm::mat4 transform{};
     };
 
-    const auto& registry = resources->entityRegistry;
+    const auto& registry = ctx.res->entityRegistry;
 
     // Build a list of draw calls
     // Key on the materials
@@ -90,9 +88,9 @@ void GeometryPass::record(PassContext ctx) {
         // always have the scene layout included (for now)
         std::vector<const Vulkan::DescriptorSetLayout*> layouts =
             material->getDescriptorSetLayout().has_value()
-                ? std::vector<const Vulkan::DescriptorSetLayout*>{&*resources->sceneLayout,
+                ? std::vector<const Vulkan::DescriptorSetLayout*>{&*ctx.res->sceneLayout,
                                                                   &material->getDescriptorSetLayout().value()}
-                : std::vector<const Vulkan::DescriptorSetLayout*>{&*resources->sceneLayout};
+                : std::vector<const Vulkan::DescriptorSetLayout*>{&*ctx.res->sceneLayout};
 
         auto& pipeline = ctx.pipelineManager->getOrCreatePipeline(
             material, layouts, formats, vk::SampleCountFlagBits::e1, depthWrite);
@@ -100,10 +98,10 @@ void GeometryPass::record(PassContext ctx) {
 
         const Vulkan::DescriptorSet& materialWS = material->getDescriptorSet();
 
-        const std::array<vk::DescriptorSet, 2> rawSets = {**resources->sceneDescriptorSet, *materialWS};
+        const std::array<vk::DescriptorSet, 2> rawSets = {**ctx.res->sceneDescriptorSet, *materialWS};
 
         // Get active camera
-        auto view = resources->entityRegistry->view<Scene::UBOArrayIndex, Scene::ActiveCamera>();
+        auto view = ctx.res->entityRegistry->view<Scene::UBOArrayIndex, Scene::ActiveCamera>();
         const entt::entity activeCamera = view.front();
         auto& index = view.get<Scene::UBOArrayIndex>(activeCamera).index;
 

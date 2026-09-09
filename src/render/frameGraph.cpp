@@ -135,7 +135,7 @@ auto FrameGraph::compile() -> const std::vector<Pass*>& {
     return sortedPasses;
 }
 
-void FrameGraph::execute(vk::CommandBuffer cmd) {
+void FrameGraph::execute(vk::CommandBuffer cmd, const RenderResources& res) {
     for (auto* pass : sortedPasses) {
         std::vector<Vulkan::ImageTransitionInfo> transitions;
 
@@ -263,7 +263,7 @@ void FrameGraph::execute(vk::CommandBuffer cmd) {
         cmd.beginRendering(renderInfo);
 
         // Record pass
-        pass->record({.pipelineManager = pipelineManager, .cmd = cmd});
+        pass->record({.pipelineManager = pipelineManager, .cmd = cmd, .res = &res});
 
         cmd.endRendering();
     }
