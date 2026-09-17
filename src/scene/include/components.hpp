@@ -101,6 +101,7 @@ struct Children {
     std::vector<entt::entity> value;
 
     auto operator*() noexcept -> std::vector<entt::entity>& { return value; }
+    auto operator*() const noexcept -> const std::vector<entt::entity>& { return value; }
 };
 
 struct Parent {

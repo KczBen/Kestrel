@@ -3,20 +3,20 @@
 #include "material.hpp"
 #include "scene.hpp"
 #include <entt/entity/entity.hpp>
+#include <entt/entity/fwd.hpp>
 #include <vector>
 
 namespace Render {
 
 class ObjectBrowser {
   public:
-    explicit ObjectBrowser(Scene::Scene& scene, const std::vector<Material>& materials);
+    ObjectBrowser(const entt::registry& registry, const std::vector<Material>& materials);
 
     void update();
 
   private:
-    Scene::Scene* scene;
     const std::vector<Material>* materials;
-    entt::registry& registry;
+    const entt::registry* registry;
 
     void renderNode(entt::entity nodeEntity);
     void renderPrimitive(entt::entity primitiveEntity);

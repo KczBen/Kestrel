@@ -162,7 +162,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
             Render::MaterialBrowser materialBrowser(resourceManager);
             materialBrowser.update();
 
-            Render::ObjectBrowser objectBrowser(scene, resourceManager.getMaterials());
+            Render::ObjectBrowser objectBrowser(registry, resourceManager.getMaterials());
             objectBrowser.update();
 
             auto currentTime = std::chrono::high_resolution_clock::now();
