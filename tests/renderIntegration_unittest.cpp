@@ -362,7 +362,7 @@ TEST_F(CameraLifecycleFixture, DeleteSingleCameraRemovesIndex) {
     createCameraManual(entity);
 
     // Verify CameraIndex was created
-    auto index = registry_->get<Scene::CameraIndex>(entity);
+    auto index = registry_->get<Scene::UBOArrayIndex>(entity);
     EXPECT_EQ(index.index, 0u);
 
     // Verify camera count
@@ -390,8 +390,8 @@ TEST_F(CameraLifecycleFixture, DeleteOneOfTwoCamerasUpdatesRemainingIndex) {
     auto camera2 = registry_->create();
     createCameraManual(camera2);
 
-    auto index1 = registry_->get<Scene::CameraIndex>(camera1);
-    auto index2 = registry_->get<Scene::CameraIndex>(camera2);
+    auto index1 = registry_->get<Scene::UBOArrayIndex>(camera1);
+    auto index2 = registry_->get<Scene::UBOArrayIndex>(camera2);
 
     // Verify initial indices
     EXPECT_EQ(index1.index, 0u);
@@ -401,7 +401,7 @@ TEST_F(CameraLifecycleFixture, DeleteOneOfTwoCamerasUpdatesRemainingIndex) {
     resourceManager_->onCameraDeleted(*registry_, camera1);
 
     // Verify camera2's index was updated to 0
-    auto newIndex2 = registry_->get<Scene::CameraIndex>(camera2);
+    auto newIndex2 = registry_->get<Scene::UBOArrayIndex>(camera2);
     EXPECT_EQ(newIndex2.index, 0u);
 
     // Verify camera count is now 1
@@ -423,8 +423,8 @@ TEST_F(CameraLifecycleFixture, DeleteLastCameraInBatchDoesNotSwap) {
     auto camera2 = registry_->create();
     createCameraManual(camera2);
 
-    auto index1 = registry_->get<Scene::CameraIndex>(camera1);
-    auto index2 = registry_->get<Scene::CameraIndex>(camera2);
+    auto index1 = registry_->get<Scene::UBOArrayIndex>(camera1);
+    auto index2 = registry_->get<Scene::UBOArrayIndex>(camera2);
 
     // Verify initial indices
     EXPECT_EQ(index1.index, 0u);
@@ -434,7 +434,7 @@ TEST_F(CameraLifecycleFixture, DeleteLastCameraInBatchDoesNotSwap) {
     resourceManager_->onCameraDeleted(*registry_, camera2);
 
     // Verify camera1's index is still 0 (not changed)
-    auto index1After = registry_->get<Scene::CameraIndex>(camera1);
+    auto index1After = registry_->get<Scene::UBOArrayIndex>(camera1);
     EXPECT_EQ(index1After.index, 0u);
 
     // Verify camera count is now 1

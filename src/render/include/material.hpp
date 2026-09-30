@@ -63,8 +63,8 @@ class Material {
         TextureTransform emissiveTransform;
 
         // glTF Factors / Uniforms
-        std::vector<double> baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
-        std::vector<double> emissiveFactor{0.0f, 0.0f, 0.0f};
+        std::vector<double> baseColorFactor{1.0, 1.0, 1.0, 1.0};
+        std::vector<double> emissiveFactor{0.0, 0.0, 0.0};
         float metallicFactor{1.0f};
         float roughnessFactor{1.0f};
         float normalScale{1.0f};

@@ -52,13 +52,6 @@ void Vulkan::UploadContext::upload(Texture& texture) {
 
     Vulkan::CommandPool::generateMipmaps(texture.image, cmd);
 
-    // Vulkan::CommandPool::transitionImage(texture.image,
-    //                                      vk::ImageLayout::eShaderReadOnlyOptimal,
-    //                                      vk::PipelineStageFlagBits2::eFragmentShader,
-    //                                      vk::AccessFlagBits2::eShaderRead,
-    //                                      vk::ImageAspectFlagBits::eColor,
-    //                                      cmd);
-
     texture.uploaded = true;
     texture.pixelData.clear();
 }
