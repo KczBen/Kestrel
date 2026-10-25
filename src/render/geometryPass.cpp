@@ -1,12 +1,13 @@
 #include "geometryPass.hpp"
-#include "../scene/include/components.hpp"
 #include "gpuDataObjects.hpp"
 #include "material.hpp"
 #include "pass.hpp"
-#include "vulkan/vulkan.hpp"
+#include "scene/components.hpp"
+
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
+#include <vulkan/vulkan.hpp>
 
 namespace Render {
 

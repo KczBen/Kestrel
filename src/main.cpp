@@ -1,15 +1,13 @@
-#include "components.hpp"
-#include "descriptorPool.hpp"
-#include "device.hpp"
-#include "input.hpp"
-#include "instance.hpp"
-#include "materialBrowser.hpp"
-#include "objectBrowser.hpp"
-#include "physicalDevice.hpp"
-#include "render.hpp"
-#include "resourceManager.hpp"
-#include "scene.hpp"
-#include "surface.hpp"
+/*#include "render/render.hpp"
+#include "render/resourceManager.hpp"
+#include "scene/components.hpp"
+#include "scene/scene.hpp"
+#include "util/input.hpp"
+#include "vulkan-wrapper/descriptorPool.hpp"
+#include "vulkan-wrapper/device.hpp"
+#include "vulkan-wrapper/instance.hpp"
+#include "vulkan-wrapper/physicalDevice.hpp"
+#include "vulkan-wrapper/surface.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
@@ -25,10 +23,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glslang/Public/ShaderLang.h>
 
-#include "imgui.h"
-#include "imgui_impl_sdl3.h"
-#include "imgui_impl_vulkan.h"
-#include "vulkan/vulkan.hpp"
+#include <imgui.h>
+#include <imgui_impl_sdl3.h>
+#include <imgui_impl_vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #include <print>
 #include <string>
@@ -42,7 +40,7 @@ static auto getInstanceExtensions() -> std::vector<const char*> {
     return extensions;
 }
 
-auto main(int /*unused*/, char** /*unused*/) -> int {
+auto main() -> int {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         std::println(stderr, "Failed to initialize SDL: {}", SDL_GetError());
         return 1;
@@ -61,8 +59,8 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
     }
 
     // Initialize ImGui
-    ImGui::CreateContext();
-    ImGui_ImplSDL3_InitForVulkan(window);
+    // ImGui::CreateContext();
+    // ImGui_ImplSDL3_InitForVulkan(window);
 
     auto lastFrameTime = std::chrono::high_resolution_clock::now();
 
@@ -91,26 +89,26 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
 
         renderer.init(scene);
 
-        const Vulkan::DescriptorPool imguiDescriptorPool(device);
-
-        const VkFormat colorFormat = VK_FORMAT_B8G8R8A8_SRGB;
-
-        ImGui_ImplVulkan_InitInfo initInfo = {};
-        initInfo.Instance = **instance;
-        initInfo.PhysicalDevice = **physicalDevice;
-        initInfo.Device = **device;
-        initInfo.QueueFamily = *physicalDevice.getQueueFamilyIndices().graphicsFamily;
-        initInfo.Queue = *device.getGraphicsQueue();
-        initInfo.DescriptorPool = **imguiDescriptorPool;
-        initInfo.MinImageCount = 2;
-        initInfo.ImageCount = 2;
-        initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-        initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = {.sType =
-                                                                     VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-                                                                 .colorAttachmentCount = 1,
-                                                                 .pColorAttachmentFormats = &colorFormat};
-        initInfo.UseDynamicRendering = true;
-        ImGui_ImplVulkan_Init(&initInfo);
+        // const Vulkan::DescriptorPool imguiDescriptorPool(device);
+        //
+        // const VkFormat colorFormat = VK_FORMAT_B8G8R8A8_SRGB;
+        //
+        // ImGui_ImplVulkan_InitInfo initInfo = {};
+        // initInfo.Instance = **instance;
+        // initInfo.PhysicalDevice = **physicalDevice;
+        // initInfo.Device = **device;
+        // initInfo.QueueFamily = *physicalDevice.getQueueFamilyIndices().graphicsFamily;
+        // initInfo.Queue = *device.getGraphicsQueue();
+        // initInfo.DescriptorPool = **imguiDescriptorPool;
+        // initInfo.MinImageCount = 2;
+        // initInfo.ImageCount = 2;
+        // initInfo.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+        // initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = {.sType =
+        // VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+        //                                                          .colorAttachmentCount = 1,
+        //                                                          .pColorAttachmentFormats = &colorFormat};
+        // initInfo.UseDynamicRendering = true;
+        // ImGui_ImplVulkan_Init(&initInfo);
 
         // Main loop
         bool running = true;
@@ -122,7 +120,7 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
             // Handle events
             Input input;
             while (SDL_PollEvent(&event)) {
-                ImGui_ImplSDL3_ProcessEvent(&event);
+                // ImGui_ImplSDL3_ProcessEvent(&event);
                 if (event.type == SDL_EVENT_QUIT) {
                     running = false;
                 }
@@ -156,18 +154,18 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
             const auto mouseButtons = SDL_GetMouseState(nullptr, nullptr);
             input.rightMouseButton = (mouseButtons & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT)) != 0;
 
-            ImGui_ImplVulkan_NewFrame();
-            ImGui_ImplSDL3_NewFrame();
-            ImGui::NewFrame();
-            Render::MaterialBrowser materialBrowser(resourceManager);
-            materialBrowser.update();
-
-            Render::ObjectBrowser objectBrowser(registry, resourceManager.getMaterials());
-            objectBrowser.update();
+            // ImGui_ImplVulkan_NewFrame();
+            // ImGui_ImplSDL3_NewFrame();
+            // ImGui::NewFrame();
+            // Render::MaterialBrowser materialBrowser(resourceManager);
+            // materialBrowser.update();
+            //
+            // Render::ObjectBrowser objectBrowser(registry, resourceManager.getMaterials());
+            // objectBrowser.update();
 
             auto currentTime = std::chrono::high_resolution_clock::now();
-            const float time =
-                std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastFrameTime).count();
+            const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime -
+lastFrameTime).count();
 
             scene.update(input, time);
 
@@ -181,15 +179,16 @@ auto main(int /*unused*/, char** /*unused*/) -> int {
 
         // kind of hacky, shouldn't be here ideally
         device->waitIdle();
-        ImGui_ImplVulkan_Shutdown();
+        // ImGui_ImplVulkan_Shutdown();
     }
 
     // Cleanup
-    ImGui_ImplSDL3_Shutdown();
-    ImGui::DestroyContext();
+    // ImGui_ImplSDL3_Shutdown();
+    // ImGui::DestroyContext();
     glslang::FinalizeProcess();
     SDL_DestroyWindow(window);
     SDL_Quit();
 
     return 0;
 }
+*/

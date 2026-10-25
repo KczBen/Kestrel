@@ -1,5 +1,5 @@
-[![pipeline status](https://gitlab.com/bencek/vulkan-sdl/badges/main/pipeline.svg)](https://gitlab.com/bencek/vulkan-sdl/-/commits/main) [![coverage report](https://gitlab.com/bencek/vulkan-sdl/badges/main/coverage.svg)](https://gitlab.com/bencek/vulkan-sdl/-/commits/main) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=bencek_vulkan-sdl&metric=alert_status&token=dc29fbb77b8987380f5cf83957235ad712b1ef7e)](https://sonarcloud.io/summary/new_code?id=bencek_vulkan-sdl)
-# Vulkan rendering prototype
+[![pipeline status](https://gitlab.com/bencek/vulkan-sdl/badges/main/pipeline.svg)](https://gitlab.com/bencek/vulkan-sdl/-/commits/main)
+# Kestrel
 
 Learning project about Vulkan API for 3D rendering, using Vulkan 1.4 features and implementing various rendering techniques.
 

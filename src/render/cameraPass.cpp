@@ -1,7 +1,8 @@
 #include "cameraPass.hpp"
-#include "components.hpp"
 #include "material.hpp"
 #include "pass.hpp"
+#include "scene/components.hpp"
+
 #include <cstdint>
 #include <vector>
 

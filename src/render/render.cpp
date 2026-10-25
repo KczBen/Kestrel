@@ -1,19 +1,19 @@
 #include "render.hpp"
 
 #include "cameraPass.hpp"
-#include "commandPool.hpp"
 #include "frameGraph.hpp"
-#include "frameSync.hpp"
 #include "geometryPass.hpp"
-#include "image.hpp"
 #include "imguiPass.hpp"
-#include "instance.hpp"
 #include "material.hpp"
 #include "pass.hpp"
-#include "physicalDevice.hpp"
 #include "resourceManager.hpp"
-#include "surface.hpp"
-#include "vulkan/vulkan.hpp"
+#include "vulkan-wrapper/commandPool.hpp"
+#include "vulkan-wrapper/frameSync.hpp"
+#include "vulkan-wrapper/image.hpp"
+#include "vulkan-wrapper/instance.hpp"
+#include "vulkan-wrapper/physicalDevice.hpp"
+#include "vulkan-wrapper/surface.hpp"
+
 #include <SDL3/SDL_filesystem.h>
 #include <array>
 #include <cstdint>
@@ -22,6 +22,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
 
 Render::Render::Render(SDL_Window* window,
@@ -104,8 +105,8 @@ void Render::Render::init(Scene::Scene& scene) {
                    {},
                    resources->getMaterial("grid_overlay"))));
 
-    frameGraph.addPass(std::make_unique<ImGuiPass>(
-        ImGuiPass("gui", {colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}, {"sky"})));
+    // frameGraph.addPass(std::make_unique<ImGuiPass>(
+    //     ImGuiPass("gui", {colorTarget, vk::AttachmentLoadOp::eLoad, vk::AttachmentStoreOp::eStore}, {"sky"})));
 
     frameGraph.compile();
 }
