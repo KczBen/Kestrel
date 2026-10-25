@@ -1,7 +1,7 @@
-#include "camera.hpp"
-#include "descriptorSet.hpp"
-#include "gltfAsset.hpp"
 #include "renderTarget.hpp"
+#include "scene/camera.hpp"
+#include "scene/gltfAsset.hpp"
+#include "vulkan-wrapper/descriptorSet.hpp"
 #include <entt/entity/fwd.hpp>
 #include <glslang/Public/ShaderLang.h>
 #include <string>
@@ -9,21 +9,21 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
-#include "components.hpp"
-#include "descriptorPool.hpp"
-#include "device.hpp"
-#include "deviceBuffer.hpp"
-#include "gpuDataObjects.hpp"
 #include "material.hpp"
-#include "pipelineManager.hpp"
 #include "resourceHandles.hpp"
 #include "resourceManager.hpp"
-#include "sampler.hpp"
-#include "texture.hpp"
-#include "uploadBuffer.hpp"
-#include "uploadContext.hpp"
-#include "vertex.hpp"
-#include "vulkan/vulkan.hpp"
+#include "scene/components.hpp"
+#include "scene/vertex.hpp"
+#include "util/gpuDataObjects.hpp"
+#include "vulkan-wrapper/descriptorPool.hpp"
+#include "vulkan-wrapper/device.hpp"
+#include "vulkan-wrapper/deviceBuffer.hpp"
+#include "vulkan-wrapper/pipelineManager.hpp"
+#include "vulkan-wrapper/sampler.hpp"
+#include "vulkan-wrapper/texture.hpp"
+#include "vulkan-wrapper/uploadBuffer.hpp"
+#include "vulkan-wrapper/uploadContext.hpp"
+
 #include <SDL3/SDL_filesystem.h>
 #include <cstddef>
 #include <cstdint>
@@ -33,6 +33,7 @@
 #include <optional>
 #include <print>
 #include <utility>
+#include <vulkan/vulkan.hpp>
 
 namespace Render {
 ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice,

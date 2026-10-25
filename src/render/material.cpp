@@ -1,12 +1,12 @@
 #include "material.hpp"
-#include "descriptorSet.hpp"
-#include "descriptorSetLayout.hpp"
-#include "vulkan/vulkan.hpp"
+#include "vulkan-wrapper/descriptorSet.hpp"
+#include "vulkan-wrapper/descriptorSetLayout.hpp"
+
 #include <optional>
 #include <unistd.h>
-
 #include <utility>
 #include <vector>
+#include <vulkan/vulkan.hpp>
 
 Material::Material(std::string name, MaterialConfiguration config, MaterialResources resources)
     : name(std::move(name)), resources(std::move(resources)), pipelineConfiguration(std::move(config)) {

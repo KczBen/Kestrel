@@ -1,8 +1,7 @@
 #include "frameGraph.hpp"
-#include "commandPool.hpp"
 #include "pass.hpp"
-#include "pipelineManager.hpp"
-#include "vulkan/vulkan.hpp"
+#include "vulkan-wrapper/commandPool.hpp"
+#include "vulkan-wrapper/pipelineManager.hpp"
 
 #include <print>
 #include <queue>
@@ -10,6 +9,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vulkan/vulkan.hpp>
 
 namespace Render {
 FrameGraph::FrameGraph(Vulkan::PipelineManager& pipelineManager) : pipelineManager(&pipelineManager) {};

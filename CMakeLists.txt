@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.31.0)
-project(vulkan-sdl VERSION 0.1.0 LANGUAGES C CXX)
+project(Kestrel VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS_DEBUG_INIT "-Wall")
+
+add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer -g)
+add_link_options(-fsanitize=address,undefined)
 
 option(TEST_EXPORT_COVERAGE "Include coverage report when running tests" OFF)
 option(TESTING "Build test targets" OFF)
@@ -30,84 +33,44 @@ find_package(Stb REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 
 add_library(vulkan-wrapper
-    src/vulkan/instance.cpp
-    src/vulkan/device.cpp
-    src/vulkan/physicalDevice.cpp
-    src/vulkan/surface.cpp
-    src/vulkan/swapchain.cpp
-    src/vulkan/image.cpp
-    src/vulkan/sampler.cpp
-    src/vulkan/texture.cpp
-    src/vulkan/commandPool.cpp
-    src/vulkan/descriptorPool.cpp
-    src/vulkan/frameSync.cpp
-    src/vulkan/semaphore.cpp
-    src/vulkan/fence.cpp
-    src/vulkan/shaderModule.cpp
-    src/vulkan/graphicsPipeline.cpp
-    src/vulkan/descriptorSetLayout.cpp
-    src/vulkan/uploadBuffer.cpp
-    src/vulkan/deviceBuffer.cpp
-    src/vulkan/uploadContext.cpp
-    src/vulkan/descriptorSet.cpp
-    src/vulkan/pipelineManager.cpp
+    src/vulkan-wrapper/instance.cpp
+    src/vulkan-wrapper/device.cpp
+    src/vulkan-wrapper/physicalDevice.cpp
+    src/vulkan-wrapper/surface.cpp
+    src/vulkan-wrapper/swapchain.cpp
+    src/vulkan-wrapper/image.cpp
+    src/vulkan-wrapper/sampler.cpp
+    src/vulkan-wrapper/texture.cpp
+    src/vulkan-wrapper/commandPool.cpp
+    src/vulkan-wrapper/descriptorPool.cpp
+    src/vulkan-wrapper/frameSync.cpp
+    src/vulkan-wrapper/semaphore.cpp
+    src/vulkan-wrapper/fence.cpp
+    src/vulkan-wrapper/shaderModule.cpp
+    src/vulkan-wrapper/graphicsPipeline.cpp
+    src/vulkan-wrapper/descriptorSetLayout.cpp
+    src/vulkan-wrapper/uploadBuffer.cpp
+    src/vulkan-wrapper/deviceBuffer.cpp
+    src/vulkan-wrapper/uploadContext.cpp
+    src/vulkan-wrapper/descriptorSet.cpp
+    src/vulkan-wrapper/pipelineManager.cpp
 )
 
-set_target_properties(vulkan-wrapper PROPERTIES
-    UNITY_BUILD ON
+target_include_directories(vulkan-wrapper
+    PUBLIC  ${CMAKE_SOURCE_DIR}/src
+    PRIVATE ${CMAKE_SOURCE_DIR}/src/util
+            ${Stb_INCLUDE_DIR}
 )
-set_source_files_properties(src/vulkan/device.cpp PROPERTIES
-    SKIP_UNITY_BUILD_INCLUSION ON
-)
-
-target_include_directories(vulkan-wrapper PRIVATE 
-    ${CMAKE_SOURCE_DIR}/src/vulkan/include
-    ${CMAKE_SOURCE_DIR}/src/util/include
-    ${CMAKE_SOURCE_DIR}/src/scene/include
-    ${CMAKE_SOURCE_DIR}/src/render/include
-    ${Stb_INCLUDE_DIR}
-
-)
-
-target_link_libraries(vulkan-wrapper PRIVATE
-    Vulkan::Vulkan
-    GPUOpen::VulkanMemoryAllocator
-)
-
-add_library(imgui
-    thirdparty/imgui.cpp
-    thirdparty/imgui_demo.cpp
-    thirdparty/imgui_draw.cpp
-    thirdparty/imgui_tables.cpp
-    thirdparty/imgui_widgets.cpp
-    thirdparty/imgui_impl_sdl3.cpp
-    thirdparty/imgui_impl_vulkan.cpp
-)
-
-target_include_directories(imgui PRIVATE
-    ${CMAKE_SOURCE_DIR}/thirdparty
-)
-
-target_link_libraries(imgui PRIVATE
-    SDL3::SDL3
-    Vulkan::Vulkan
-)
+target_link_libraries(vulkan-wrapper PUBLIC Vulkan::Vulkan GPUOpen::VulkanMemoryAllocator glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV)
 
 add_library(scene
     src/scene/scene.cpp
 )
-
-target_include_directories(scene PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/vulkan/include
-    ${CMAKE_SOURCE_DIR}/src/util/include
-    ${CMAKE_SOURCE_DIR}/src/scene/include
-    ${CMAKE_SOURCE_DIR}/src/render/include
+target_include_directories(scene
+    PUBLIC  ${CMAKE_SOURCE_DIR}/src
+    PRIVATE ${CMAKE_SOURCE_DIR}/src/util
 )
-
-target_link_libraries(scene PRIVATE
-    glm::glm-header-only
-    render
-)
+target_link_libraries(scene PUBLIC EnTT::EnTT glm::glm-header-only)
 
 add_library(render
     src/render/render.cpp
@@ -118,69 +81,40 @@ add_library(render
     src/render/frameGraph.cpp
 )
 
-set_target_properties(render PROPERTIES
-    UNITY_BUILD ON
+target_include_directories(render
+    PUBLIC  ${CMAKE_SOURCE_DIR}/src
+    PRIVATE ${CMAKE_SOURCE_DIR}/src/util
+            ${CMAKE_SOURCE_DIR}/thirdparty
 )
-set_source_files_properties(src/render/resourceManager.cpp PROPERTIES
-    SKIP_UNITY_BUILD_INCLUSION ON
+target_link_libraries(render PUBLIC scene vulkan-wrapper glm::glm-header-only)
+
+add_library(imgui
+    thirdparty/imgui.cpp
+    thirdparty/imgui_demo.cpp
+    thirdparty/imgui_draw.cpp
+    thirdparty/imgui_tables.cpp
+    thirdparty/imgui_widgets.cpp
+    thirdparty/imgui_impl_sdl3.cpp
+    thirdparty/imgui_impl_vulkan.cpp
+)
+target_include_directories(imgui PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty)
+target_link_libraries(imgui PUBLIC SDL3::SDL3 Vulkan::Vulkan)
+
+add_library(engine
+    src/engine/engine.cpp
 )
 
-target_include_directories(render PRIVATE 
-    ${CMAKE_SOURCE_DIR}/src/vulkan/include
-    ${CMAKE_SOURCE_DIR}/src/util/include
-    ${CMAKE_SOURCE_DIR}/src/scene/include
-    ${CMAKE_SOURCE_DIR}/src/render/include
-    ${CMAKE_SOURCE_DIR}/thirdparty
+target_include_directories(engine
+    PUBLIC  ${CMAKE_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
 )
 
-add_library(gui
-    src/gui/materialBrowser.cpp
-    src/gui/objectBrowser.cpp
+target_link_libraries(engine
+    PUBLIC scene render vulkan-wrapper imgui
+    PRIVATE SDL3::SDL3 glslang::glslang
 )
 
-target_include_directories(gui PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/vulkan/include
-    ${CMAKE_SOURCE_DIR}/src/util/include
-    ${CMAKE_SOURCE_DIR}/src/scene/include
-    ${CMAKE_SOURCE_DIR}/src/render/include
-    ${CMAKE_SOURCE_DIR}/src/gui/include
-    ${CMAKE_SOURCE_DIR}/thirdparty
-    ${_VCPKG_INSTALLED_DIR}/x64-linux/include
-)
-
-target_link_libraries(render PRIVATE
-    scene
-    glm::glm-header-only
-    Vulkan::Vulkan
-    GPUOpen::VulkanMemoryAllocator
-)
-
-add_executable(vulkan-sdl
-    src/main.cpp
-)
-
-target_include_directories(vulkan-sdl PRIVATE 
-    ${CMAKE_SOURCE_DIR}/src/vulkan/include
-    ${CMAKE_SOURCE_DIR}/src/util/include
-    ${CMAKE_SOURCE_DIR}/src/scene/include
-    ${CMAKE_SOURCE_DIR}/src/render/include
-    ${CMAKE_SOURCE_DIR}/src/gui/include
-    ${CMAKE_SOURCE_DIR}/thirdparty
-)
-
-target_link_libraries(vulkan-sdl PRIVATE
-    scene
-    render
-    vulkan-wrapper
-    imgui
-    gui
-    Vulkan::Vulkan
-    GPUOpen::VulkanMemoryAllocator
-    SDL3::SDL3
-    glslang::glslang
-    glslang::SPIRV
-    glslang::glslang-default-resource-limits
-)
+add_subdirectory(demo)
 
 add_custom_target(copy-compile-commands ALL
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -219,7 +153,6 @@ if(TESTING)
         tests/deviceBuffer_unittest.cpp
         tests/uploadBuffer_unittest.cpp
         tests/hostBuffer_unittest.cpp
- 
         tests/uploadContext_unittest.cpp
         tests/material_unittest.cpp
         tests/sampler_unittest.cpp
@@ -229,13 +162,7 @@ if(TESTING)
         tests/renderTarget_unittest.cpp
         tests/frameGraph_unittest.cpp
     )
-    target_include_directories(test-bin PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/vulkan/include
-        ${CMAKE_SOURCE_DIR}/src/util/include
-        ${CMAKE_SOURCE_DIR}/src/scene/include
-        ${CMAKE_SOURCE_DIR}/src/render/include
-    )
-    target_link_libraries(test-bin
+    target_link_libraries(test-bin PRIVATE
         scene
         render
         vulkan-wrapper
@@ -254,7 +181,6 @@ if(TESTING)
         target_compile_options(render PRIVATE -fprofile-instr-generate -fcoverage-mapping)
         target_compile_options(vulkan-wrapper PRIVATE -fprofile-instr-generate -fcoverage-mapping)
         target_compile_options(test-bin PRIVATE -fprofile-instr-generate -fcoverage-mapping)
-
         target_link_options(test-bin PRIVATE -fprofile-instr-generate)
 
         find_program(LLVM_PROFDATA llvm-profdata REQUIRED)
@@ -264,21 +190,14 @@ if(TESTING)
             ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage-%p.profraw"
             FIXTURES_REQUIRED coverage_run
         )
-
-        add_test(NAME coverage_setup
-            COMMAND ${CMAKE_COMMAND} -E true
-        )
-        set_tests_properties(coverage_setup PROPERTIES
-            FIXTURES_SETUP coverage_run
-        )
+        add_test(NAME coverage_setup COMMAND ${CMAKE_COMMAND} -E true)
+        set_tests_properties(coverage_setup PROPERTIES FIXTURES_SETUP coverage_run)
 
         add_test(NAME coverage_merge
             COMMAND bash -c "${LLVM_PROFDATA} merge -sparse ${CMAKE_BINARY_DIR}/coverage-*.profraw -o ${CMAKE_BINARY_DIR}/coverage.profdata"
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         )
-        set_tests_properties(coverage_merge PROPERTIES
-            FIXTURES_CLEANUP coverage_run
-        )
+        set_tests_properties(coverage_merge PROPERTIES FIXTURES_CLEANUP coverage_run)
 
         add_test(NAME coverage_html
             COMMAND ${LLVM_COV} show $<TARGET_FILE:test-bin>
@@ -291,10 +210,7 @@ if(TESTING)
                 ${CMAKE_SOURCE_DIR}/src
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         )
-        set_tests_properties(coverage_html PROPERTIES
-            DEPENDS coverage_merge
-            FIXTURES_CLEANUP coverage_run
-        )
+        set_tests_properties(coverage_html PROPERTIES DEPENDS coverage_merge FIXTURES_CLEANUP coverage_run)
     else()
         gtest_discover_tests(test-bin)
     endif()
