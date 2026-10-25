@@ -1,4 +1,3 @@
-[![pipeline status](https://gitlab.com/bencek/vulkan-sdl/badges/main/pipeline.svg)](https://gitlab.com/bencek/vulkan-sdl/-/commits/main)
 # Kestrel
 
 Learning project about Vulkan API for 3D rendering, using Vulkan 1.4 features and implementing various rendering techniques.
@@ -17,48 +16,6 @@ See the [ROADMAP](ROADMAP.md) for a list of planned features.
 
 ### Dependencies
 
-Most dependencies are managed automatically. However, some libraries must be installed on the system for the project to build and run properly.
-
-- ninja >= 1.13
-- clang >= 21
-- cmake >= 3.31.0
-- [vcpkg](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started)
-- SDL3 >= 3.4
-- libvulkan >= 1.4
-- vulkan-validation-layers >= 1.4
+Most dependencies are managed automatically. However, some libraries must be installed on the system for the project to build and run properly. For this, using the included Docker container is highly recommended. Please see the Dockerfile for a list of required packages.
 
 Note that a Vulkan 1.4 compatible graphics driver is required.
-
-## Building
-
-**Please note that at this time, only LLVM Clang is supported**
-
-The project is built with CMake.
-
-To build the project, navigate to the root directory of the project and run
-
-```bash
-cmake  --preset=Release
-cd out/build
-cmake --build --preset "Build - Release"
-```
-
-## Testing
-
-Testing is done with CTest. Coverage reports are automatically generated if the `TEST_EXPORT_COVERAGE` option is enabled. It is recommended to use the `clang-coverage` preset for configuring the project before building.
-
-```bash
-cmake --preset clang-coverage
-cmake --build out/build/coverage
-```
-
-To run tests, use
-
-```bash
-cd out/build/coverage
-ctest --output-on-failure
-```
-
-Coverage reports are automatically generated in the `coverage-html` directory.
-
-The current state of the CI test coverage can be viewed [on this page](https://vulkan-sdl-df3688.gitlab.io/).
