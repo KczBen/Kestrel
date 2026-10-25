@@ -1,0 +1,45 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/cpp
+{
+	"name": "C++",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"antaalt.shader-validator",
+				"llvm-vs-code-extensions.vscode-clangd",
+				"ms-vscode.cmake-tools",
+				"ms-vscode.cpp-devtools",
+				"ms-vscode.cpptools",
+				"ms-vscode.cpptools-extension-pack",
+				"ms-vscode.cpptools-themes"
+			]
+		}
+	},
+	"runArgs": [
+		"--device=/dev/kfd",
+		"--device=/dev/dri",
+		"--group-add=keep-groups",
+		"--security-opt=seccomp=unconfined",
+		"--security-opt=label=disable"
+	],
+	"containerEnv": {
+		"XDG_RUNTIME_DIR": "/tmp/xdg",
+		"WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}"
+	},
+	"mounts": [
+		"source=${localEnv:XDG_RUNTIME_DIR}/${localEnv:WAYLAND_DISPLAY},target=/tmp/xdg/${localEnv:WAYLAND_DISPLAY},type=bind"
+	],
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "chmod 700 /tmp/xdg"
+	// Configure tool-specific properties.
+	// "customizations": {},
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
