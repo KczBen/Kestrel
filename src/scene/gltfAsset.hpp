@@ -1,7 +1,7 @@
 #pragma once
 
 #include "render/material.hpp"
-#include "render/resourceHandles.hpp"
+#include "util/resourceHandles.hpp"
 #include "vertex.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -30,4 +30,4 @@ struct glTFObject { // NOLINT
     glTFNode root;
 };
 
-using AssetHandle = Render::ResourceHandle<glTFObject>;
+using AssetHandle = ResourceHandle<glTFObject>;

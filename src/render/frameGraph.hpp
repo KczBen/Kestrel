@@ -17,7 +17,7 @@ class FrameGraph {
   private:
     Vulkan::PipelineManager* pipelineManager;
 
-    std::vector<std::unique_ptr<Pass>> passes;
+    SlotMap<std::unique_ptr<Pass>> passes;
     std::unordered_map<std::string, PassHandle> nameMap;
 
     std::unordered_map<RenderTargetHandle, std::vector<Pass*>> producers;

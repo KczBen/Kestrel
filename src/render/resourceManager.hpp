@@ -2,11 +2,11 @@
 
 #include "material.hpp"
 #include "renderTarget.hpp"
-#include "resourceHandles.hpp"
 #include "scene/gltfAsset.hpp"
 #include "scene/scene.hpp"
 #include "scene/vertex.hpp"
 #include "util/gpuDataObjects.hpp"
+#include "util/resourceHandles.hpp"
 #include "vulkan-wrapper/commandPool.hpp"
 #include "vulkan-wrapper/descriptorPool.hpp"
 #include "vulkan-wrapper/descriptorSet.hpp"
@@ -28,23 +28,6 @@
 #include <vector>
 
 namespace Render {
-template <typename T> class SlotMap {
-  public:
-    struct Slot {
-        T value;
-        uint32_t generation = 0;
-        bool alive = false;
-    };
-
-    template <typename H> auto insert(T&& v) -> H;
-    template <typename H> auto get(H h) -> T*;
-    template <typename H> void remove(H h);
-
-  private:
-    std::vector<Slot> slots;
-    std::vector<uint32_t> freeList;
-};
-
 struct RenderResources {
     entt::registry* entityRegistry{};
     Vulkan::DescriptorSetLayoutHandle sceneLayout;
@@ -71,17 +54,17 @@ class ResourceManager {
 
     std::vector<Vulkan::HostBuffer<CameraUBO>> cameraUniformBuffers;
     std::vector<Vulkan::HostBuffer<LightUBO>> lightUniformBuffers;
-    std::vector<Vulkan::HostBuffer<MaterialUBO>> materialUniformBuffers;
+    SlotMap<Vulkan::HostBuffer<MaterialUBO>> materialUniformBuffers;
 
     uint32_t iBufferEnd;
     uint32_t vBufferEnd;
 
-    std::vector<Vulkan::DescriptorSetLayout> descriptorSetLayouts;
-    std::vector<Vulkan::DescriptorSet> descriptorSets;
+    SlotMap<Vulkan::DescriptorSetLayout> descriptorSetLayouts;
+    SlotMap<Vulkan::DescriptorSet> descriptorSets;
 
     // Rendering internals
-    std::vector<Vulkan::Sampler> samplers;
-    std::unordered_map<Vulkan::SamplerConfig, size_t, std::hash<Vulkan::SamplerConfig>> samplerIndex;
+    SlotMap<Vulkan::Sampler> samplers;
+    std::unordered_map<Vulkan::SamplerConfig, SamplerHandle, std::hash<Vulkan::SamplerConfig>> samplerIndex;
 
     Vulkan::PipelineManager pipelineManager;
 
@@ -94,15 +77,15 @@ class ResourceManager {
     std::vector<entt::entity> tagRemovalQueue;
 
     // Assets
-    std::vector<Material> materials;
-    std::vector<glTFObject> assets;
-    std::vector<Vulkan::Texture> textures;
+    SlotMap<Material> materials;
+    SlotMap<glTFObject> assets;
+    SlotMap<Vulkan::Texture> textures;
 
     std::unordered_map<Material::MaterialKey, MaterialHandle> materialConfigMap;
     std::unordered_map<std::string, MaterialHandle> materialNameMap;
 
     // Render target stuff
-    std::vector<RenderTarget> renderTargets;
+    SlotMap<RenderTarget> renderTargets;
     std::unordered_map<std::string, RenderTargetHandle> renderTargetNameMap;
 
     RenderResources publicResources;
@@ -137,8 +120,13 @@ class ResourceManager {
                             vk::SampleCountFlagBits sampleCount = vk::SampleCountFlagBits::e1) -> RenderTargetHandle;
     auto getRenderTarget(const std::string& name) -> RenderTargetHandle;
     auto getResources() const -> const RenderResources&;
-    [[nodiscard]] auto getMaterials() const -> const std::vector<Material>& { return materials; }
+    [[nodiscard]] auto getMaterials() const -> const SlotMap<Material>& { return materials; }
     [[nodiscard]] auto getCameraCount() const -> uint32_t { return cameraUBOCache.cameraCount; }
+
+    // with the new handles this is needed to transform a public handle to a private one
+    auto resolve(Kestrel::MaterialHandle h) -> MaterialHandle { return materials.makeHandle(h.index, h.generation); }
+    auto resolve(Kestrel::TextureHandle h) -> TextureHandle { return textures.makeHandle(h.index, h.generation); }
+    auto resolve(Kestrel::AssetHandle h) -> AssetHandle { return assets.makeHandle(h.index, h.generation); }
 
     // EnTT callback methods (also callable directly for testing)
     void onCameraCreated(entt::registry& registry, entt::entity entity);

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "image.hpp"
-#include "render/resourceHandles.hpp"
 #include "sampler.hpp"
+#include "util/resourceHandles.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 
@@ -35,4 +35,4 @@ class Texture {
 };
 } // namespace Vulkan
 
-using TextureHandle = Render::ResourceHandle<Vulkan::Texture>;
+using TextureHandle = ResourceHandle<Vulkan::Texture>;

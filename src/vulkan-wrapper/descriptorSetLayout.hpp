@@ -1,7 +1,7 @@
 #pragma once
 
 #include "device.hpp"
-#include "render/resourceHandles.hpp"
+#include "util/resourceHandles.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
 namespace Vulkan {
@@ -17,5 +17,5 @@ class DescriptorSetLayout {
     [[nodiscard]] auto get() const -> const vk::raii::DescriptorSetLayout&;
 };
 
-using DescriptorSetLayoutHandle = Render::ResourceHandle<DescriptorSetLayout>;
+using DescriptorSetLayoutHandle = ResourceHandle<DescriptorSetLayout>;
 } // namespace Vulkan

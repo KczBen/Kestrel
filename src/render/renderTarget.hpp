@@ -1,6 +1,6 @@
 #pragma once
 
-#include "resourceHandles.hpp"
+#include "util/resourceHandles.hpp"
 #include <vulkan/vulkan.hpp>
 
 namespace Vulkan {

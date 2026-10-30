@@ -1,8 +1,8 @@
 #pragma once
 
 #include "device.hpp"
-#include "render/resourceHandles.hpp"
 #include "util/gpuDataObjects.hpp"
+#include "util/resourceHandles.hpp"
 
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
@@ -82,5 +82,5 @@ template <typename T> class HostBuffer {
     [[nodiscard]] auto byteSize() const noexcept -> vk::DeviceSize { return bufferSize; }
 };
 
-using MaterialUBOHandle = Render::ResourceHandle<HostBuffer<MaterialUBO>>;
+using MaterialUBOHandle = ResourceHandle<HostBuffer<MaterialUBO>>;
 } // namespace Vulkan

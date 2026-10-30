@@ -3,9 +3,9 @@
 #include "instance.hpp"
 #include "material.hpp"
 #include "physicalDevice.hpp"
-#include "resourceHandles.hpp"
 #include "shaderDef.hpp"
 #include "surface.hpp"
+#include "util/resourceHandles.hpp"
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>

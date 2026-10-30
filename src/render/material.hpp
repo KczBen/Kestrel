@@ -1,7 +1,7 @@
 #pragma once
 
-#include "resourceHandles.hpp"
 #include "util/hashHelpers.hpp"
+#include "util/resourceHandles.hpp"
 #include "util/shaderDef.hpp"
 #include "vulkan-wrapper/descriptorSet.hpp"
 #include "vulkan-wrapper/descriptorSetLayout.hpp"
@@ -146,7 +146,7 @@ inline auto buildTextureTransformMatrix(const Material::TextureTransform& transf
     return m;
 }
 
-using MaterialHandle = Render::ResourceHandle<Material>;
+using MaterialHandle = ResourceHandle<Material>;
 
 namespace std {
 template <> struct hash<Material::TextureTransform> {

@@ -2,8 +2,8 @@
 
 #include "material.hpp"
 #include "renderTarget.hpp"
-#include "resourceHandles.hpp"
 #include "resourceManager.hpp"
+#include "util/resourceHandles.hpp"
 #include "vulkan-wrapper/pipelineManager.hpp"
 #include "vulkan-wrapper/sampler.hpp"
 

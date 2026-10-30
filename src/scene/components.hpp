@@ -2,7 +2,7 @@
 
 #include "gltfAsset.hpp"
 #include "render/material.hpp"
-#include "render/resourceHandles.hpp"
+#include "util/resourceHandles.hpp"
 
 #include <cstdint>
 #include <entt/entity/entity.hpp>

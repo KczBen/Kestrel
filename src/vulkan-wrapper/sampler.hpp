@@ -1,7 +1,7 @@
 #pragma once
 
 #include "device.hpp"
-#include "render/resourceHandles.hpp"
+#include "util/resourceHandles.hpp"
 
 #include <functional>
 #include <optional>
@@ -65,4 +65,4 @@ template <> struct std::hash<Vulkan::SamplerConfig> {
     }
 };
 
-using SamplerHandle = Render::ResourceHandle<Vulkan::Sampler>;
+using SamplerHandle = ResourceHandle<Vulkan::Sampler>;

@@ -22,18 +22,18 @@ constexpr auto to_string(EngineError e) noexcept -> std::string_view { // NOLINT
     std::unreachable();
 }
 
-struct MaterialHandle {
-    uint32_t index, generation;
+template <typename T> struct Handle {
+    uint32_t index = 0xFFFFFFFF;
+    uint32_t generation = 0;
+
+    auto operator==(const Handle&) const -> bool = default;
 };
-struct TextureHandle {
-    uint32_t index, generation;
-};
-struct AssetHandle {
-    uint32_t index, generation;
-};
-struct ObjectHandle {
-    uint32_t index, generation;
-};
+
+using MaterialHandle = Handle<struct MaterialTag>;
+using TextureHandle = Handle<struct TextureTag>;
+using AssetHandle = Handle<struct AssetTag>;
+using ObjectHandle = Handle<struct ObjectTag>;
+using RenderTargetHandle = Handle<struct RenderTargetTag>;
 
 struct EngineConfiguration {
     Vec2<uint32_t> windowSize;
@@ -53,5 +53,11 @@ struct InputState {};
 template <> struct std::formatter<Kestrel::EngineError> : std::formatter<std::string_view> {
     auto format(Kestrel::EngineError e, auto& ctx) const {
         return std::formatter<std::string_view>::format(to_string(e), ctx);
+    }
+};
+
+template <typename Tag> struct std::hash<Kestrel::Handle<Tag>> {
+    auto operator()(const Kestrel::Handle<Tag>& h) const noexcept -> size_t {
+        return (size_t(h.generation) << 32) | h.index;
     }
 };

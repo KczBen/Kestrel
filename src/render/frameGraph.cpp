@@ -42,8 +42,7 @@ auto FrameGraph::addPass(std::unique_ptr<Pass> pass) -> PassHandle {
             }
         }
 
-        passes.push_back(std::move(pass));
-        PassHandle handle{&passes, passes.size() - 1};
+        auto handle = passes.insert(std::move(pass));
         // no idea why I need ->get() instead of just *handle here but oh well
         nameMap[handle->get()->name] = handle;
 

@@ -58,6 +58,7 @@ add_library(vulkan-wrapper
 
 target_include_directories(vulkan-wrapper
     PUBLIC  ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/include
     PRIVATE ${CMAKE_SOURCE_DIR}/src/util
             ${Stb_INCLUDE_DIR}
 )
@@ -68,6 +69,7 @@ add_library(scene
 )
 target_include_directories(scene
     PUBLIC  ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/include
     PRIVATE ${CMAKE_SOURCE_DIR}/src/util
 )
 target_link_libraries(scene PUBLIC EnTT::EnTT glm::glm-header-only)
@@ -83,6 +85,7 @@ add_library(render
 
 target_include_directories(render
     PUBLIC  ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/include
     PRIVATE ${CMAKE_SOURCE_DIR}/src/util
             ${CMAKE_SOURCE_DIR}/thirdparty
 )
@@ -102,6 +105,7 @@ target_link_libraries(imgui PUBLIC SDL3::SDL3 Vulkan::Vulkan)
 
 add_library(engine
     src/engine/engine.cpp
+    src/engine/scene.cpp
 )
 
 target_include_directories(engine

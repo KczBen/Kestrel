@@ -2,6 +2,7 @@
 #include "scene/camera.hpp"
 #include "scene/gltfAsset.hpp"
 #include "vulkan-wrapper/descriptorSet.hpp"
+#include "vulkan-wrapper/descriptorSetLayout.hpp"
 #include <entt/entity/fwd.hpp>
 #include <glslang/Public/ShaderLang.h>
 #include <string>
@@ -10,11 +11,11 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include "material.hpp"
-#include "resourceHandles.hpp"
 #include "resourceManager.hpp"
 #include "scene/components.hpp"
 #include "scene/vertex.hpp"
 #include "util/gpuDataObjects.hpp"
+#include "util/resourceHandles.hpp"
 #include "vulkan-wrapper/descriptorPool.hpp"
 #include "vulkan-wrapper/device.hpp"
 #include "vulkan-wrapper/deviceBuffer.hpp"
@@ -51,7 +52,7 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice,
 
     publicResources.entityRegistry = &registry;
 
-    descriptorSetLayouts.emplace_back(
+    auto layoutHandle = descriptorSetLayouts.insert(Vulkan::DescriptorSetLayout(
         device,
         std::vector<vk::DescriptorSetLayoutBinding>{
             vk::DescriptorSetLayoutBinding(0,
@@ -59,12 +60,12 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice,
                                            1,
                                            vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment),
             vk::DescriptorSetLayoutBinding(
-                1, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment)});
+                1, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment)}));
 
-    publicResources.sceneLayout = {&descriptorSetLayouts, descriptorSetLayouts.size() - 1};
+    publicResources.sceneLayout = layoutHandle;
 
     for (uint32_t i = 0; i < 2; i++) {
-        descriptorSets.emplace_back(device, descriptorPool, descriptorSetLayouts.back());
+        auto descriptorSet = descriptorSets.insert(Vulkan::DescriptorSet(device, descriptorPool, *layoutHandle));
 
         std::vector<DescriptorWrite> uboWrites;
 
@@ -81,8 +82,8 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice,
                                                .type = vk::DescriptorType::eUniformBuffer,
                                                .bufferInfo = {lightUniformBuffers.back().get(), 0, sizeof(LightUBO)}});
 
-        publicResources.sceneDescriptorSets.emplace_back(&descriptorSets, descriptorSets.size() - 1);
-        descriptorSets.back().write(uboWrites);
+        publicResources.sceneDescriptorSets.emplace_back(descriptorSet);
+        descriptorSet->write(uboWrites);
     }
 
     publicResources.sceneDescriptorSet = publicResources.sceneDescriptorSets[0];
@@ -156,8 +157,9 @@ ResourceManager::ResourceManager(Vulkan::PhysicalDevice physicalDevice,
 
     auto data = std::array<uint8_t, 4>({255, 255, 255, 255});
 
-    textures.emplace_back(device, &data, 1, 1, whitePixelHandle);
-    context.upload(textures.back());
+    auto texture = textures.insert(Vulkan::Texture(device, &data, 1, 1, whitePixelHandle));
+
+    context.upload(*texture);
 }
 
 auto ResourceManager::extractTextureTransform(const tinygltf::ExtensionMap& extensions) -> Material::TextureTransform {
@@ -392,9 +394,13 @@ auto ResourceManager::importGLTF(const std::string& path) -> AssetHandle {
         auto context = Vulkan::UploadContext(*device, uploadPool, *stagingBuffer);
         const auto& image = gltfModel.images[gltfModel.textures[i].source];
         auto sampler = getOrCreateSampler(Vulkan::SamplerConfig{});
-        textures.emplace_back(*device, image.image.data(), image.width, image.height, sampler, format);
-        context.upload(textures.back());
-        return TextureHandle{&textures, textures.size() - 1};
+
+        auto texture =
+            textures.insert(Vulkan::Texture(*device, image.image.data(), image.width, image.height, sampler, format));
+
+        context.upload(*texture);
+
+        return texture;
     };
 
     // Upload all textures with their correct format (or default if unused by materials)
@@ -420,7 +426,7 @@ auto ResourceManager::importGLTF(const std::string& path) -> AssetHandle {
                                int32_t& uvIndex,
                                Material::TextureTransform& transform) -> auto {
             if (texInfo.index < 0) {
-                handle = TextureHandle{&textures, 0};
+                handle = textures.makeHandle(0, 0);
                 uvIndex = 0;
                 transform = {};
                 return;
@@ -630,14 +636,16 @@ auto ResourceManager::importGLTF(const std::string& path) -> AssetHandle {
         return node;
     };
 
+    AssetHandle handle;
+
     // Root nodes correspond to our "Objects"
     for (const auto& nodeIdx : gltfModel.scenes[gltfModel.defaultScene].nodes) {
         auto& rootNode = gltfModel.nodes[nodeIdx];
 
-        assets.emplace_back(buildNode(rootNode));
+        handle = assets.insert(glTFObject(buildNode(rootNode)));
     }
 
-    return {&assets, assets.size() - 1};
+    return handle;
 }
 
 auto ResourceManager::getPipelineManager() -> Vulkan::PipelineManager& { return pipelineManager; }
@@ -650,9 +658,8 @@ auto ResourceManager::createRenderTarget(const std::string& name,
                                          vk::ImageUsageFlags usageFlags,
                                          vk::ImageAspectFlags aspectFlags,
                                          vk::SampleCountFlagBits sampleCount) -> RenderTargetHandle {
-    renderTargets.emplace_back(*device, extent, format, usageFlags, aspectFlags, sampleCount);
 
-    auto handle = RenderTargetHandle{&renderTargets, renderTargets.size() - 1};
+    auto handle = renderTargets.insert(RenderTarget(*device, extent, format, usageFlags, aspectFlags, sampleCount));
 
     renderTargetNameMap[name] = handle;
 
@@ -665,12 +672,12 @@ auto ResourceManager::getRenderTarget(const std::string& name) -> RenderTargetHa
 
 auto ResourceManager::getOrCreateSampler(const Vulkan::SamplerConfig& config) -> SamplerHandle {
     if (auto it = samplerIndex.find(config); it != samplerIndex.end()) {
-        return SamplerHandle{&samplers, it->second};
+        return it->second;
     }
-    samplers.emplace_back(*device, config);
-    auto index = samplers.size() - 1;
-    samplerIndex[config] = index;
-    return SamplerHandle{&samplers, index};
+
+    auto sampler = samplers.insert(Vulkan::Sampler(*device, config));
+    samplerIndex[config] = sampler;
+    return sampler;
 }
 
 auto ResourceManager::getOrCreateMaterial(const std::string& name,
@@ -696,11 +703,10 @@ auto ResourceManager::getOrCreateMaterial(const std::string& name,
     // Make a new material
     Material mat = {name, config, resources};
 
-    materialUniformBuffers.emplace_back(*device);
-    mat.materialBufferHandle = {&materialUniformBuffers, materialUniformBuffers.size() - 1};
+    mat.materialBufferHandle = materialUniformBuffers.insert(Vulkan::HostBuffer<MaterialUBO>(*device));
 
-    materials.emplace_back(std::move(mat));
-    auto insertedHandle = MaterialHandle{&materials, materials.size() - 1};
+    auto insertedHandle = materials.insert(std::move(mat));
+
     materialNameMap.emplace(name, insertedHandle);
     materialConfigMap.emplace(key, insertedHandle);
 

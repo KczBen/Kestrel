@@ -3,7 +3,7 @@
 #include "descriptorPool.hpp"
 #include "descriptorSetLayout.hpp"
 #include "device.hpp"
-#include "render/resourceHandles.hpp"
+#include "util/resourceHandles.hpp"
 #include "vulkan/vulkan_raii.hpp"
 
 struct DescriptorWrite {
@@ -29,5 +29,5 @@ class DescriptorSet {
     [[nodiscard]] auto get() const -> const vk::raii::DescriptorSet&;
 };
 
-using DescriptorSetHandle = Render::ResourceHandle<DescriptorSet>;
+using DescriptorSetHandle = ResourceHandle<DescriptorSet>;
 } // namespace Vulkan
