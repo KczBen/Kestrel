@@ -1,4 +1,5 @@
 #include "engine/engine.hpp"
+#include "engine/object.hpp"
 #include <print>
 
 auto main() -> int {
@@ -10,9 +11,13 @@ auto main() -> int {
 
     auto engine = *std::move(result);
 
-    const auto scene = engine.createScene();
+    auto scene = engine.createScene();
 
-    engine.render();
+    auto asset = engine.importGLTF("models/CarConcept.glb");
+
+    scene.addObject(asset);
+
+    engine.render(scene);
 
     return 0;
 }

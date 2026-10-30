@@ -20,7 +20,6 @@ class Scene {
 
   public:
     Scene(entt::registry& registry);
-    auto getRegistry() -> entt::registry&;
     void update(Input inputs, float deltaTime);
     void addObject(AssetHandle object);
     void addLight(glm::vec3 position, glm::quat rotation, glm::vec3 colour, float intensity, float maxRange);

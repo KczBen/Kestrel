@@ -1,5 +1,7 @@
 #include "engine/engine.hpp"
+#include "engine/types.hpp"
 #include "engine_impl.hpp"
+#include <filesystem>
 
 namespace Kestrel {
 Engine::~Engine() = default;
@@ -16,6 +18,7 @@ auto Engine::create(EngineConfiguration config) -> std::expected<Engine, EngineE
     return Engine{std::move(impl)};
 }
 
+auto Engine::importGLTF(const std::filesystem::path& path) -> AssetHandle { return impl->importGLTF(path); }
 auto Engine::createScene() -> Scene { return impl->createScene(); }
-auto Engine::render() -> void { impl->render(); }
+auto Engine::render(Scene& scene) -> void { impl->render(scene); }
 } // namespace Kestrel

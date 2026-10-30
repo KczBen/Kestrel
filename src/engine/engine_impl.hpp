@@ -5,6 +5,7 @@
 #include "render/resourceManager.hpp"
 #include "scene/components.hpp"
 #include "scene/scene.hpp"
+#include "scene_impl.hpp"
 #include "util/input.hpp"
 #include "vulkan-wrapper/device.hpp"
 #include "vulkan-wrapper/instance.hpp"
@@ -30,6 +31,7 @@
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
+#include <memory>
 #include <print>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
@@ -73,30 +75,30 @@ class Kestrel::Engine::Impl {
     }
 
     auto createScene() -> Scene {
-        currentScene = std::make_shared<::Scene::Scene>(registry);
+        Scene scene{std::make_unique<Scene::Impl>(*vulkanResourceManager, registry)};
+
         // TODO: return proper scene and not hard code any of this
-        auto asset = vulkanResourceManager->importGLTF(std::string(SDL_GetBasePath()).append("models/CarConcept.glb"));
+        // auto asset =
+        // vulkanResourceManager->importGLTF(std::string(SDL_GetBasePath()).append("models/CarConcept.glb"));
+        //
+        // currentScene->addObject(asset);
+        // currentScene->addLight({10.0, 10.0, 10.0}, {}, {255.0, 255.0, 255.0}, 0.5, 50.0);
+        // currentScene->addLight({0.0, 10.0, -10.0}, {}, {127.0, 0.0, 127.0}, 0.3, 50.0);
 
-        currentScene->addObject(asset);
-        currentScene->addLight({10.0, 10.0, 10.0}, {}, {255.0, 255.0, 255.0}, 0.5, 50.0);
-        currentScene->addLight({0.0, 10.0, -10.0}, {}, {127.0, 0.0, 127.0}, 0.3, 50.0);
-
-        return Scene{nullptr};
+        return std::move(scene);
     }
 
     auto importGLTF(const std::filesystem::path& path) -> AssetHandle {
-        auto handle = vulkanResourceManager->importGLTF(path.string());
-
-        // TODO: return proper handle
-        return {.index = 0, .generation = 0};
+        return vulkanResourceManager->importGLTF(path.string()).toPublic();
     }
 
-    auto render() -> void {
-        if (!initialised || !currentScene) {
+    auto render(Scene& scene) -> void {
+
+        if (!initialised) {
             return;
         }
 
-        renderer->init(*currentScene);
+        renderer->init((scene.impl)->get());
 
         bool running = true;
         SDL_Event event;
@@ -141,13 +143,13 @@ class Kestrel::Engine::Impl {
             const float time =
                 std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastFrameTime).count();
 
-            currentScene->update(input, time);
+            (scene.impl)->get().update(input, time);
 
             // Trigger UBO updates after we captured inputs and ran simulations
             const uint32_t frameIndex = (currentFrame++) % 2;
             registry.patch<FrameContext>(frameContextEntity, [&](FrameContext& fc) -> void { fc.index = frameIndex; });
 
-            renderer->render(*currentScene, time);
+            renderer->render((scene.impl)->get(), time);
             lastFrameTime = currentTime;
         }
     }
@@ -163,8 +165,6 @@ class Kestrel::Engine::Impl {
 
     std::unique_ptr<Render::Render> renderer;
 
-    std::shared_ptr<::Scene::Scene> currentScene;
-
     entt::registry registry;
     entt::entity frameContextEntity;
 
@@ -173,7 +173,6 @@ class Kestrel::Engine::Impl {
 
     bool initialised = false;
 
-  public:
     static auto getInstanceExtensions() -> std::vector<const char*> {
         uint32_t count = 0;
         const auto* sdlExts = SDL_Vulkan_GetInstanceExtensions(&count);

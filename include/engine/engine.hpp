@@ -13,8 +13,8 @@ class Engine {
   public:
     ~Engine();
     Engine(Engine&&) noexcept;
-    auto operator=(Engine&&) noexcept -> Engine&;
     Engine(const Engine&) = delete;
+    auto operator=(Engine&&) noexcept -> Engine&;
     auto operator=(const Engine&) -> Engine& = delete;
 
     static auto create(EngineConfiguration config) -> std::expected<Engine, EngineError>;
@@ -22,7 +22,7 @@ class Engine {
     auto createMaterial(const MaterialConfiguration& config) -> MaterialHandle;
     auto createFrameGraph() -> FrameGraph;
     auto createScene() -> Scene;
-    auto render() -> void;
+    auto render(Scene& scene) -> void;
 
   private:
     class Impl;

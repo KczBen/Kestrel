@@ -2,16 +2,19 @@
 
 #include "math.hpp"
 #include "types.hpp"
-
-namespace Scene {
-class Scene;
-} // namespace Scene
+#include <memory>
 
 namespace Kestrel {
 class Object;
 
 class Scene {
   public:
+    ~Scene();
+    Scene(Scene&&) noexcept;
+    Scene(const Scene&) = delete;
+    auto operator=(Scene&&) noexcept -> Scene&;
+    auto operator=(const Scene&) -> Scene& = delete;
+
     auto addObject(AssetHandle asset) -> Object;
     auto addCamera() -> void;
 
@@ -24,8 +27,10 @@ class Scene {
     auto setObjectTransform(ObjectHandle object, Transform transform) -> void;
 
   private:
+    class Impl;
+    explicit Scene(std::unique_ptr<Impl> impl);
+    std::unique_ptr<Impl> impl;
+
     friend class Engine;
-    Scene(::Scene::Scene* internalScene) : internalScene(internalScene) {};
-    ::Scene::Scene* internalScene = nullptr;
 };
 } // namespace Kestrel

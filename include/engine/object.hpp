@@ -17,7 +17,7 @@ class Object {
 
   private:
     friend class Scene;
-    Scene* scene;
+    Scene* scene = nullptr;
     Kestrel::ObjectHandle handle;
 };
 } // namespace Kestrel

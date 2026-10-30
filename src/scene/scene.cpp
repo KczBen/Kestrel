@@ -2,6 +2,7 @@
 #include "camera.hpp"
 #include "components.hpp"
 #include "gltfAsset.hpp"
+
 #include <entt/entity/fwd.hpp>
 #include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -21,8 +22,6 @@ Scene::Scene(entt::registry& registry) : entityRegistry(&registry) {
     Camera::initOrbitCamera(entityRegistry->get<CameraTransform>(defaultCamera),
                             entityRegistry->get<OrbitController>(defaultCamera));
 };
-
-auto Scene::getRegistry() -> entt::registry& { return *entityRegistry; }
 
 void Scene::update(Input inputs, float deltaTime) {
     auto view = entityRegistry->view<CameraTransform, OrbitController, ActiveCamera>();
